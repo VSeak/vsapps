@@ -27,6 +27,8 @@ Supabase's built-in email only sends to members of your Supabase team, so studen
 - **Gmail:** turn on 2-step verification for your Google account, create an **App password** (Google Account → Security → App passwords), then use host `smtp.gmail.com`, port `465`, username = your Gmail address, password = the app password.
 - **Brevo** (free, 300 emails a day): sign up, verify your sender email, and copy the SMTP details from **SMTP & API**.
 
+Set **Sender name** to **VS Apps**. Every app on this Supabase project (Sit Start, Top Out) sends through this one sender, so the name stays neutral; each email's subject and wording say which app it's from.
+
 Then, under **Authentication → Emails → Templates**, replace **Confirm signup**, **Magic Link** and **Reset Password** with `supabase/emails/confirm-signup.html`, `supabase/emails/magic-link.html` and `supabase/emails/reset-password.html`. Each file starts with a note giving its subject line. Change the name in them to yours.
 
 ## 5. Tell Supabase where the site lives
