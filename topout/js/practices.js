@@ -186,8 +186,8 @@ function practiceFieldsHTML(p, areas) {
   const pickable = areas.filter(a => a.active || v.area_ids.includes(a.id));
   return `<label>Name<input name="name" maxlength="120" required value="${esc(v.name)}" data-need="Name the practice."
       placeholder="E.g. Power Endurance Night" autocomplete="off"></label>
-    <label>Summary <span class="muted">(optional)</span><textarea name="summary" rows="2" maxlength="600"
-      placeholder="E.g. Short, hard efforts on the 40° wall, then core.">${esc(v.summary)}</textarea></label>
+    <label>Summary <span class="muted">(optional)</span>${rich(`<textarea name="summary" rows="2" maxlength="600"
+      placeholder="E.g. Short, hard efforts on the 40° wall, then core.">${esc(v.summary)}</textarea>`)}</label>
     ${pickable.length ? `<div class="field"><span class="label">Focus Areas <span class="muted">for this practice</span></span>
       ${areaChips('area', pickable, v.area_ids, 'Focus areas')}</div>` : ''}
     <div class="row between blocks-head"><h2>Blocks</h2><span class="muted" data-total></span></div>
@@ -202,7 +202,7 @@ const blockEditHTML = (b = {}) => `<div class="block-edit" data-kind="block" dat
     <label class="mins"><input type="number" name="b_min" min="1" max="600" step="1" inputmode="numeric" value="${b.minutes || ''}"
       aria-label="Minutes" data-range="1 to 600 minutes."> min</label>
     <button type="button" class="small ghost danger" data-remove>Remove</button></div>
-  <textarea name="b_notes" rows="2" maxlength="4000" placeholder="What to do, coaching cues (optional)">${esc(b.notes || '')}</textarea></div>`;
+  ${rich(`<textarea name="b_notes" rows="2" maxlength="4000" placeholder="What to do, coaching cues (optional)">${esc(b.notes || '')}</textarea>`)}</div>`;
 
 // Add Block, Remove, the total and the grips, inside one form (the editor page's or the pop-up's).
 function wirePracticeForm(form) {

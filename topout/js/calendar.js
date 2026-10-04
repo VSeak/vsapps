@@ -175,8 +175,8 @@ async function editEvent(e, loc, locs) {
           ${allDay ? '' : 'required'} data-need="Pick a start time, or tick All Day."></label>
         <label>End Time <span class="muted">(optional)</span><input type="time" name="end_time" value="${(v.end_time || '').slice(0, 5)}"
           data-range="End after it starts."></label></div>
-      <label>Notes <span class="muted">(agenda, what to bring, links)</span><textarea name="notes" rows="5"
-        placeholder="E.g. Warm-up, then 4×4s on the 40° wall. Focus: heel hooks.">${esc(v.notes)}</textarea></label>
+      <label>Notes <span class="muted">(agenda, what to bring, links)</span>${rich(`<textarea name="notes" rows="5"
+        placeholder="E.g. Warm-up, then 4×4s on the 40° wall. Focus: heel hooks.">${esc(v.notes)}</textarea>`)}</label>
       ${pickLocs ? `<fieldset data-required><legend>Show At</legend>
         ${me.isAdmin ? `<label class="check"><input type="checkbox" name="everywhere"${v.location_ids ? '' : ' checked'}> Every Location</label>` : ''}
         ${locs.map(l => `<label class="check"><input type="checkbox" name="loc" value="${l.id}"${at(l.id) ? ' checked' : ''}> ${esc(l.name)}</label>`).join('')}

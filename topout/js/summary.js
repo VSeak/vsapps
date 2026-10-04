@@ -107,8 +107,8 @@ async function focusForm(f, { loc, areas, focus, s }) {
   const res = await ask({ title: f ? 'Edit Team Focus' : 'New Team Focus', ok: f ? 'Save' : 'Add Focus', wide: true,
     extra: f ? { value: 'delete', label: 'Delete' } : null,
     body: `<label>Date<input type="date" name="focus_date" required value="${f?.focus_date || today()}" data-need="Pick the date."></label>
-      <label>What the Team Works On<textarea name="body" rows="4" required data-need="Write what the team will work on."
-        placeholder="E.g. Footwork drills to start every practice; a comp-style night each month before Boulderfest.">${esc(f?.body || '')}</textarea></label>
+      <label>What the Team Works On${rich(`<textarea name="body" rows="4" required data-need="Write what the team will work on."
+        placeholder="E.g. Footwork drills to start every practice; a comp-style night each month before Boulderfest.">${esc(f?.body || '')}</textarea>`)}</label>
       <fieldset><legend>Focus Areas</legend>${areaChips('area', list, picked, 'Focus areas')}</fieldset>
       ${wanted ? `<p class="hint">Most wanted in check-ins: ${esc(wanted)}.</p>` : ''}` });
   if (!res) return;

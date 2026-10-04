@@ -112,7 +112,14 @@ label > :is(input, select, textarea) { display: block; margin-top: .3rem; }
 label .muted { font-weight: 400; }
 input, select, textarea { font: inherit; font-weight: 400; color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px;
   padding: .55rem .7rem; width: 100%; min-width: 0; }
-textarea { resize: vertical; field-sizing: content; min-height: 3.2em; }
+textarea { resize: vertical; field-sizing: content; min-height: 3.2em; }   /* grow() in core.js where field-sizing is missing */
+/* A textarea with a Bold button in its top right corner (rich() in core.js) */
+.rich { position: relative; }
+.rich textarea { display: block; padding-right: 2.6rem; }
+.rich-b { position: absolute; top: 5px; right: 5px; min-height: 0; width: 1.9rem; height: 1.9rem; padding: 0;
+  border-radius: 8px; font: 800 .9rem/1 Figtree, sans-serif; background: var(--card); color: var(--muted); }
+label > .rich { margin-top: .3rem; }
+label > .rich > textarea { margin-top: 0; }
 input[type="color"] { padding: .15rem; width: 2.6rem; height: 2.4rem; flex: none; }
 input[type="number"] { width: 4.5rem; }
 .two input[type="number"] { width: 100%; }

@@ -17,6 +17,27 @@ const linkify = h => h.replace(/\b(?:https?:\/\/|www\.)(?:[^\s&<]|&amp;)+/gi, m 
   return `<a href="${/^www\./i.test(url) ? 'https://' : ''}${url}" target="_blank" rel="noopener noreferrer">${url}</a>${rest}`;
 });
 const para = s => linkify(esc(s).replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>')).replace(/\n/g, '<br>');
+// A textarea with a Bold button in its corner (Ctrl+B does the same): wraps the picked words in **, or unwraps them.
+// Only for text para() shows (notes, Team Focus, check-in answers, practice text).
+const rich = textarea => `<div class="rich">${textarea}<button type="button" class="rich-b" data-bold title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button></div>`;
+function toggleBold(t) {
+  const a = t.selectionStart, z = t.selectionEnd, v = t.value;
+  if (a >= 2 && v.slice(a - 2, a) === '**' && v.slice(z, z + 2) === '**') t.setRangeText(v.slice(a, z), a - 2, z + 2, 'select');
+  else { t.setRangeText(`**${v.slice(a, z)}**`, a, z); t.setSelectionRange(a + 2, z + 2); }
+  t.focus();
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+}
+document.addEventListener('mousedown', e => { if (e.target.closest('[data-bold]')) e.preventDefault(); });   // keeps the picked words
+document.addEventListener('click', e => { const b = e.target.closest('[data-bold]'); if (b) toggleBold(b.parentElement.querySelector('textarea')); });
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && e.target.matches?.('.rich textarea')) { e.preventDefault(); toggleBold(e.target); }
+});
+// Every textarea grows downward to fit its text: CSS field-sizing where the browser has it (not iPhone Safari),
+// otherwise here, on typing, on focus, after a page or pop-up draws and when a card unfolds. Hidden ones wait until shown.
+const growable = CSS.supports('field-sizing', 'content');
+function grow(t) { if (growable || !t.offsetParent) return; t.style.height = 'auto'; t.style.height = t.scrollHeight + 2 + 'px'; }
+const growAll = (root = document) => root.querySelectorAll('textarea').forEach(grow);
+['input', 'focusin'].forEach(k => document.addEventListener(k, e => { if (e.target.matches?.('textarea')) grow(e.target); }));
 const must = ({ data, error }) => { if (error) throw error; return data; };
 const loading = '<p class="muted">Loading…</p>';
 
@@ -44,11 +65,16 @@ if (location.hash && !location.hash.startsWith('#/')) {
 let redrawing = false;
 function view(html, { keepScroll = false } = {}) {
   if (html === loading && redrawing) return;
-  if (redrawing) { keepScroll = true; redrawing = false; }
+  if (redrawing) {
+    keepScroll = true; redrawing = false;
+    const put = keptEdits; keptEdits = null;
+    if (put) requestAnimationFrame(put);   // after the page wires its fields (keepEdits in app.js)
+  }
   app.oninput = app.onchange = app.onclick = app.onsubmit = null;
   app.innerHTML = html;
   markUnsaved();   // Save buttons start greyed out
   foldCards();
+  growAll(app);
   if (!keepScroll) window.scrollTo(0, 0);
 }
 
@@ -77,6 +103,7 @@ app.addEventListener('click', e => {
   const b = e.target.closest('.fold-btn'); if (!b) return;
   const card = b.closest('.card'), folded = card.classList.toggle('folded'), key = card.dataset.foldKey;
   b.setAttribute('aria-expanded', !folded);
+  if (!folded) growAll(card);
   if (card.hasAttribute('data-fold')) foldVisit[key] = folded;
   else {
     if (folded) foldSaved[key] = true; else delete foldSaved[key];
@@ -233,6 +260,7 @@ function ask({ title, body = '', ok = 'OK', warn = false, cancel = true, wide = 
       d.focus();
     }
     onOpen?.(f);
+    growAll(d);
   });
 }
 const confirmDelete = (title, body) => ask({ title, body: `<p>${body}</p>`, ok: 'Delete', warn: true });

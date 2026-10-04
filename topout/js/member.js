@@ -157,7 +157,7 @@ function coachNotesHTML({ notes }) {
   return `<section class="card" id="notesCard"><div class="row between"><h2>Coach Notes</h2>${notes.length ? `<span class="tag">${notes.length}</span>` : ''}</div>
     <p class="hint">Private to staff. What you noticed at practice, what to work on next.</p>
     <form id="noteForm" class="stack" data-save>
-      <label>Note<textarea name="body" rows="3" required data-need="Type the note first." placeholder="E.g. Great flagging today. Next: trust feet on slab."></textarea></label>
+      <label>Note${rich('<textarea name="body" rows="3" required data-need="Type the note first." placeholder="E.g. Great flagging today. Next: trust feet on slab."></textarea>')}</label>
       <div class="row between wrap"><label class="inline">Practice Date<input type="date" name="note_date" value="${today()}"></label>
         <button class="primary">+ Add Note</button></div>
     </form>
@@ -331,7 +331,7 @@ function bindMember(ctx) {
         return busy(n, async () => { await sb.from('team_coach_notes').delete().eq('id', note.id).then(must); redraw(); });
       }
       const f = await ask({ title: 'Edit Note', ok: 'Save Note', wide: true,
-        body: `<label>Note<textarea name="body" rows="6" required data-need="The note can't be empty.">${esc(note.body)}</textarea></label>
+        body: `<label>Note${rich(`<textarea name="body" rows="6" required data-need="The note can't be empty.">${esc(note.body)}</textarea>`)}</label>
           <label>Practice Date <span class="muted">(empty = a general note)</span><input type="date" name="note_date" value="${note.note_date || ''}"></label>` });
       if (f) busy(n, async () => {
         await sb.from('team_coach_notes').update({ body: f.get('body').trim(), note_date: f.get('note_date') || null }).eq('id', note.id).then(must);

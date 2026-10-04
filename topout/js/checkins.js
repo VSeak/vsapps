@@ -125,8 +125,8 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
         data-range="A check-in can't be in the future."></label>
       <p class="hint">Record what's useful. Everything below is optional.${!c && last ? ` Ratings, grades and notes start from the last check-in (${fmtDate(last.checkin_date)}), so change what's new.` : ''}</p>
       ${recap}
-      ${shownQs.length ? `<h3 class="sec">Questions</h3>${shownQs.map(q => `<div class="q-block"><label>${esc(q.prompt)}<textarea name="a_${q.id}" rows="2"
-        placeholder="${esc(q.hint)}">${esc(v.answers[q.id] || '')}</textarea></label>${tagsOn(q) ? tagPick(q) : ''}</div>`).join('')}` : ''}
+      ${shownQs.length ? `<h3 class="sec">Questions</h3>${shownQs.map(q => `<div class="q-block"><label>${esc(q.prompt)}${rich(`<textarea name="a_${q.id}" rows="2"
+        placeholder="${esc(q.hint)}">${esc(v.answers[q.id] || '')}</textarea>`)}</label>${tagsOn(q) ? tagPick(q) : ''}</div>`).join('')}` : ''}
       <h3 class="sec">Grades</h3>
       <label>Hardest Circuit<select name="circuit_id"><option value="">—</option>${circuits.map(x =>
         `<option value="${x.id}"${x.id === v.circuit_id ? ' selected' : ''}>${esc(x.name)}${circuitRange(x) ? ` (${circuitRange(x)})` : ''}</option>`).join('')}</select></label>
@@ -141,7 +141,7 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
           <ol class="rate-lines">${[1, 2, 3, 4, 5].map(i => `<li><b>${i}</b><span>${guideFor(a, i)}</span></li>`).join('')}</ol>
           ${raters.map(r => pick(a, r)).join('')}</div>`).join('')}` : ''}
       <h3 class="sec">Notes</h3>
-      <textarea name="notes" rows="3" aria-label="Notes" placeholder="E.g. Moved up a color since spring. Wants to try the Kilter at 45° next.">${esc(v.notes)}</textarea>`,
+      ${rich(`<textarea name="notes" rows="3" aria-label="Notes" placeholder="E.g. Moved up a color since spring. Wants to try the Kilter at 45° next.">${esc(v.notes)}</textarea>`)}`,
     // Tapping the picked rating again clears it (a radio can't be unticked on its own); pointerdown notes whether it was already picked.
     onOpen: form => {
       let was = null;

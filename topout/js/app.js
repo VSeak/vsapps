@@ -131,8 +131,40 @@ function redirect(hash) {
   currentHash = location.hash;
   route();
 }
-// Redraws the page (after a save), keeping the scroll.
-function redraw() { redrawing = true; route(); }
+// Redraws the page (after a save), keeping the scroll and any unsaved edits in the other forms (keepEdits).
+function redraw() { keptEdits = keepEdits(); redrawing = true; route(); }
+
+// A redraw keeps what was typed in a data-save form that wasn't the one just saved (Sit Start does the same): after
+// saving a goal, a half-typed Coach Note is still there. Forms are found again by id, or by data-kind + data-id (Settings rows).
+// view() puts them back a frame after the page draws, once the page has wired its fields, with input/change events so
+// the page reacts (Other pronouns shows its box, a ticked team shows its pick) and the Unsaved marks come back.
+let justSaved = null, keptEdits = null;
+app.addEventListener('submit', e => { justSaved = e.target; }, true);
+app.addEventListener('input', () => { justSaved = null; });
+const formKey = f => f.id ? `#${CSS.escape(f.id)}`
+  : f.dataset.kind ? `form[data-kind="${f.dataset.kind}"]${f.dataset.id ? `[data-id="${f.dataset.id}"]` : ':not([data-id])'}` : null;
+function keepEdits() {
+  const hash = location.hash, kept = [];
+  for (const f of app.querySelectorAll('form[data-save]')) {
+    const key = formKey(f);
+    if (!key || f === justSaved) continue;
+    for (const el of f.querySelectorAll(':is(input, textarea, select)[name]')) {
+      if (!fieldChanged(el)) continue;
+      const box = el.type === 'checkbox' || el.type === 'radio';
+      kept.push({ sel: `${key} [name="${CSS.escape(el.name)}"]${box ? `[value="${CSS.escape(el.value)}"]` : ''}`, box, val: box ? el.checked : el.value });
+    }
+  }
+  justSaved = null;
+  return kept.length ? () => {
+    if (location.hash !== hash) return;
+    for (const { sel, box, val } of kept) {
+      const now = app.querySelector(sel);
+      if (!now || now.disabled) continue;
+      if (box) now.checked = val; else now.value = val;
+      now.dispatchEvent(new Event(box || now.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
+    }
+  } : null;
+}
 
 function showError(e) {
   authPage('Sorry,', 'something went wrong.', `<p>${esc(msgOf(e))}</p><p><a href="#/">Back to the start</a></p>`);
