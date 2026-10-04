@@ -226,6 +226,12 @@ function ask({ title, body = '', ok = 'OK', warn = false, cancel = true, wide = 
     const onClose = () => { if (d.open && f.isConnected) return; d.removeEventListener('close', onClose); resolve(null); };
     d.addEventListener('close', onClose);
     d.showModal();
+    // On a touch screen, opening on a text box pops the keyboard up over the dialog (a staff member's did): focus the
+    // dialog instead, and the keyboard waits until a box is tapped.
+    if (matchMedia('(pointer: coarse)').matches && document.activeElement?.matches('input:not([type="checkbox"], [type="radio"]), textarea')) {
+      d.tabIndex = -1;
+      d.focus();
+    }
     onOpen?.(f);
   });
 }
