@@ -39,7 +39,8 @@ function bindCoachSession(s, rows, ctx) {
   const kept = open && canCoach(s) && csLocal(open.id);
   if (kept) Object.assign(open, kept);
   for (const r of rows) if (r.submitted_at) csForget(r.id);
-  cs = { s, edit: canCoach(s), open, past, plan: ctx.plan, ctx, library: same ? cs.library : null,
+  // library is read again on every load, so exercises added on Exercises & Drills since show up.
+  cs = { s, edit: canCoach(s), open, past, plan: ctx.plan, ctx, library: null,
     at: same ? cs.at : { openEx: null, past: { page: 1 }, pastOpen: false }, view: same ? cs.view : { i: 0 } };
   if (kept) csChanged();
   renderCoachSession();
