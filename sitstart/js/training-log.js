@@ -252,12 +252,21 @@ function openLogSheet(key, sid, date = todayISO(), keep = null, browse = false) 
 logSheet.addEventListener('change', e => {
   if (!('date' in e.target.dataset)) return;
   const d = e.target.value;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d > todayISO()) { e.target.value = ls.date; return; }
-  if (d === ls.date) return;
+  const ok = /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= todayISO();
+  if (!ok) e.target.value = ls.date;
+  // Back on its own day: the sheet is redrawn if a taken day had grayed out Save.
+  if (!ok || d === ls.date) { if (ls.blocked) openLogSheet(ls.key, ls.sid, ls.date, ls); return; }
   if (ls.pinned) {
     if (logsOf(logCtx.logs, ls.key).some(l => l !== ls.editing && l.logged_on === d)) {
-      e.target.value = ls.date;
-      return flash(`You already logged this on ${midDay(d)}. Edit that log instead.`, 'error');
+      // The same red line as a new log gets, and Save is grayed out until another day is picked (the user asked:
+      // don't count on the line being read). The Day stays on the taken one, so it's plain what is wrong.
+      ls.blocked = true;
+      const hint = logSheet.querySelector('.log-date .hint');
+      hint.className = 'hint exists';
+      hint.setAttribute('role', 'alert');
+      hint.textContent = `A log already exists for ${d === todayISO() ? 'today' : midDay(d)}, so this one can't move there. Pick another day to save.`;
+      logSheet.querySelector('[data-save]').disabled = true;
+      return;
     }
     openLogSheet(ls.key, ls.sid, d, ls);
   } else openLogSheet(ls.key, ls.sid, d, null, true);
@@ -364,6 +373,7 @@ logSheet.addEventListener('click', async e => {
 const redrawField = k => { logSheet.querySelector(`[data-field="${k}"]`).outerHTML = logFieldHTML(k); };
 
 function saveLog(btn) {
+  if (ls.blocked) return;
   const vals = {};
   for (const k of ls.fields) if (ls.vals[k] != null && ls.vals[k] !== '') vals[k] = ls.vals[k];
   if (vals.weight != null) vals.unit = ls.unit;
