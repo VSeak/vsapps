@@ -294,7 +294,7 @@ function msgCardHTML(href, blurb, key) {
 }
 
 // ---------- Push notifications ----------
-// A service worker (sw.js: it only shows notifications, pages still load fresh) and the browser's push address, saved
+// A service worker (sw.js: it shows notifications and keeps pages fresh, storing nothing) and the browser's push address, saved
 // in push_subscriptions. Off until CONFIG.vapidKey is set. iPhones only allow it for an app on the home screen.
 
 const pushOK = () => !!CONFIG.vapidKey && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -355,6 +355,8 @@ async function drawPushBox(who) {
     });
   };
 }
+// Registered on every load, with or without notifications: sw.js also keeps the app on its newest version.
+navigator.serviceWorker?.register('sw.js').catch(() => {});
 // Tapping a notification while the app is open: the service worker says which thread to show.
 navigator.serviceWorker?.addEventListener('message', e => {
   if (typeof e.data?.go === 'string' && e.data.go.startsWith('#/')) location.hash = e.data.go;

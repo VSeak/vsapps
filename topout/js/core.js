@@ -443,3 +443,8 @@ $('#installBar').addEventListener('click', async e => {
   } else try { localStorage.setItem(INSTALL_LATER, Date.now() + 30 * 864e5); } catch {}
   $('#installBar').hidden = true;
 });
+
+// ---------- Always the newest version ----------
+// sw.js asks the server for the newest copy of the site's files on every load (the host would let a phone keep them
+// for 10 minutes). It stores nothing.
+navigator.serviceWorker?.register('sw.js').catch(() => {});
