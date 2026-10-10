@@ -82,25 +82,35 @@ Deno.serve(async (req) => {
     const { data: { user } } = await createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!).auth.getUser(token);
     if (!user) return json({ error: "Sign in first." }, 401);
 
+    // A moment for the other side to read it: with the thread open on their screen it is marked read at once, and
+    // push_targets then returns nobody, so their phone doesn't buzz for a message they are looking at.
+    await new Promise((r) => setTimeout(r, 2500));
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: targets, error } = await admin.rpc("push_targets", { p_message: id, p_caller: user.id });
     if (error) throw error;
 
+    // failed: the push service and its answer for each device that wasn't accepted (the page logs it).
     let sent = 0;
+    const failed: { host: string; status: number | string }[] = [];
     for (const t of targets ?? []) {
+      const host = new URL(t.endpoint).hostname;
       try {
-        if (!PUSH_HOSTS.test(new URL(t.endpoint).hostname)) continue;
+        if (!PUSH_HOSTS.test(host)) { failed.push({ host, status: "not a push service" }); continue; }
         const body = await encrypt(t.p256dh, t.auth_key, JSON.stringify({ title: t.title, body: t.body, url: t.path }));
         const res = await fetch(t.endpoint, { method: "POST", body, headers: {
           Authorization: await vapid(t.endpoint), "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream",
           TTL: "86400", Urgency: "high" } });
         if (res.ok) sent++;
         // Gone for good (the app was removed, or notifications turned off): forget the device.
-        else if (res.status === 404 || res.status === 410) await admin.from("push_subscriptions").delete().eq("endpoint", t.endpoint);
-        else console.error("push failed", res.status, new URL(t.endpoint).hostname, await res.text());
-      } catch (e) { console.error("push error", e); }
+        if (res.status === 404 || res.status === 410) await admin.from("push_subscriptions").delete().eq("endpoint", t.endpoint);
+        if (!res.ok) {
+          const said = (await res.text()).slice(0, 200);
+          console.error("push failed", res.status, host, said);
+          failed.push({ host, status: `${res.status} ${said}` });
+        }
+      } catch (e) { console.error("push error", e); failed.push({ host, status: String((e as Error)?.message ?? e) }); }
     }
-    return json({ sent });
+    return json({ devices: (targets ?? []).length, sent, failed });
   } catch (e) {
     console.error(e);
     return json({ error: String((e as Error)?.message ?? e) }, 500);

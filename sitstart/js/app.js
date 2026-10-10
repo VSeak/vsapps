@@ -247,7 +247,7 @@ function route() {
     ? (me.student && page === 'me' ? (id === 'messages' ? msgThread(me.student.id) : studentHome())
       : me.isCoach && page === 'messages' ? (id ? msgThread(id) : adminMessages())
       : me.student && !me.isCoach && page === 'plan' && id ? studentPlan(id)
-      : me.isCoach && page === 'students' ? adminStudents() : me.isCoach && page === 'student' && id ? adminStudent(id)
+      : me.isCoach && page === 'students' ? adminStudents() : me.isCoach && page === 'student' && id ? (sub === 'messages' ? msgThread(id, true) : adminStudent(id))
       : me.isCoach && page === 'plan' && id ? adminPlan(id, sub)
       : (me.isCoach || me.isAdmin) && page === 'exercises' ? adminExercises()
       : me.isAdmin && page === 'users' ? adminUsers() : me.isAdmin && page === 'user' && id ? adminUser(id) : adminHome())

@@ -77,6 +77,14 @@ function msgSoon() {
 function msgEvent(p) {
   msgSoon();
   const c = $('#msgThread') && msgCtx, gone = p.eventType === 'DELETE' && p.old?.id;
+  // A new message for me while I'm somewhere else in the app: say so on the page (sw.js shows no notification
+  // while the app is on screen).
+  const m = p.eventType === 'INSERT' && p.new;
+  if (m && m.author_id !== me?.user.id && c?.sid !== m.student_id && !document.hidden) {
+    if (m.from_coach) flash(`New message from ${m.author_name || 'your coach'}.`);
+    else sb.from('students').select('name').eq('id', m.student_id).maybeSingle()
+      .then(r => flash(`New message from ${r.data?.name || 'a student'}.`));
+  }
   if (!c) return;
   if (gone) {
     if (c.list.some(m => m.id === gone)) { c.list = c.list.filter(m => m.id !== gone); msgDraw(); }
@@ -135,13 +143,13 @@ function msgListHTML() {
           mine(m) ? ` · <button type="button" class="link" data-del-msg="${m.id}">Delete</button>` : ''}</div></div>`;
     }).join('') || `<p class="muted msg-none">No messages yet.${own ? ' Say hi, or ask your coach a question.' : ''}</p>`);
 }
-// Redraws the bubbles. Stays at the newest message if the reader was there (or toEnd), so a new one is in view.
+// Redraws the bubbles, which scroll inside the card (so a long thread never makes a long page). Stays at the newest message if the reader was there (or toEnd), so a new one is in view.
 function msgDraw(toEnd = false) {
-  const box = $('#msgList'), doc = document.documentElement;
+  const box = $('#msgList');
   if (!box || !msgCtx) return;
-  const atEnd = toEnd || innerHeight + scrollY >= doc.scrollHeight - 120;
+  const atEnd = toEnd || box.scrollTop + box.clientHeight >= box.scrollHeight - 80;
   box.innerHTML = msgListHTML();
-  if (atEnd) window.scrollTo(0, doc.scrollHeight);
+  if (atEnd) box.scrollTop = box.scrollHeight;
 }
 // Marks the other side's messages read once they are on screen (not while the page is in the background).
 async function msgRead() {
@@ -155,7 +163,9 @@ async function msgRead() {
 }
 
 // A student's thread: their own (own, at #/messages or #/me/messages) or, for their coach, #/messages/<student id>.
-async function msgThread(sid) {
+// fromStudent: opened from the student page's Messages card (#/student/<id>/messages), so the trail and Back lead
+// back there instead of to the inbox (the user asked).
+async function msgThread(sid, fromStudent = false) {
   const t = ++navToken;
   const own = !!me.student && sid === me.student.id;
   view(loading);
@@ -173,10 +183,11 @@ async function msgThread(sid) {
     : `Only ${esc(s.first_name)}'s coach can message ${p.them}.`;
 
   view(`${crumbs(own ? [['Home', '#/'], ...(me.isStaff ? [['My Training', '#/me']] : []), ['Messages']]
+      : fromStudent ? [['Home', '#/'], ['Students', '#/students'], [s.name, '#/student/' + sid], ['Messages']]
       : [['Home', '#/'], ['Messages', '#/messages'], [s.name]])}
-    <div class="page-head"><div><span class="eyebrow">${own ? (coach ? `With ${esc(coach.name)}, Your Coach` : 'Your Coach') : 'Messages'}</span>
-      <h1>${own ? 'Messages' : esc(s.name) + pronounsTag(s.pronouns)}</h1></div>
-      ${own ? '' : `<a href="#/student/${sid}">Open Student Page</a>`}</div>
+    <div class="page-head"><div>${own ? `<h1>Messages</h1>${coach ? `<span class="eyebrow msg-with">With ${esc(coach.name)}</span>` : ''}`
+      : `<span class="eyebrow">Messages</span><h1>${esc(s.name) + pronounsTag(s.pronouns)}</h1>`}</div>
+      ${own || fromStudent ? '' : `<a href="#/student/${sid}">Open Student Page</a>`}</div>
     <section class="card msg-card" id="msgThread">
       <div id="pushBox"></div>
       <div id="msgList" class="msg-list"></div>
@@ -201,13 +212,13 @@ async function msgThread(sid) {
     }
     const more = e.target.closest('[data-msg-more]');
     if (more) busy(more, async () => {
-      const c = msgCtx, doc = document.documentElement, was = doc.scrollHeight;
+      const c = msgCtx, box = $('#msgList'), was = box.scrollHeight;
       const older = await msgFetch(sid, c.list[0].created_at);
       if (c !== msgCtx) return;
       c.list = [...older.rows, ...c.list];
       c.more = older.more;
       msgDraw();
-      window.scrollBy(0, doc.scrollHeight - was);   // the message that was on top stays put
+      box.scrollTop = box.scrollHeight - was;   // the message that was on top stays put
     });
   };
 
@@ -225,9 +236,15 @@ async function msgThread(sid) {
       if (msgCtx?.sid === sid) { msgPut(m); msgDraw(true); }
       box.focus();
       // The other side's notification. It only works once push is set up (SETUP.md), and never holds up the page.
-      if (CONFIG.vapidKey) sb.functions.invoke('message-push', { body: { id: m.id } }).catch(() => {});
+      // A device the push service turned down goes to the error log, so a missing notification can be traced.
+      if (CONFIG.vapidKey) sb.functions.invoke('message-push', { body: { id: m.id } }).then(({ data }) => {
+        console.info('message-push', data);
+        if (data?.failed?.length) logError('push', 'A notification was not accepted', JSON.stringify(data.failed));
+      }).catch(() => {});
     });
   };
+  // Tapping Send leaves the focus in the box, so a phone's keyboard stays up instead of dropping and coming back.
+  form.querySelector('button').onmousedown = e => e.preventDefault();
   // Enter sends with a keyboard (Shift+Enter for a new line); on a phone Enter is a new line and Send sends.
   form.elements.body.onkeydown = e => {
     if (e.key !== 'Enter' || e.shiftKey || e.isComposing || touch.matches) return;
@@ -269,8 +286,12 @@ async function adminMessages(again = false) {
 }
 
 // The Messages card on a student's home page, and on the coach's student page (key: 'mine' or the student's id).
-const msgCardHTML = (href, blurb, key) => `<a class="card tile msg-tile" id="msgCard" href="${href}">
-  <div><h2>Messages</h2><p class="muted">${blurb}</p></div><span class="msg-n" data-msg-n="${key}" hidden></span>${ICON_ARROW}</a>`;
+// The count is filled in as the card is drawn; drawMsgBadge keeps it right after that.
+function msgCardHTML(href, blurb, key) {
+  const n = key === 'mine' ? msgNew.mine : msgNew.students[key] || 0;
+  return `<a class="card tile msg-tile" id="msgCard" href="${href}">
+    <div><h2>Messages</h2><p class="muted">${blurb}</p></div><span class="msg-n" data-msg-n="${key}"${n ? '' : ' hidden'}>${n}</span>${ICON_ARROW}</a>`;
+}
 
 // ---------- Push notifications ----------
 // A service worker (sw.js: it only shows notifications, pages still load fresh) and the browser's push address, saved

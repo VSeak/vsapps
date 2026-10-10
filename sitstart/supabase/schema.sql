@@ -798,6 +798,7 @@ grant execute on function public.drop_push_subscription(text) to authenticated;
 -- For the message-push Edge Function only (service role): the devices to notify about a message, with what the
 -- notification says and where it opens. A coach's message goes to the student; a student's goes to their coach.
 -- p_caller must be the sender, and a message is handed out once (pushed_at), so nobody can make it ring twice.
+-- Nobody for a message that is already read (the function waits a moment first): they are looking at it.
 create function public.push_targets(p_message uuid, p_caller uuid)
 returns table (endpoint text, p256dh text, auth_key text, title text, body text, path text)
 language plpgsql volatile security definer set search_path = '' as $$
@@ -808,7 +809,7 @@ declare
   is_staff boolean;
 begin
   update public.messages x set pushed_at = now()
-    where x.id = p_message and x.author_id = p_caller and x.pushed_at is null returning x.* into m;
+    where x.id = p_message and x.author_id = p_caller and x.pushed_at is null and x.read_at is null returning x.* into m;
   if m.id is null then return; end if;
   select * into s from public.students st where st.id = m.student_id;
   if m.from_coach then

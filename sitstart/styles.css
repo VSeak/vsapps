@@ -936,9 +936,10 @@ dialog.cs-view[open] { display: flex; flex-direction: column; }
 #msgLink .badge { position: absolute; top: -7px; right: -7px; }
 .msg-n { flex: none; align-self: center; }
 @media (max-width: 600px) { #msgLink { margin-left: auto; } #msgLink:not([hidden]) + #signOut { margin-left: 0; } }
-/* A thread: bubbles like the plan notes, a line for each day, and the box to type in stuck to the bottom of the screen */
+/* A thread: bubbles like the plan notes, a line for each day, and the box to type in under them. The bubbles scroll inside the card (about a screen tall), so a long thread never makes a long page */
 .msg-card { display: flex; flex-direction: column; max-width: 720px; padding-bottom: 0; }
-.msg-list { min-height: 30vh; padding-bottom: 12px; }
+.msg-list { min-height: 200px; max-height: calc(100dvh - 330px); overflow-y: auto; overscroll-behavior: contain; padding-bottom: 12px; }
+.page-head .msg-with { margin: .5rem 0 0; }
 .msg-day { margin: 16px 0 4px; text-align: center; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .msg-more { text-align: center; }
 .msg-none { margin: 3rem 0; text-align: center; }
