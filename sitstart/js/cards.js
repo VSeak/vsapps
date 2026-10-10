@@ -150,14 +150,17 @@ function historyHTML(s, hist) {
 // with Set Next Session; not set, it says so. The date and time are set in a dialog (sessionFields).
 // edit: false for a coach who isn't theirs: they see it, without buttons. Coaching ended: no card.
 // Under it, the sessions after it (s.later), each with Change and Remove, and + Add Session. all: every one is listed.
-function nextCardHTML(s, edit = true, all = false) {
+// plans: every session also gets a Plan button for its coaching session (its coach's student page; coaching-session.js
+// names it Plan or Planned, csMarkPlans, and handles the press).
+function nextCardHTML(s, edit = true, all = false, plans = false) {
+  const planBtn = (h, cls) => plans ? `<button type="button" class="${cls}" data-plan="${h.session_date}|${hm(h.start_time)}">Plan</button>` : '';
   if (s.training_ended_at) return '';
   const p = pro(s.pronouns), overdue = nextOverdue(s), set = !!s.next_date && !overdue, later = s.later ?? [];
   const shown = all ? later : later.slice(0, LATER_SHOWN);
   const laterHTML = !set ? '' : `<div class="next-later">${later.length ? `<span class="eyebrow">Upcoming Sessions · ${later.length}</span>
       <ul>${shown.map(h => `<li><span><b>${esc(shortSessionDay(h.session_date))}</b><small>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</small></span>
         ${edit && h.id ? `<span class="row"><button type="button" class="small ghost" data-later-edit="${h.id}">Change</button>
-          <button type="button" class="small ghost" data-later-del="${h.id}">Remove</button></span>` : ''}</li>`).join('')}</ul>
+          <button type="button" class="small ghost" data-later-del="${h.id}">Remove</button>${planBtn(h, 'small ghost')}</span>` : ''}</li>`).join('')}</ul>
       ${later.length > LATER_SHOWN ? `<button type="button" class="small ghost" data-next="all" aria-expanded="${all}">${all ? 'Show Fewer' : `Show All ${later.length}`}</button>` : ''}` : ''}
     ${edit ? '<button type="button" class="ghost next-add" data-next="add">+ Add Session</button>' : ''}</div>`;
   const n = set && Math.round((day(s.next_date) - day(localToday())) / 864e5);
@@ -170,7 +173,7 @@ function nextCardHTML(s, edit = true, all = false) {
       : `<p class="next-say">${!edit ? `Only ${p.their} coach sets the next session.` : overdue ? `It's in Session History now. Set the next one so ${esc(s.first_name)} knows when to come in.`
         : `Set one so ${esc(s.first_name)} knows when to come in.`}</p>`}
     ${!edit ? '' : set ? `<div class="row next-btns"><button type="button" class="ghost" data-next="set">Change</button>
-      <button type="button" class="ghost" data-next="clear">${later.length ? 'Remove' : 'Clear'}</button></div>`
+      <button type="button" class="ghost" data-next="clear">${later.length ? 'Remove' : 'Clear'}</button>${planBtn(nextOf(s), 'ghost')}</div>`
       : '<button type="button" class="next-go" data-next="set">Set Next Session</button>'}
     ${laterHTML}
   </section>`;
@@ -248,7 +251,18 @@ function bindSessions(id, s, hist) {
   };
   hist.redraw = drawHistory;   // e.g. after a Coach Note changes its Notes count
   drawHistory();
-  const redrawNext = () => { $('#nextCard').outerHTML = nextCardHTML(s, !hist.readOnly, hist.allLater); bindSessions(id, s, hist); };
+  const redrawNext = () => { $('#nextCard').outerHTML = nextCardHTML(s, !hist.readOnly, hist.allLater, hist.plans); bindSessions(id, s, hist); };
+  // A session's open coaching session goes where the session goes (the student page: hist.plans). A change that
+  // doesn't land (two at one time) is left for the Coaching Session card to sort out (csSync).
+  const movePlan = async (old, to) => {
+    if (hist.plans) await sb.from('coaching_sessions').update({ session_date: to.session_date, start_time: to.start_time, end_time: to.end_time,
+      location: to.location }).eq('student_id', id).is('submitted_at', null).eq('session_date', old.session_date).eq('start_time', old.start_time);
+  };
+  // Removing a session that has a coaching session: a box to delete that too. Left unticked, it moves to the next
+  // session that has none (csSync).
+  const planAsk = c => c ? `<label class="check"><input type="checkbox" name="drop_plan">Also delete its coaching session</label>
+    <p class="hint">Left unticked, its coaching session moves to the next session that doesn't have one.</p>` : '';
+  const dropPlan = async (c, f) => { if (c && f.get('drop_plan')) await hist.dropPlan(c); };
   // Runs change() (a change to the next session or the ones after it), has the database put them back in order,
   // then redraws the card and the history.
   const change = (btn, fn, msg) => busy(btn, async () => {
@@ -317,18 +331,24 @@ function bindSessions(id, s, hist) {
     const added = n => n > 1 ? `${n} sessions added.` : 'Session added.';
     if (d.next === 'all') { hist.allLater = !hist.allLater; redrawNext(); $('#nextCard [data-next="all"]')?.focus(); return; }
     if (d.next === 'clear') {
-      if (await ask(later.length ? { title: 'Remove This Session?', ok: 'Remove', warn: true,
-          body: `<p>${esc(shortSessionDay(s.next_date))} is removed, and ${esc(shortSessionDay(later[0].session_date))} becomes ${p.their} next session.</p>` }
-        : { title: 'Clear the Next Session?', ok: 'Clear', warn: true, body: `<p>${p.They} won't see a next session until you set one.</p>` }))
-        save(b, noNext, later.length ? 'Session removed.' : 'Next session cleared.');
+      const c = hist.planFor?.(nextOf(s));
+      const f = await ask(later.length ? { title: 'Remove This Session?', ok: 'Remove', warn: true,
+          body: `<p>${esc(shortSessionDay(s.next_date))} is removed, and ${esc(shortSessionDay(later[0].session_date))} becomes ${p.their} next session.</p>${planAsk(c)}` }
+        : { title: 'Clear the Next Session?', ok: 'Clear', warn: true, body: `<p>${p.They} won't see a next session until you set one.</p>${planAsk(c)}` });
+      if (f) change(b, async () => {
+        await logEnded(id, s, hist.log);
+        must(await sb.from('students').update(noNext).eq('id', id));
+        await dropPlan(c, f);
+      }, later.length ? 'Session removed.' : 'Next session cleared.');
       return;
     }
     // A session after the next one: Change or Remove.
     const h = later.find(x => x.id && x.id === (d.laterEdit || d.laterDel));
     if (h && d.laterDel) {
-      if (await ask({ title: 'Remove This Session?', ok: 'Remove', warn: true,
-        body: `<p>${esc(shortSessionDay(h.session_date))}, ${fmtTime(h.start_time)} – ${fmtTime(h.end_time)}, comes off ${p.their} upcoming sessions.</p>` }))
-        change(b, async () => { must(await sb.from('upcoming_sessions').delete().eq('id', h.id)); }, 'Session removed.');
+      const c = hist.planFor?.(h);
+      const f = await ask({ title: 'Remove This Session?', ok: 'Remove', warn: true,
+        body: `<p>${esc(shortSessionDay(h.session_date))}, ${fmtTime(h.start_time)} – ${fmtTime(h.end_time)}, comes off ${p.their} upcoming sessions.</p>${planAsk(c)}` });
+      if (f) change(b, async () => { must(await sb.from('upcoming_sessions').delete().eq('id', h.id)); await dropPlan(c, f); }, 'Session removed.');
       return;
     }
     if (h) {
@@ -336,9 +356,10 @@ function bindSessions(id, s, hist) {
       pairTimes($('#dlg'));
       const f = await asked;
       if (f) change(b, async () => {
-        const { error } = await sb.from('upcoming_sessions').update({ session_date: f.get('next_date'), start_time: f.get('start_time'),
-          end_time: f.get('end_time'), location: f.get('location').trim() }).eq('id', h.id);
+        const to = { session_date: f.get('next_date'), start_time: f.get('start_time'), end_time: f.get('end_time'), location: f.get('location').trim() };
+        const { error } = await sb.from('upcoming_sessions').update(to).eq('id', h.id);
         if (error) throw taken(error);
+        await movePlan(h, to);
       }, 'Session saved.');
       return;
     }
@@ -363,9 +384,14 @@ function bindSessions(id, s, hist) {
     if (!f) return;
     const rows = scheduleRows(id, f);
     if (fresh) addSessions(b, rows, rows.length > 1 ? added(rows.length) : 'Next session saved.');
-    else save(b, { next_date: f.get('next_date'), next_start: f.get('start_time'), next_end: f.get('end_time'),
-      next_location: f.get('location').trim() }, 'Next session saved.');
+    else change(b, async () => {
+      const old = nextOf(s), to = rows[0];
+      must(await sb.from('students').update({ next_date: to.session_date, next_start: to.start_time, next_end: to.end_time,
+        next_location: to.location }).eq('id', id));
+      await movePlan(old, to);
+    }, 'Next session saved.');
   };
+  hist.drawn?.();
 }
 
 // The student's own past sessions, near the bottom of their page, a page at a time. Hidden until they have one.

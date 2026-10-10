@@ -159,10 +159,10 @@ create table public.upcoming_sessions (
   unique (student_id, session_date, start_time)
 );
 
--- Coaching Sessions: what a coach plans for a student's next session and the notes they take during it (coaches only).
--- While open it follows the student's Next Session (the page keeps the date, times and place in step until that time
--- has passed). Submitting it (submit_coaching_session) puts its notes into one Coach Note for that day, logs the session
--- in Session History and makes it a past coaching session, read only for good. At most one open per student.
+-- Coaching Sessions: what a coach plans for one of a student's scheduled sessions and the notes they take during it
+-- (coaches only). While open it stays with that session (the page keeps the date, times and place in step until that
+-- time has passed). Submitting it (submit_coaching_session) puts its notes into one Coach Note for that day, logs the session
+-- in Session History and makes it a past coaching session, read only for good. At most one open per student, day and start time.
 -- exercises: [{id, name, sets, reps, rest, plan_notes, notes}]. plan_notes: the description copied from the plan or the
 -- exercise list (the student's instructions), which the coach can change for this session; never put in the Coach Note.
 -- notes: the coach's notes.
@@ -186,7 +186,8 @@ create table public.coaching_sessions (
     or (session_date is not null and start_time is not null and end_time > start_time and length(trim(location)) > 0)),
   constraint coaching_session_submitted check (submitted_at is null or session_date is not null)
 );
-create unique index coaching_sessions_one_open on public.coaching_sessions (student_id) where submitted_at is null;
+create unique index coaching_sessions_one_per_session on public.coaching_sessions (student_id, session_date, start_time)
+  where submitted_at is null;
 create index on public.coaching_sessions (student_id);
 
 -- The master exercise list: defaults a plan copies when the coach picks an

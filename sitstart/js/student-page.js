@@ -72,7 +72,7 @@ async function adminStudent(id, again = false) {
       <section class="card" id="coachNotesCard"></section>
     </div>
     <aside>
-      ${nextCardHTML(s, edit)}
+      ${nextCardHTML(s, edit, false, edit)}
       ${edit && !s.training_ended_at ? msgCardHTML('#/student/' + id + '/messages', `Text ${esc(s.first_name)} between sessions.`, id) : ''}
       <section class="card goals-card" id="goalsCard"></section>
       ${coachLogCardHTML(s, logs)}
@@ -117,7 +117,10 @@ async function adminStudent(id, again = false) {
   // Session History links to Coach Notes from the same day.
   // Coach Notes redraw when the sessions change, for their prompt about the newest past session.
   const hist = { log, page: 1, readOnly: !edit, notes: d => cnotes.filter(n => n.session_date === d).length, showNotes: showCoachNotes,
-    addNotes: startCoachNote, changed: () => { renderCoachNotes(); csNextChanged(); } };
+    addNotes: startCoachNote, changed: () => { renderCoachNotes(); csNextChanged(); },
+    // Coaching sessions, one per scheduled session: Plan buttons on the Next Session card (drawn names them), and a
+    // session's coaching session moves or goes with it.
+    plans: edit, planFor: h => cs?.s === s ? csFor(h) : null, dropPlan: csDrop, drawn: () => { if (cs?.s === s) csMarkPlans(); } };
   // missing: past sessions with no Coach Note yet, oldest first (what a new coaching session can be for).
   const csMissing = () => { const days = cnoteMissing(cnotes, s, log); return historyOf(log, s).filter(h => days.includes(h.session_date)).reverse(); };
   bindSessions(id, s, hist);

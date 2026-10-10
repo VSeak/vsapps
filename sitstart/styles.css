@@ -826,6 +826,11 @@ button.log-row > svg:last-child { flex: none; color: var(--muted); }
 .cs-others .hint { flex: 1 1 100%; margin: 0; }
 .cs-live-now[hidden] { display: none; }
 .cs-live-now button { display: block; margin-top: 8px; }
+/* One coaching session per scheduled session: tabs to switch, and Plan / Planned on the Next Session card */
+.cs-tabs { margin-bottom: 0; }
+.cs-tabs .live-dot { display: inline-block; margin-left: 6px; color: var(--live); }
+.cs-tabs button[aria-selected="true"] .live-dot { color: inherit; }
+.next-card button.planned { background: var(--deep-accent); border-color: var(--deep-accent); color: var(--goal-ink); }
 .cs-card .ex-head { margin-top: 4px; }
 .cs-rnote { color: var(--ink-2); }
 .cs-add-note { font-style: italic; }

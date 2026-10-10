@@ -1,7 +1,9 @@
 // ---------- Coach: the Coaching Session card on #/student/<id> (coaching_sessions) and Coach View ----------
-// What the coach plans for the student's next session and the notes they take during it. Coaches only: students never
-// see it. One open session at a time, started for a session that is live, one that ended with no notes, or the Next
-// Session (csTargets). It follows the Next Session (csSync) until its own time has passed, and saves by
+// What the coach plans for a student's session and the notes they take during it. Coaches only: students never see
+// it. One per scheduled session, so a coach can plan several sessions ahead (the user asked; it was one at a time): the
+// card shows one of the open ones (cs.open, picked with the tabs, csPick), started for a session that is live, one
+// that ended with no notes, the Next Session or one after it (csTargets). Each stays with its session when that is
+// changed (csSync), until its own time has passed, and saves by
 // itself as the coach types (csChanged: a second after the last change, with a copy kept in this browser until the save
 // lands, retried while it fails). It is never submitted by itself: Submit (red, enabled once the session has ended) puts
 // its notes into one Coach Note for that day and logs it in Session History (submit_coaching_session), and it becomes a
@@ -13,7 +15,8 @@ const CS_NOTE_MAX = 30000;     // matches the check on coach_notes.body
 const CS_PAST_PAGE = 3;        // past coaching sessions per page
 const CS_TIME_COLS = ['session_date', 'start_time', 'end_time', 'location'];
 
-// { s, edit, open, past, plan, library, ctx: { showNotes(date), redraw() }, at: { openEx, past: { page }, pastOpen }, view: { i } }
+// { s, edit, opens, open, past, plan, library, ctx: { showNotes(date), redraw(), missing() },
+//   at: { cur, openEx, past: { page }, pastOpen }, view: { i } }. opens: the open ones, soonest first; open: the one shown.
 let cs = null;
 
 const csAt = (c, t) => new Date(`${c.session_date}T${t}`);
@@ -29,45 +32,73 @@ function csLeft(c) {
 const csTimes = c => `${fmtTime(c.start_time)} – ${fmtTime(c.end_time)}`;
 const csBlank = () => ({ id: crypto.randomUUID(), name: '', sets: '', reps: '', rest: '', plan_notes: '', from: '', notes: '' });
 const csFirstLine = t => String(t ?? '').replace(/\*\*/g, '').split('\n').find(l => l.trim()) ?? '';
+// Soonest first; one with no date (its session was removed) last.
+const csSort = list => list.sort((a, b) => !a.session_date - !b.session_date || (a.session_date ? bySession(a, b) : 0));
+// The open coaching session for a scheduled session h (same day and start time), if it has one.
+const csFor = h => cs?.opens.find(c => c.session_date && sameSession(c, h)) ?? null;
+// Which open one the card shows: the one asked for (or shown before), else one that is live, else the soonest.
+function csPick(id = cs.at.cur) {
+  cs.open = cs.opens.find(c => c.id === id) ?? cs.opens.find(csLive) ?? cs.opens[0] ?? null;
+  if (cs.open?.id !== cs.at.cur) { cs.at.openEx = null; cs.view.i = 0; }
+  cs.at.cur = cs.open?.id ?? null;
+}
 
 // The student page calls this once its data is in. rows: the student's coaching_sessions. ctx: { plan (the current
-// plan or null), showNotes(date) (Coach Notes from that day), redraw() (the whole page) }.
+// plan or null), showNotes(date) (Coach Notes from that day), redraw() (the whole page), missing() (past sessions
+// with no Coach Note yet, oldest first) }.
 function bindCoachSession(s, rows, ctx) {
-  const open = rows.find(r => !r.submitted_at) || null, same = cs?.s.id === s.id;
+  const opens = csSort(rows.filter(r => !r.submitted_at)), same = cs?.s.id === s.id;
   const past = rows.filter(r => r.submitted_at)
     .sort((a, b) => b.session_date.localeCompare(a.session_date) || b.start_time.localeCompare(a.start_time));
   // Edits that hadn't saved yet when the page was left or reloaded.
-  const kept = open && canCoach(s) && csLocal(open.id);
-  if (kept) Object.assign(open, kept);
+  const kept = canCoach(s) ? opens.filter(c => { const k = csLocal(c.id); return k && Object.assign(c, k); }) : [];
   for (const r of rows) if (r.submitted_at) csForget(r.id);
   // library is read again on every load, so exercises added on Exercises & Drills since show up.
-  cs = { s, edit: canCoach(s), open, past, plan: ctx.plan, ctx, library: null,
-    at: same ? cs.at : { openEx: null, past: { page: 1 }, pastOpen: false }, view: same ? cs.view : { i: 0 } };
-  if (kept) csChanged();
+  cs = { s, edit: canCoach(s), opens, open: null, past, plan: ctx.plan, ctx, library: null,
+    at: same ? cs.at : { cur: null, openEx: null, past: { page: 1 }, pastOpen: false }, view: same ? cs.view : { i: 0 } };
+  csPick();
+  kept.forEach(csChanged);
   renderCoachSession();
   csSync();
 }
 
-// ---------- Following the Next Session ----------
+// ---------- Staying with its session ----------
 
-// While open and not yet over, the session takes the Next Session's day, times and place (or none, if it was cleared),
-// even one set after it happened. Called on load and whenever the Next Session changes. Once its own time has passed it
-// keeps its day, for Submit, so setting the following Next Session never moves it.
+// An open coaching session belongs to the scheduled session on its day and start time. When the coach changes that
+// session on this page, the Next Session card moves the coaching session with it (bindSessions) and this reads them
+// again. This catches the rest (a session changed or removed somewhere else, or by an admin, who can't see coaching
+// sessions): an open one that isn't over yet and matches no scheduled session moves to the soonest session without
+// one, or loses its date when there is none (so the first one planned still follows the Next Session, as before).
+// One whose time has passed keeps its day, for Submit.
 async function csSync() {
-  const c = cs?.open, s = cs?.s;
-  if (!c || !cs.edit || csEnded(c)) return;
-  const set = !!s.next_date;
-  const want = { session_date: set ? s.next_date : null, start_time: set ? s.next_start : null, end_time: set ? s.next_end : null,
-    location: set ? s.next_location : null };
-  const same = k => k.endsWith('time') ? hm(c[k]) === hm(want[k]) : (c[k] ?? null) === want[k];
-  if (CS_TIME_COLS.every(same)) return;
-  try {
-    Object.assign(c, await sb.from('coaching_sessions').update(want).eq('id', c.id).select(CS_TIME_COLS.join(',')).single().then(must));
-  } catch (e) { flash(msgOf(e), 'error'); }
-  renderCoachSession();
+  const s = cs?.s;
+  if (!cs?.edit || s.training_ended_at) return;
+  const sched = [...(s.next_date ? [nextOf(s)] : []), ...(s.later ?? [])];
+  let moved = false;
+  for (const c of cs.opens) {
+    if (csEnded(c)) continue;
+    const mine = c.session_date && sched.find(h => sameSession(h, c));
+    const to = mine || sched.find(h => !sessEnded(h) && !csFor(h));
+    const want = to ? { session_date: to.session_date, start_time: to.start_time, end_time: to.end_time, location: to.location }
+      : { session_date: null, start_time: null, end_time: null, location: null };
+    if (CS_TIME_COLS.every(k => k.endsWith('time') ? hm(c[k]) === hm(want[k]) : (c[k] ?? null) === want[k])) continue;
+    try {
+      Object.assign(c, await sb.from('coaching_sessions').update(want).eq('id', c.id).select(CS_TIME_COLS.join(',')).single().then(must));
+      moved = true;
+    } catch (e) { flash(msgOf(e), 'error'); }
+  }
+  if (moved) { csSort(cs.opens); renderCoachSession(); }
 }
-// The Next Session changed (saved or cleared on this page).
-function csNextChanged() { if (cs) { renderCoachSession(); csSync(); } }
+// The student's sessions changed on this page (set, changed, removed, or a past one added): read the coaching
+// sessions again, since the Next Session card may have moved or deleted one.
+async function csNextChanged() {
+  const was = cs;
+  if (!was) return;
+  await csFlush();
+  const rows = await sb.from('coaching_sessions').select('*').eq('student_id', was.s.id).then(must).catch(() => null);
+  if (cs !== was) return;
+  if (rows) bindCoachSession(was.s, rows, was.ctx); else { renderCoachSession(); csSync(); }
+}
 
 // ---------- Saving by itself ----------
 // A change waits a second for more, then the session's exercises and notes are sent. A copy stays in this browser
@@ -79,8 +110,7 @@ function csLocal(id) { try { return JSON.parse(localStorage.getItem(csKey(id)));
 function csForget(id) { try { localStorage.removeItem(csKey(id)); } catch {} }
 const csPending = () => !!(csSaver.row || csSaver.busy);
 
-function csChanged() {
-  const c = cs.open;
+function csChanged(c = cs.open) {
   if (csSaver.row && csSaver.row !== c) csFlush();   // another session's change is still waiting: send it now
   csSaver.row = c;
   try { localStorage.setItem(csKey(c.id), JSON.stringify({ exercises: c.exercises, notes: c.notes })); } catch {}
@@ -132,26 +162,48 @@ addEventListener('beforeunload', e => { if (csPending()) { csFlush(); e.preventD
 
 // ---------- The card ----------
 
-// What a new coaching session can be for, the one it starts on first: a session that is live now, then past sessions
-// with no Coach Note yet (oldest first, ctx.missing: the Needs Note rule), then the Next Session. So when one ends and
-// the next is set by itself, the ended one still gets its notes first, but the coach can pick the other (the user chose
-// this over a strict order, which would block planning ahead after a no-show).
-const CS_KIND = { live: 'Live Now', missing: 'Needs Notes', next: 'Next Session' };
-const CS_OTHERS = 3;   // other past sessions offered under the first
+// What a new coaching session can be for (sessions that don't have one yet), the one it starts on first: a session
+// that is live now, then past sessions with no Coach Note yet (oldest first, ctx.missing: the Needs Note rule), then
+// the Next Session, then the ones scheduled after it. So when one ends and the next is set by itself, the ended one
+// still gets its notes first, but the coach can pick another (the user chose this over a strict order, which would
+// block planning ahead after a no-show).
+const CS_KIND = { live: 'Live Now', missing: 'Needs Notes', next: 'Next Session', later: 'Upcoming' };
+const CS_OTHERS = 3;   // other past sessions, and other upcoming ones, offered under the first
 function csTargets() {
   const s = cs.s, list = (cs.ctx.missing?.() ?? []).map(h => ({ ...h, kind: 'missing' }));
   if (s.next_date && !nextPassed(s)) {
     const n = { ...nextOf(s), kind: 'next' };
     if (csLive(n)) list.unshift({ ...n, kind: 'live' }); else list.push(n);
   }
-  return list;
+  list.push(...(s.later ?? []).map(h => ({ ...h, kind: 'later' })));
+  return list.filter(h => !csFor(h));
 }
 const csTargetKey = list => list.map(h => h.kind + h.session_date + h.start_time).join();
-// The student's session that is on right now, when the open coaching session is an earlier one still not submitted.
+// The student's session that is on right now, when the coaching session shown is for another one.
 const csLiveOther = () => {
   const s = cs.s, c = cs.open;
-  return c && csEnded(c) && s.next_date && csLive(nextOf(s)) ? nextOf(s) : null;
+  return c && !csLive(c) && s.next_date && csLive(nextOf(s)) ? nextOf(s) : null;
 };
+// Picking what a new coaching session is for: the first of cs.targets big, the others as buttons under it.
+function csPickerHTML() {
+  const [t, ...rest] = cs.targets, by = k => rest.filter(h => h.kind === k);
+  const others = [...by('missing').slice(0, CS_OTHERS), ...by('next'), ...by('later').slice(0, CS_OTHERS)];
+  return `<div class="cs-next"><span class="eyebrow">${CS_KIND[t.kind]}</span><p class="cs-next-day">${esc(csDay(t.session_date))}</p>
+      <p class="muted">${csTimes(t)} · ${esc(t.location)}</p>
+      ${t.kind === 'missing' ? '<p class="hint">It has ended and has no notes yet. You can submit it as soon as they\'re in.</p>' : ''}</div>
+    <button type="button" class="fill cs-big" data-cs="new" data-k="0">+ New Coaching Session</button>
+    ${others.length ? `<div class="cs-others"><span class="hint">Or start one for another session:</span>${others.map(h =>
+      `<button type="button" class="small" data-cs="new" data-k="${cs.targets.indexOf(h)}">${esc(csDay(h.session_date))} · ${CS_KIND[h.kind]}</button>`).join('')}</div>` : ''}`;
+}
+// The open coaching sessions as tabs, soonest first, with + New while a session has none. Only when there's a choice.
+function csTabsHTML() {
+  const { opens, open: c, edit } = cs, more = edit && cs.targets.length > 0;
+  if (opens.length < 2 && !more) return '';
+  return `<div class="tabs cs-tabs" role="tablist" aria-label="Coaching sessions">${opens.map(o =>
+    `<button type="button" role="tab" data-cs="tab" data-id="${o.id}" aria-selected="${o === c && !cs.at.picking}">${
+      o.session_date ? esc(csDay(o.session_date)) : 'No Date'}${csLive(o) ? '<i class="live-dot"></i>' : ''}</button>`).join('')}
+    ${more ? `<button type="button" role="tab" class="add-tab" data-cs="more" aria-selected="${!!cs.at.picking}">+ New</button>` : ''}</div>`;
+}
 
 const csHead = (sum = '') => `<div class="row between"><h2>Coaching Session</h2>${sum}</div>`;
 const csHint = '<p class="hint">Plan what you\'ll cover, then take notes during the session. Only coaches see this.</p>';
@@ -203,31 +255,28 @@ const csReadHTML = r => `${r.exercises.length ? `<div class="ex-cards">${r.exerc
 function csCardHTML() {
   const { s, edit, open: c } = cs, p = pro(s.pronouns);
   if (s.training_ended_at) return csHead() + '<p class="muted">Coaching has ended.</p>' + csPastHTML();
+  cs.targets = edit ? csTargets() : [];
+  if (!cs.targets.length || !c) cs.at.picking = false;
   if (!c) {
     if (!edit) return csHead() + `<p class="muted">No coaching session planned. Only ${p.their} coach plans one.</p>` + csPastHTML();
-    const [t, ...rest] = cs.targets = csTargets();
-    // The others: the next session, and the oldest few that need notes.
-    const others = [...rest.filter(h => h.kind === 'missing').slice(0, CS_OTHERS), ...rest.filter(h => h.kind !== 'missing')];
-    return csHead() + csHint + (t ? `<div class="cs-next"><span class="eyebrow">${CS_KIND[t.kind]}</span><p class="cs-next-day">${esc(csDay(t.session_date))}</p>
-        <p class="muted">${csTimes(t)} · ${esc(t.location)}</p>
-        ${t.kind === 'missing' ? '<p class="hint">It has ended and has no notes yet. You can submit it as soon as they\'re in.</p>' : ''}</div>
-        <button type="button" class="fill cs-big" data-cs="new" data-k="0">+ New Coaching Session</button>
-        ${others.length ? `<div class="cs-others"><span class="hint">Or start one for another session:</span>${others.map(h =>
-          `<button type="button" class="small" data-cs="new" data-k="${cs.targets.indexOf(h)}">${esc(csDay(h.session_date))} · ${CS_KIND[h.kind]}</button>`).join('')}</div>` : ''}`
+    return csHead() + csHint + (cs.targets.length ? csPickerHTML()
       : `<p class="warn-box">${s.next_date ? 'The next session has ended. Set the next one to plan its coaching session.'
         : 'Set the next session first. The coaching session takes its date and time from it.'}</p>
         <button type="button" class="fill cs-big" data-cs="set-next">Set Next Session</button>`) + csPastHTML();
   }
+  // + New, with other coaching sessions open: the picker, under the tabs.
+  if (cs.at.picking) return csHead() + csHint + csTabsHTML() + csPickerHTML() + csPastHTML();
   const when = c.session_date ? `<div><p class="cs-day">${esc(csDay(c.session_date))}</p><p class="muted cs-meta">${csTimes(c)} · ${esc(c.location)}</p></div>`
-    : '<p class="warn-box">The next session was cleared, so this coaching session has no date. Set the next session to schedule it.</p>';
+    : '<p class="warn-box">Its session was removed, so this coaching session has no date. Add a session and it takes the first one that has no coaching session.</p>';
   if (!edit) return `${csHead()}<p class="hint">Planned by ${esc(c.author_name || 'a coach')}. Only ${p.their} coach can change it.</p>
-    <div class="cs-when">${when}</div>${csReadHTML(c)}${csPastHTML()}`;
+    ${csTabsHTML()}<div class="cs-when">${when}</div>${csReadHTML(c)}${csPastHTML()}`;
   const n = c.exercises.length, i = c.exercises.findIndex(x => x.id === cs.at.openEx);
   return `${csHead('<span class="cs-saved" data-cs-saved aria-live="polite"></span><span class="fold-sum" id="csFoldSum"></span>')}
     <div class="cs-strip" id="csStrip" hidden></div>
+    ${csTabsHTML()}
     <div class="warn-box cs-live-now" id="csLiveNow" hidden></div>
     <div class="cs-when">${when}<span id="csTag"></span>
-      ${c.session_date ? '' : '<button type="button" class="fill" data-cs="set-next">Set Next Session</button>'}
+      ${c.session_date ? '' : `<button type="button" class="fill" data-cs="${s.next_date && !nextPassed(s) ? 'add-session">+ Add Session' : 'set-next">Set Next Session'}</button>`}
       <button type="button" class="fill cs-view-btn" data-cs="view">Coach View</button></div>
     <div class="ex-head"><h3>Exercises</h3>${n ? '<p class="hint">Tap one to add notes</p>' : ''}</div>
     ${n ? `<div class="ex-list cs-list">${c.exercises.map((x, k) => k === i ? csExEditHTML(x, k, n) : csRowHTML(x, k, n)).join('')}</div>`
@@ -258,15 +307,17 @@ function csSubmitTick(box, c) {
 function csTick() {
   const c = cs?.open, card = $('#csCard');
   if (!card || !cs?.edit || cs.s.training_ended_at) return;
-  // Nothing open: a session starting or ending changes which one a new coaching session is for.
-  if (!c) { if (cs.targets && csTargetKey(csTargets()) !== csTargetKey(cs.targets)) renderCoachSession(); return; }
+  // Choosing what a new one is for: a session starting or ending changes the choices. (Not while one is shown: a
+  // redraw would take the coach out of the box they're typing in.)
+  if (!c || cs.at.picking) { if (cs.targets && csTargetKey(csTargets()) !== csTargetKey(cs.targets)) renderCoachSession(); return; }
   const live = csLive(c), ended = csEnded(c), strip = $('#csStrip'), other = csLiveOther(), now = $('#csLiveNow');
-  // An earlier session is still open while today's is on: one press submits it and starts today's.
-  if (now && now.hidden === !!other) {
+  // Another session is on right now: a way straight to its coaching session (started here if it has none).
+  const has = other && csFor(other), key = !other ? '' : has ? 'go' : 'start';
+  if (now && (now.dataset.k ?? '') !== key) {
+    now.dataset.k = key;
     now.hidden = !other;
-    now.innerHTML = other ? `<strong>Today's session is live now.</strong> This coaching session is from ${esc(csDay(c.session_date))}. Submit it to start today's.
-      Its notes go into a Coach Note, which you can still edit.
-      <button type="button" class="fill" data-cs="submit-next">Submit and Start Today's</button>` : '';
+    now.innerHTML = !other ? '' : `<strong>Today's session is live now.</strong> ${c.session_date ? `This coaching session is for ${esc(csDay(c.session_date))}.` : ''}
+      <button type="button" class="fill" data-cs="go-live">${has ? "Go to Today's" : "Start Today's Coaching Session"}</button>`;
   }
   card.classList.toggle('live', live);
   if (strip) {
@@ -292,6 +343,7 @@ function renderCoachSession(focusAt) {
   if (cs.s.training_ended_at && !cs.past.length) { card.hidden = true; return; }
   card.hidden = false;
   card.innerHTML = csCardHTML();
+  csMarkPlans();
   csTick();
   csShowSave();
   const box = $('#csPastBox');
@@ -386,14 +438,17 @@ document.addEventListener('click', async e => {
   if (b.dataset.csPast) return csShowPast(b.dataset.csPast);
   const c = cs.open, k = +b.dataset.k, act = b.dataset.cs;
   switch (act) {
-    case 'new': return csNew(b);
+    case 'new': return csStart(b, cs.targets?.[k]);
+    case 'tab': return csShow(b.dataset.id, `[data-cs="tab"][data-id="${b.dataset.id}"]`);
+    case 'more': cs.at.picking = true; return renderCoachSession('[data-cs="more"]');
+    case 'go-live': { const h = csLiveOther(), has = h && csFor(h); return has ? csShow(has.id) : csStart(b, h); }
     case 'set-next': return $('#nextCard [data-next="set"]')?.click();
+    case 'add-session': return $('#nextCard [data-next="add"]')?.click();
     case 'view': return openCoachView();
     case 'add': return csOpenAdd(b);
     case 'copy': return csCopy(b);
     case 'delete': return csDelete(b);
     case 'submit': return csSubmit(b);
-    case 'submit-next': return csSubmit(b, csLiveOther());
     case 'open': case 'close': {
       const was = cs.at.openEx;
       cs.at.openEx = act === 'open' ? c.exercises[k].id : null;
@@ -423,19 +478,58 @@ async function csInsert(h) {
   const s = cs.s;
   const { data, error } = await sb.from('coaching_sessions').insert({ student_id: s.id, session_date: h.session_date, start_time: h.start_time,
     end_time: h.end_time, location: h.location }).select().single();
-  if (error) throw error.code === '23505' ? new Error(`${s.first_name} already has an open coaching session. Reload the page to see it.`) : error;
+  if (error) throw error.code === '23505' ? new Error('That session already has a coaching session. Reload the page to see it.') : error;
   return data;
 }
-function csNew(btn) {
-  const h = cs.targets?.[+btn.dataset.k];
+// Starts one for h and shows it.
+function csStart(btn, h) {
   if (!h) return;
-  busy(btn, async () => {
-    cs.open = await csInsert(h);
-    cs.at.openEx = null;
+  return busy(btn, async () => {
+    const c = await csInsert(h);
+    cs.opens.push(c);
+    csSort(cs.opens);
+    cs.at.picking = false;
+    csPick(c.id);
     renderCoachSession('[data-cs="add"]');
-    flash('Coaching session started. It saves as you go.');
+    flash(`Coaching session started for ${csDay(c.session_date)}. It saves as you go.`);
   });
 }
+// Shows the open one with this id (a tab, or Planned on the Next Session card).
+function csShow(id, focusAt) {
+  cs.at.picking = false;
+  csPick(id);
+  renderCoachSession(focusAt);
+}
+// Takes an open one out: stops a save that is waiting, deletes it, and shows another.
+async function csDrop(c) {
+  if (csSaver.row === c) { clearTimeout(csSaver.timer); csSaver.row = null; }
+  must(await sb.from('coaching_sessions').delete().eq('id', c.id));
+  csForget(c.id);
+  cs.opens = cs.opens.filter(o => o !== c);
+  csPick();
+}
+
+// The Next Session card (cards.js) has a Plan button on every scheduled session, on its coach's page: Planned once it
+// has a coaching session. Pressing it starts one, or shows the one it has, and brings this card into view.
+function csMarkPlans() {
+  document.querySelectorAll('#nextCard [data-plan]').forEach(b => {
+    const [session_date, start_time] = b.dataset.plan.split('|'), has = cs?.edit && csFor({ session_date, start_time });
+    b.textContent = has ? 'Planned' : 'Plan';
+    b.classList.toggle('planned', !!has);
+    b.title = has ? 'Open its coaching session' : 'Start a coaching session for it';
+  });
+}
+document.addEventListener('click', async e => {
+  const b = e.target.closest?.('#nextCard [data-plan]');
+  if (!b || !cs?.edit) return;
+  const [session_date, start_time] = b.dataset.plan.split('|'), s = cs.s;
+  const h = [...(s.next_date ? [nextOf(s)] : []), ...(s.later ?? [])].find(x => sameSession(x, { session_date, start_time }));
+  const c = h && csFor(h);
+  if (c) csShow(c.id); else if (h) await csStart(b, h); else return;
+  const card = $('#csCard');
+  if (card.classList.contains('folded')) setFold(card, false);
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 function csOpenAdd(btn) {
   if (cs.open.exercises.length >= CS_MAX_EX) return flash(`A coaching session can have up to ${CS_MAX_EX} exercises.`, 'error');
@@ -496,10 +590,7 @@ async function csDelete(btn) {
   if (!await ask({ title: 'Delete This Coaching Session?', ok: 'Delete', warn: true,
     body: "<p>Its exercises and notes are deleted, and nothing goes into Coach Notes. This can't be undone.</p>" })) return;
   busy(btn, async () => {
-    if (csSaver.row === c) { clearTimeout(csSaver.timer); csSaver.row = null; }
-    must(await sb.from('coaching_sessions').delete().eq('id', c.id));
-    csForget(c.id);
-    cs.open = null;
+    await csDrop(c);
     renderCoachSession();
     flash('Coaching session deleted.');
   });
@@ -516,13 +607,12 @@ function csNote(c) {
   return [`**Coaching Session, ${csTimes(c)} at ${c.location}**`, c.notes.trim(), ...ex].filter(Boolean).join('\n\n');
 }
 
-// then: a session (csLiveOther) to start a coaching session for straight after.
-async function csSubmit(btn, then = null) {
+async function csSubmit(btn) {
   const c = cs.open;
   if (!csEnded(c)) return;
-  if (!await ask({ title: 'Submit This Session?', ok: then ? "Submit and Start Today's" : 'Submit Session', warn: true,
+  if (!await ask({ title: 'Submit This Session?', ok: 'Submit Session', warn: true,
     body: `<p>This moves ${esc(csDay(c.session_date))} to Past Coaching Sessions and puts all of its notes into one Coach Note for that day.</p>
-      <p>You can't edit or reopen it after${then ? ', but you can edit the Coach Note. Then a coaching session starts for today' : ''}.</p>` })) return;
+      <p>You can't edit or reopen it after.</p>` })) return;
   busy(btn, async () => {
     await csFlush();
     if (csPending() || csSaver.failed) throw new Error("The latest notes haven't saved yet. Check your connection, then try again.");
@@ -531,11 +621,9 @@ async function csSubmit(btn, then = null) {
     must(await sb.rpc('submit_coaching_session', { p_id: c.id, p_note: note }));
     csForget(c.id);
     if (cvDlg.open) cvDlg.close();
-    cs.open = null;
-    cs.at.openEx = null;
-    // Today's can't be lost if this fails: the card then offers it first, as the live one.
-    if (then) try { await csInsert(then); } catch (e) { flash(msgOf(e), 'error'); }
-    flash(then ? "Submitted. Today's coaching session has started." : 'Submitted. Its notes are in Coach Notes.');
+    cs.opens = cs.opens.filter(o => o !== c);
+    csPick();
+    flash('Submitted. Its notes are in Coach Notes.');
     cs.ctx.redraw();   // Coach Notes, Session History and this card
   });
 }
