@@ -76,7 +76,7 @@ async function studentHome() {
     sb.from('upcoming_sessions').select('*').eq('student_id', me.student.id).then(must),
   ]);
   if (t !== navToken) return;
-  // The next session is the earliest that hasn't ended, with the ones after it under it (Also Coming Up).
+  // The next session is the earliest that hasn't ended, with the ones after it under it (Upcoming Sessions).
   if (next) applySchedule(next, ups);
   const current = plans.find(p => p.active);   // at most one (one_current_plan)
   const history = studentHistory(log, next);

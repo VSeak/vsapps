@@ -448,7 +448,7 @@ function nextSessionAlert(s) {
     <div class="row between"><span class="eyebrow">Next Session</span><span class="pill">${n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days`}</span></div>
     <p class="next-day">${esc(date)}</p>
     <div class="next-meta"><span>${ICON_CLOCK}${fmtTime(s.next_start)} – ${fmtTime(s.next_end)}</span><span>${ICON_PIN}${esc(s.next_location)}</span></div>
-    ${s.later?.length ? `<div class="next-later"><span class="eyebrow">Also Coming Up</span>
+    ${s.later?.length ? `<div class="next-later"><span class="eyebrow">Upcoming Sessions</span>
       <ul>${s.later.map(h => `<li><span><b>${esc(shortSessionDay(h.session_date))}</b><small>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</small></span></li>`).join('')}</ul></div>` : ''}
   </section>`;
 }
