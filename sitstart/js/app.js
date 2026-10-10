@@ -379,7 +379,7 @@ const ADMIN_PAGES = [
       if (error) throw error;
       return count;
     } },
-  { href: '#/messages', title: 'Messages', roles: ['coach'], blurb: 'Text with your students between sessions. The number is how many you havenâ€™t read.',
+  { href: '#/messages', title: 'Messages', roles: ['coach'], blurb: 'Text with your students between sessions. The number is how many you haven’t read.',
     stat: async () => { await loadUnread(); return msgCount(); } },
   { href: '#/exercises', title: 'Exercises & Drills', roles: ['coach', 'admin'], blurb: 'What plans pick from, with their usual sets, reps, and rest.',
     stat: async () => {
