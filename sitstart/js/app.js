@@ -446,7 +446,8 @@ async function adminHome() {
   const todo = i => `<a class="todo" href="${i.href}"><span><b>${esc(i.name)}</b><span>${esc(i.sub)}</span></span><span class="pill warn">${i.tag}</span></a>`;
   const up = h => `<a class="todo" href="#/student/${h.id}">${dayBlock(h.session_date)}<span><b>${esc(h.name)}</b>
     <span>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</span></span></a>`;
-  // Nothing to do: a calm card that still shows what's coming up (or, coaching nobody, how to start).
+  // Coming Up always shows for a coach (the user asked), under the things to do. Nothing to do: a calm line over it
+  // (or, coaching nobody, how to start).
   const clear = me.isCoach ? `<div class="needs-clear"><span class="check">${ICON_CHECK}</span><div><b>Nothing needs attention right now</b>
       <span>${coaching ? 'Every student is invited and has a next session, and every session has a note.' : "You're not coaching anyone at the moment."}</span></div></div>` : '';
   const coming = !me.isCoach ? '' : `<span class="eyebrow">Coming Up</span>${upcoming.length ? upcoming.map(up).join('')
@@ -455,7 +456,7 @@ async function adminHome() {
   view(`<h1 class="hey">Welcome${name},<span> ${n ? `${n} ${n === 1 ? 'thing needs' : 'things need'} your attention.` : "you're all caught up."}</span></h1>
     <div class="home-grid">
       ${n || me.isCoach ? `<section class="needs">${n ? `<div class="row between"><span class="eyebrow">Needs Attention</span><span class="pill">${n}</span></div>
-        ${items.map(todo).join('')}` : clear + coming}</section>` : ''}
+        ${items.map(todo).join('')}${coming && `<div class="coming-after">${coming}</div>`}` : clear + coming}</section>` : ''}
       <div class="tiles">${pages.map((p, i) => `<a class="card tile${p.stat ? '' : ' tile-soft'}" href="${p.href}">
         <div><h2>${esc(p.title)}</h2><p class="muted">${esc(p.blurb)}</p></div>
         ${p.stat ? `<span class="big-num" data-stat="${i}"></span>` : ICON_ARROW}</a>`).join('')}</div>

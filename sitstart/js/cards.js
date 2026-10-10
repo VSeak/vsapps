@@ -194,7 +194,51 @@ const sessionFields = (h, repeat = false) => `<div class="stack">
     data-need="Say where it is." autocomplete="off" placeholder="e.g. Gym/Wall"></label>
   ${repeat ? `<label>Repeat Weekly<span class="hint field-hint">Adds a session at the same time each week, so you only enter it once.</span>
     <select name="repeat"><option value="1">Just This One</option>${Array.from({ length: REPEAT_MAX - 1 }, (_, i) =>
-      `<option value="${i + 2}">For ${i + 2} Weeks</option>`).join('')}</select></label>` : ''}</div>`;
+      `<option value="${i + 2}">For ${i + 2} Weeks</option>`).join('')}</select></label>` : ''}
+  <div data-clash></div></div>`;
+
+// ---------- Double booking: a warning in the dialog, never a block (two students can share a session) ----------
+const CLASH_SHOWN = 3;    // clashing sessions listed before "and n more"
+const overlaps = (a, b) => a.session_date === b.session_date && hm(a.start_time) < hm(b.end_time) && hm(b.start_time) < hm(a.end_time);
+// The sessions still to come of the other students s's coach has, each with who (the student's name).
+async function coachBooked(s) {
+  if (!s.coach_id) return [];
+  const [studs, ups] = await Promise.all([
+    sb.from('students').select('id,name,next_date,next_start,next_end').eq('coach_id', s.coach_id).neq('id', s.id)
+      .is('training_ended_at', null).not('next_date', 'is', null).then(must),
+    sb.from('upcoming_sessions').select('student_id,session_date,start_time,end_time,student:students!inner(name,coach_id)')
+      .eq('student.coach_id', s.coach_id).neq('student_id', s.id).then(must),
+  ]);
+  const list = ups.map(u => ({ ...u, who: u.student.name }));
+  for (const x of studs) {
+    const h = { ...nextOf(x), student_id: x.id, who: x.name };
+    if (!list.some(u => u.student_id === x.id && sameSession(u, h))) list.push(h);
+  }
+  return list.filter(h => !sessEnded(h));
+}
+// Watches a session dialog (sessionFields) and says, as the day and times change, which sessions they overlap: the
+// student's own, and their coach's other students'. skip: the session being changed.
+function watchClash(dlg, s, skip = null) {
+  const form = dlg.querySelector('form'), box = dlg.querySelector('[data-clash]');
+  const own = [...(s.next_date && !nextPassed(s) ? [nextOf(s)] : []), ...(s.later ?? [])]
+    .filter(h => !skip || !sameSession(h, skip)).map(h => ({ ...h, mine: true }));
+  let others = [];
+  const draw = () => {
+    if (!box.isConnected) return;
+    const f = new FormData(form);
+    const hits = f.get('next_date') && f.get('start_time') && f.get('end_time')
+      ? [...new Set(scheduleRows(s.id, f).flatMap(r => [...own, ...others].filter(h => overlaps(h, r))))].sort(bySession) : [];
+    const line = h => `<li>${h.mine ? `${esc(s.first_name)} already has a session` : `${esc(h.who)} has a session`}
+      ${esc(shortSessionDay(h.session_date))}, ${fmtTime(h.start_time)} – ${fmtTime(h.end_time)}</li>`;
+    box.innerHTML = hits.length ? `<div class="warn-box clash" role="alert"><strong>There is already a session planned for that time.</strong>
+      <ul>${hits.slice(0, CLASH_SHOWN).map(line).join('')}${hits.length > CLASH_SHOWN ? `<li>And ${hits.length - CLASH_SHOWN} more</li>` : ''}</ul>
+      Saving books both.</div>` : '';
+  };
+  form.addEventListener('input', draw);
+  form.addEventListener('change', draw);
+  draw();
+  coachBooked(s).then(list => { others = list; draw(); }).catch(() => {});
+}
 // What the dialog asked for, as rows: one session, or one a week for as many weeks as picked.
 const scheduleRows = (id, f) => Array.from({ length: Math.min(REPEAT_MAX, Math.max(1, +f.get('repeat') || 1)) }, (_, k) => ({
   student_id: id, session_date: addDays(f.get('next_date'), 7 * k), start_time: f.get('start_time'), end_time: f.get('end_time'),
@@ -354,9 +398,10 @@ function bindSessions(id, s, hist) {
     if (h) {
       const asked = ask({ title: 'Change This Session', ok: 'Save Session', body: sessionFields(h) });
       pairTimes($('#dlg'));
+      watchClash($('#dlg'), s, h);
       const f = await asked;
       if (f) change(b, async () => {
-        const to = { session_date: f.get('next_date'), start_time: f.get('start_time'), end_time: f.get('end_time'), location: f.get('location').trim() };
+        const to ={ session_date: f.get('next_date'), start_time: f.get('start_time'), end_time: f.get('end_time'), location: f.get('location').trim() };
         const { error } = await sb.from('upcoming_sessions').update(to).eq('id', h.id);
         if (error) throw taken(error);
         await movePlan(h, to);
@@ -369,6 +414,7 @@ function bindSessions(id, s, hist) {
       const asked = ask({ title: 'Add a Session', ok: 'Add Session', body: `<p class="hint">It goes in order with the others. When one ends, the one after it becomes the next session by itself.</p>
         ${sessionFields({ ...last, session_date: addDays(last.session_date, 7) }, true)}` });
       pairTimes($('#dlg'));
+      watchClash($('#dlg'), s);
       const f = await asked;
       if (f) { const rows = scheduleRows(id, f); addSessions(b, rows, added(rows.length)); }
       return;
@@ -380,6 +426,7 @@ function bindSessions(id, s, hist) {
       body: `<p class="hint">${p.They} ${p.v('see', 'sees')} it at the top of ${p.their} page until it ends. Then it moves to Session History.</p>
         ${sessionFields(fresh ? { start_time: s.next_start, end_time: s.next_end, location: s.next_location } : nextOf(s), fresh)}` });
     pairTimes($('#dlg'));
+    watchClash($('#dlg'), s, fresh ? null : nextOf(s));
     const f = await asked;
     if (!f) return;
     const rows = scheduleRows(id, f);

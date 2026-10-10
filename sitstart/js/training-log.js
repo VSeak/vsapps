@@ -229,12 +229,16 @@ function openLogSheet(key, sid, date = todayISO(), keep = null, browse = false) 
   }
   ls = { key, sid, x, fields, vals, unit, date, other: keep?.other ?? {}, notes: keep ? keep.notes : today?.notes ?? '',
     editing: today, pinned: !!today && !browse, last, before };
+  // A new log whose Day was changed to one that has a log: say so in red (the user asked), since Save changes that log.
+  const exists = browse && !!today;
   const dayHint = ls.pinned ? `${isToday ? 'Today' : logDay(date, true)}. Pick another day to move this log.`
     : isToday ? 'Today. Pick an earlier day for a past session.' : logDay(date, true);
   logSheet.innerHTML = `<div class="exb-head"><div><h2 id="logSheetTitle">Log ${esc(x.name.trim())}</h2>
       <p class="hint">${moved ? `Logged ${logDay(today.logged_on)}. Saving moves it to ${isToday ? 'today' : midDay(date)}.` : today ? `Logged ${onDay}. Change what you need.` : last ? `Starts at last time's numbers (${logDay(last.logged_on)}). Tap what changed.` : 'Not logged yet.'}</p></div>
     <button type="button" class="exb-close" data-close aria-label="Close">${EXB_ICON.close}</button></div>
-    <div class="log-body"><div class="log-step log-date"><div class="log-lab"><b id="lf-date">Day</b><span class="hint">${dayHint}</span></div>
+    <div class="log-body"><div class="log-step log-date"><div class="log-lab"><b id="lf-date">Day</b>${exists
+        ? `<span class="hint exists" role="alert">A log already exists for ${isToday ? 'today' : midDay(date)}. Saving will change that log.</span>`
+        : `<span class="hint">${dayHint}</span>`}</div>
         <input type="date" data-date aria-labelledby="lf-date" value="${date}" max="${todayISO()}" required></div>
       ${fields.map(logFieldHTML).join('')}
       <label class="log-notes">Notes<textarea data-lf="notes" rows="2" data-grow maxlength="2000" placeholder="How did it feel?">${esc(ls.notes)}</textarea></label>

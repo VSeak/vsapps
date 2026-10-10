@@ -178,6 +178,9 @@ h1 .pronouns { font-size: 1rem; margin-left: .3rem; vertical-align: .15em; }
 .warn-box { background: color-mix(in srgb, var(--warn) 14%, transparent); border-left: 4px solid var(--warn);
   border-radius: 8px; padding: .6rem .8rem; }
 .warn-box strong { color: var(--warn); }
+/* Double booking, in a session dialog (watchClash). */
+.warn-box.clash { font-size: .9rem; }
+.warn-box.clash ul { margin: .3rem 0; padding-left: 1.1rem; }
 /* A hint about one field, between its label and the field. */
 .field-hint { display: block; margin: .1rem 0 0; font-weight: 400; }
 /* Unsaved edits (markUnsaved): the card's edge and an Unsaved tag in the warn color, and its Save button filled in,
@@ -226,6 +229,7 @@ a.todo:hover b { text-decoration: underline; }
   text-align: center; padding: 5px 0; line-height: 1.05; }
 .day-block small { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .06em; }
 .day-block strong { font: 800 1.35rem "Bricolage Grotesque", sans-serif; }
+.coming-after { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--deep-line); }
 .needs-clear { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
 .needs-clear .check { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--deep-accent); color: var(--goal-ink); display: grid; place-items: center; }
 .needs-clear b, .none-up b { display: block; font: 800 1.45rem/1.1 "Bricolage Grotesque", sans-serif; }
@@ -737,6 +741,7 @@ dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
 .log-lab { flex: 1; min-width: 0; }
 .log-lab b { display: block; font: 800 1rem "Bricolage Grotesque", sans-serif; }
 .log-lab .hint { margin: 0; }
+.log-lab .hint.exists { color: var(--danger); font-weight: 600; }
 .log-sp { flex: none; display: flex; align-items: center; gap: 6px; }
 .log-sp button { width: 48px; height: 48px; padding: 0; border-radius: 14px; background: var(--bg); font-size: 1.4rem; line-height: 1; }
 /* The value is a field you can type in (a box, like other fields); Grade only steps, so it stays plain text */
