@@ -280,6 +280,8 @@ const endedCoach = (s, coaches) => s.training_ended_at && coaches.find(c => c.en
 // Resuming gives them back to that coach only if it's you (check_student_coach); otherwise an admin picks one.
 function trainingCardHTML(s, coaches, edit = true) {
   const done = s.training_ended_at, p = pro(s.pronouns);
+  // Never invited: nothing of theirs to archive, so they can be deleted while still active (delete_student() agrees).
+  const fresh = !s.user_id && !s.invited_at;
   const back = me.isCoach && !isSelf(s) && endedCoach(s, coaches) === me.staffId;
   return `<section class="card" id="trainingCard" data-fold-start>
     <div class="row between"><h2>Coaching Status</h2><span class="tag ${done ? 'danger' : 'ok'}">${done ? 'Inactive' : 'Active'}</span></div>
@@ -287,9 +289,10 @@ function trainingCardHTML(s, coaches, edit = true) {
     : `<p class="hint">${done ? `Coaching ended ${fmtDay(done)}. ${p.Their} plans, goals, and notes are kept, and ${p.they} can still sign in.
         ${back ? `Resuming makes you ${p.their} coach again.` : me.isAdmin ? `After resuming, pick ${p.their} coach.` : `After resuming, an admin picks ${p.their} coach.`}
         Delete ${p.them} only if ${p.they} ${p.v('were', 'was')} added by mistake.`
-      : `When ${p.they} ${p.v('stop', 'stops')} being coached, end coaching here. ${p.They} ${p.v('move', 'moves')} to Inactive on the Students list, ${p.their} current plan becomes a past plan, and ${p.they} ${p.v('have', 'has')} no coach.`}</p>
+      : `When ${p.they} ${p.v('stop', 'stops')} being coached, end coaching here. ${p.They} ${p.v('move', 'moves')} to Inactive on the Students list, ${p.their} current plan becomes a past plan, and ${p.they} ${p.v('have', 'has')} no coach.
+        ${fresh ? `${p.They} ${p.v("haven't", "hasn't")} been invited yet, so you can also delete ${p.them} if ${p.they} ${p.v('were', 'was')} added by mistake.` : ''}`}</p>
     <div class="row"><button type="button" class="${done ? 'primary' : 'ghost'}" data-act="training">${done ? 'Resume Coaching' : 'End Coaching'}</button>
-      ${done ? '<button type="button" class="ghost danger" data-act="del-student">Delete Student</button>' : ''}</div>`}
+      ${done || fresh ? '<button type="button" class="ghost danger" data-act="del-student">Delete Student</button>' : ''}</div>`}
   </section>`;
 }
 

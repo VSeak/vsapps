@@ -433,7 +433,8 @@ $$;
 
 -- Called by the coach's Delete Student button: removes the student and their
 -- login (never a coach's), so re-adding the same email starts fresh.
--- Only once their coaching has ended (End Coaching is the way to archive someone).
+-- Only once their coaching has ended (End Coaching is the way to archive someone),
+-- or before they were ever invited (nothing of theirs to keep yet).
 create function public.delete_student(p_id uuid) returns void
 language plpgsql volatile security definer set search_path = '' as $$
 declare
@@ -442,7 +443,8 @@ begin
   if not (public.is_admin() or public.can_coach(p_id)) then
     raise exception 'Only an admin or their coach can delete a student.';
   end if;
-  if exists (select 1 from public.students where id = p_id and training_ended_at is null) then
+  if exists (select 1 from public.students where id = p_id and training_ended_at is null
+      and (invited_at is not null or user_id is not null)) then
     raise exception 'End their coaching before deleting them.';
   end if;
   delete from public.students where id = p_id returning * into s;
