@@ -154,7 +154,7 @@ function nextCardHTML(s, edit = true, all = false) {
   if (s.training_ended_at) return '';
   const p = pro(s.pronouns), overdue = nextOverdue(s), set = !!s.next_date && !overdue, later = s.later ?? [];
   const shown = all ? later : later.slice(0, LATER_SHOWN);
-  const laterHTML = !set ? '' : `<div class="next-later">${later.length ? `<span class="eyebrow">After That · ${later.length}</span>
+  const laterHTML = !set ? '' : `<div class="next-later">${later.length ? `<span class="eyebrow">Upcoming Sessions · ${later.length}</span>
       <ul>${shown.map(h => `<li><span><b>${esc(shortSessionDay(h.session_date))}</b><small>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</small></span>
         ${edit && h.id ? `<span class="row"><button type="button" class="small ghost" data-later-edit="${h.id}">Change</button>
           <button type="button" class="small ghost" data-later-del="${h.id}">Remove</button></span>` : ''}</li>`).join('')}</ul>
