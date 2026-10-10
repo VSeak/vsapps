@@ -12,7 +12,7 @@ async function boot() {
   });
   sb.auth.onAuthStateChange(event => {
     if (event === 'PASSWORD_RECOVERY') wantsPassword = true;
-    if (event === 'SIGNED_OUT' && me) { me = null; dirty = false; setTimeout(route); }
+    if (event === 'SIGNED_OUT' && me) { me = null; dirty = false; msgStop(); setTimeout(route); }
   });
 
   const { data: { session } } = await sb.auth.getSession();   // also reads a link's token from the URL
@@ -77,6 +77,7 @@ async function loadMe(user) {
   }
   me = { user, roles: roles || [], isStaff: !!roles, isCoach: !!roles?.includes('coach'), isAdmin: !!roles?.includes('admin'),
     staffId: staffRow?.id || null, student, firstName, fullName };
+  msgStart();   // unread messages, live updates and this device's notifications (messages.js)
 }
 
 // A coach changes a student (plans, goals, details, next session, replies) only as their current coach, or when
@@ -243,14 +244,15 @@ function route() {
   // Staff who are also students: #/me is their own student home. Their own plans and student page open as the
   // student sees them (adminPlan, adminStudent), never as a coach.
   const go = me.isStaff
-    ? (me.student && page === 'me' ? studentHome()
+    ? (me.student && page === 'me' ? (id === 'messages' ? msgThread(me.student.id) : studentHome())
+      : me.isCoach && page === 'messages' ? (id ? msgThread(id) : adminMessages())
       : me.student && !me.isCoach && page === 'plan' && id ? studentPlan(id)
       : me.isCoach && page === 'students' ? adminStudents() : me.isCoach && page === 'student' && id ? adminStudent(id)
       : me.isCoach && page === 'plan' && id ? adminPlan(id, sub)
       : (me.isCoach || me.isAdmin) && page === 'exercises' ? adminExercises()
       : me.isAdmin && page === 'users' ? adminUsers() : me.isAdmin && page === 'user' && id ? adminUser(id) : adminHome())
     : !me.student ? viewNoAccess()
-    : (page === 'plan' && id ? studentPlan(id) : studentHome());
+    : (page === 'plan' && id ? studentPlan(id) : page === 'messages' ? msgThread(me.student.id) : studentHome());
   Promise.resolve(go).catch(showError);
 }
 
@@ -267,8 +269,10 @@ function showError(e) {
 
 $('#signOut').onclick = async () => {
   if (!await okToLeave(true)) return;
+  await pushOff(false).catch(() => {});   // this device stops getting their notifications
   await sb.auth.signOut();
   me = null;
+  msgStop();
   history.replaceState(null, '', BASE + '#/');
   currentHash = location.hash;
   route();
@@ -375,6 +379,8 @@ const ADMIN_PAGES = [
       if (error) throw error;
       return count;
     } },
+  { href: '#/messages', title: 'Messages', roles: ['coach'], blurb: 'Text with your students between sessions. The number is how many you havenâ€™t read.',
+    stat: async () => { await loadUnread(); return msgCount(); } },
   { href: '#/exercises', title: 'Exercises & Drills', roles: ['coach', 'admin'], blurb: 'What plans pick from, with their usual sets, reps, and rest.',
     stat: async () => {
       const { count, error } = await sb.from('exercises').select('id', { count: 'exact', head: true });

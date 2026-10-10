@@ -32,6 +32,7 @@ async function adminStudents() {
   const card = s => {
     const current = s.plans.filter(p => p.active).map(p => p.title || 'Untitled Plan').join(', '), mine = canCoach(s) && !s.training_ended_at;
     const chips = [
+      msgNew.students[s.id] && `<span class="chip role">${msgNew.students[s.id]} New Message${msgNew.students[s.id] > 1 ? 's' : ''}</span>`,
       mine && nextOverdue(s) && '<span class="chip warn">Update Next Session</span>',
       mine && !s.user_id && `<span class="chip${s.invited_at ? '' : ' warn'}">${accountStatus(s)}</span>`,
       mine && !current && '<span class="chip">Needs a Plan</span>',

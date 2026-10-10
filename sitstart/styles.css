@@ -926,3 +926,38 @@ dialog.cs-view[open] { display: flex; flex-direction: column; }
 #installBar p { margin: 0; font-size: .9rem; }
 .install-btns { grid-column: 2; display: flex; gap: .5rem; justify-content: flex-end; }
 .share-ic { width: 1.1em; height: 1.1em; vertical-align: -.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Messages (messages.js). The header button, with a red count of unread messages */
+#msgLink { position: relative; flex: none; display: grid; place-items: center; width: 40px; height: 34px; border-radius: 10px;
+  background: var(--chip); color: var(--ink); }
+#msgLink:hover { background: color-mix(in srgb, var(--chip) 80%, var(--ink)); }
+#msgLink .badge, .msg-n { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--live); color: #fff;
+  font: 700 .72rem/20px "DM Sans", sans-serif; text-align: center; }
+#msgLink .badge { position: absolute; top: -7px; right: -7px; }
+.msg-n { flex: none; align-self: center; }
+@media (max-width: 600px) { #msgLink { margin-left: auto; } #msgLink:not([hidden]) + #signOut { margin-left: 0; } }
+/* A thread: bubbles like the plan notes, a line for each day, and the box to type in stuck to the bottom of the screen */
+.msg-card { display: flex; flex-direction: column; max-width: 720px; padding-bottom: 0; }
+.msg-list { min-height: 30vh; padding-bottom: 12px; }
+.msg-day { margin: 16px 0 4px; text-align: center; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.msg-more { text-align: center; }
+.msg-none { margin: 3rem 0; text-align: center; }
+.note.msg p { margin: 0; }
+.note.msg .note-meta { margin-top: 2px; font-size: .72rem; }
+.msg-form { position: sticky; bottom: 0; display: flex; gap: 8px; align-items: flex-end; margin: 0 -18px; padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+  background: var(--card); border-top: 1px solid var(--line); border-radius: 0 0 21px 21px; }
+.msg-form textarea { flex: 1; min-height: 44px; max-height: 40vh; border-radius: 14px; resize: none; }
+.msg-why { padding-bottom: 18px; }
+.push-box { display: flex; justify-content: space-between; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; margin-bottom: 12px;
+  padding: .6rem .8rem; border-radius: 12px; background: var(--soft); font-size: .9rem; }
+.push-hint { margin: 0 0 12px; }
+/* The coach's inbox: one thread a row, the latest message under the name */
+.msg-inbox { max-width: 720px; }
+.msg-inbox .people { grid-template-columns: minmax(0, 1fr); }
+a.msg-row { align-items: center; }
+.msg-row .row { flex-wrap: nowrap; }
+.msg-when { flex: none; font-size: .8rem; }
+.msg-prev { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The Messages card: under Next Session on a phone (the student's home, and the coach's student page) */
+@media (max-width: 860px) { .stu-grid .msg-tile { order: 1; } }
+@media (max-width: 760px) { .phone-order .msg-tile { order: 1; } }

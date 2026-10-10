@@ -99,7 +99,7 @@ const myTop = () => me.isStaff ? `${crumbs([['Home', '#/'], ['My Training']])}<h
 // The student home: the plan beside the next session, goals and the rest. On a phone it is one column,
 // in the order set in styles.css (next session, goals, plan, past plans, then the rest).
 const stuGrid = (main, { next, goals, history, coaches }) => `<div class="stu-grid"><div class="stu-main">${main}</div>
-  <aside class="stu-side">${nextSessionAlert(next)}${goalHTML(goals)}${myLogCardHTML()}${achievedHTML(goals)}${history.html}${yourCoachHTML(coaches)}${myDetailsHTML()}</aside></div>`;
+  <aside class="stu-side">${nextSessionAlert(next)}${msgCardHTML(myThread(), 'Text your coach between sessions.', 'mine')}${goalHTML(goals)}${myLogCardHTML()}${achievedHTML(goals)}${history.html}${yourCoachHTML(coaches)}${myDetailsHTML()}</aside></div>`;
 const pastPlansHTML = plans => plans.length ? `<section class="card past-plans"><h2>Past Plans</h2>
   <p class="hint">Your past plans, kept so you can look back.</p><ul class="list">${planLinks(plans)}</ul></section>` : '';
 

@@ -66,6 +66,7 @@ async function adminStudent(id, again = false) {
     </div>
     <aside>
       ${nextCardHTML(s, edit)}
+      ${edit && !s.training_ended_at ? msgCardHTML('#/messages/' + id, `Text ${esc(s.first_name)} between sessions.`, id) : ''}
       <section class="card goals-card" id="goalsCard"></section>
       ${coachLogCardHTML(s, logs)}
       <div class="card-group">

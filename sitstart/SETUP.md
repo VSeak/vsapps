@@ -74,6 +74,25 @@ GitHub Pages publishes the site straight from the repo, free, and every push to 
 
 Then go back to step 5 and add the new address, and set `siteUrl` in `CONFIG` (in `sitstart/js/core.js`) to it, e.g. `https://your-name.github.io/vsapps/sitstart/`. Invite links then go to the live site even when you send them from localhost, so students can open them on a phone.
 
+## 9. Turn on message notifications (optional)
+
+Messages between a student and their coach work as soon as the database is set up. This step adds the notification a phone shows when a message arrives. Still free.
+
+1. **Make the keys.** From the repo root, run:
+
+   ```bash
+   powershell -ExecutionPolicy Bypass -File sitstart\supabase\functions\make-push-keys.ps1
+   ```
+
+   It puts the public key into `CONFIG.vapidKey` in `sitstart/js/core.js` and shows two secrets. The private one only ever goes into Supabase.
+2. **Save the secrets.** In Supabase: **Edge Functions → Secrets**. Add `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` with the values the script showed.
+3. **Add the function.** **Edge Functions → Deploy a new function → Via Editor**. Name it exactly `message-push`, replace the sample code with all of `sitstart/supabase/functions/message-push/index.ts`, and press **Deploy**. Leave **Verify JWT** on.
+4. **Publish the site** (commit and push), so the live site has the public key.
+
+Then, on each phone: install the app (the banner under the header), open **Messages**, and tap **Turn On Notifications**. iPhones only allow notifications for an app on the home screen (iOS 16.4 or later); Android also works in the browser.
+
+If notifications stop arriving, check **Edge Functions → message-push → Logs**. Don't run the key script again unless you mean to: a new pair makes every device turn notifications on again.
+
 ## Good to know
 
 - **Updates to the database:** `schema.sql` is for a new project. If your project was set up earlier, run any new files in `supabase/migrations` (oldest first) in the SQL Editor.
