@@ -207,28 +207,34 @@ let ls = null;   // { key, sid, x, fields, vals, notes, editing, last }
 
 // date: the day being logged (today, or an earlier day picked in the Day field). Starts at that day's log (editing
 // it), else the values of the last log before it, else what the plan says (sets, reps, a time like "10s").
-function openLogSheet(key, sid, date = todayISO()) {
+// Opened on a day that has a log (Edit), the sheet stays on that log: picking another Day moves it there (keep: the
+// sheet as it was, so what was typed stays). Opened for a new log, picking a Day just shows that day (browse).
+function openLogSheet(key, sid, date = todayISO(), keep = null, browse = false) {
   const [s, x] = planExercise(logCtx.sessions, key, sid);
   if (!x || !logCtx.canLog) return;
   sid = s.id;
-  const all = logsOf(logCtx.logs, key), list = all.filter(l => l.logged_on <= date);
-  const today = list[0]?.logged_on === date ? list[0] : null, last = today ? list[1] : list[0];
+  const all = logsOf(logCtx.logs, key), list = all.filter(l => l.logged_on <= date && l !== keep?.editing);
+  const today = keep?.editing ?? (list[0]?.logged_on === date ? list[0] : null), before = list.filter(l => l !== today), last = before[0];
+  const moved = !!today && today.logged_on !== date;
   const isToday = date === todayISO(), onDay = isToday ? 'today' : `on ${midDay(date)}`.replace('on yesterday', 'yesterday');
-  const fields = trackOf(x), from = today ?? last, unit = logUnit();
-  const vals = {};
-  for (const k of fields) if (from?.vals[k] != null) vals[k] = from.vals[k];
-  if (vals.weight != null && (from.vals.unit || 'lb') !== unit) vals.weight = round(unit === 'kg' ? vals.weight / KG : vals.weight * KG, wStep(unit));
+  const fields = trackOf(x), from = today ?? last, unit = keep?.unit ?? logUnit();
+  const vals = keep ? keep.vals : {};
+  if (!keep) for (const k of fields) if (from?.vals[k] != null) vals[k] = from.vals[k];
+  if (!keep && vals.weight != null && (from.vals.unit || 'lb') !== unit) vals.weight = round(unit === 'kg' ? vals.weight / KG : vals.weight * KG, wStep(unit));
   if (!from) {
     const int = s => /^\s*\d+\s*$/.test(s ?? '') ? parseInt(s, 10) : null, secs = /^\s*(\d+)\s*(s|sec|secs|seconds)\b/i.exec(x.reps ?? '');
     if (fields.includes('sets') && int(x.sets) != null) vals.sets = int(x.sets);
     if (fields.includes('reps') && int(x.reps) != null) vals.reps = int(x.reps);
     if (fields.includes('time') && secs) vals.time = +secs[1];
   }
-  ls = { key, sid, x, fields, vals, unit, date, other: {}, notes: today?.notes ?? '', editing: today, last, before: list.filter(l => l !== today) };
+  ls = { key, sid, x, fields, vals, unit, date, other: keep?.other ?? {}, notes: keep ? keep.notes : today?.notes ?? '',
+    editing: today, pinned: !!today && !browse, last, before };
+  const dayHint = ls.pinned ? `${isToday ? 'Today' : logDay(date, true)}. Pick another day to move this log.`
+    : isToday ? 'Today. Pick an earlier day for a past session.' : logDay(date, true);
   logSheet.innerHTML = `<div class="exb-head"><div><h2 id="logSheetTitle">Log ${esc(x.name.trim())}</h2>
-      <p class="hint">${today ? `Logged ${onDay}. Change what you need.` : last ? `Starts at last time's numbers (${logDay(last.logged_on)}). Tap what changed.` : 'Not logged yet.'}</p></div>
+      <p class="hint">${moved ? `Logged ${logDay(today.logged_on)}. Saving moves it to ${isToday ? 'today' : midDay(date)}.` : today ? `Logged ${onDay}. Change what you need.` : last ? `Starts at last time's numbers (${logDay(last.logged_on)}). Tap what changed.` : 'Not logged yet.'}</p></div>
     <button type="button" class="exb-close" data-close aria-label="Close">${EXB_ICON.close}</button></div>
-    <div class="log-body"><div class="log-step log-date"><div class="log-lab"><b id="lf-date">Day</b><span class="hint">${isToday ? 'Today. Pick an earlier day for a past session.' : logDay(date, true)}</span></div>
+    <div class="log-body"><div class="log-step log-date"><div class="log-lab"><b id="lf-date">Day</b><span class="hint">${dayHint}</span></div>
         <input type="date" data-date aria-labelledby="lf-date" value="${date}" max="${todayISO()}" required></div>
       ${fields.map(logFieldHTML).join('')}
       <label class="log-notes">Notes<textarea data-lf="notes" rows="2" data-grow maxlength="2000" placeholder="How did it feel?">${esc(ls.notes)}</textarea></label>
@@ -237,13 +243,20 @@ function openLogSheet(key, sid, date = todayISO()) {
   logDiff();
   if (!logSheet.open) { logSheet.showModal(); logSheet.querySelector('.log-body').scrollTop = 0; }
 }
-// Picking another day redraws the sheet for it (its log, if it has one). Never a day after today.
+// Picking another day redraws the sheet for it (its log, if it has one), or, while editing a log, moves that log to
+// it (never onto a day that already has one). Never a day after today.
 logSheet.addEventListener('change', e => {
   if (!('date' in e.target.dataset)) return;
   const d = e.target.value;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || d > todayISO()) { e.target.value = ls.date; return; }
   if (d === ls.date) return;
-  openLogSheet(ls.key, ls.sid, d);
+  if (ls.pinned) {
+    if (logsOf(logCtx.logs, ls.key).some(l => l !== ls.editing && l.logged_on === d)) {
+      e.target.value = ls.date;
+      return flash(`You already logged this on ${midDay(d)}. Edit that log instead.`, 'error');
+    }
+    openLogSheet(ls.key, ls.sid, d, ls);
+  } else openLogSheet(ls.key, ls.sid, d, null, true);
   logSheet.querySelector('[data-date]').focus();
 });
 
@@ -334,7 +347,7 @@ logSheet.addEventListener('click', async e => {
     return;
   }
   if ('del' in d) {
-    const whose = ls.date === todayISO() ? "Today's log" : `The log from ${midDay(ls.date)}`;
+    const on = ls.editing.logged_on, whose = on === todayISO() ? "Today's log" : `The log from ${midDay(on)}`;
     if (!await ask({ title: 'Delete This Log?', warn: true, ok: 'Delete', body: `<p>${whose} for ${esc(ls.x.name.trim())} will be deleted.</p>` })) return;
     return busy(b, async () => {
       must(await sb.from('exercise_logs').delete().eq('id', ls.editing.id));
@@ -355,7 +368,10 @@ function saveLog(btn) {
   return busy(btn, async () => {
     const row = { student_id: me.student.id, session_id: ls.sid, exercise_key: ls.key, exercise_name: ls.x.name.trim().slice(0, 200),
       logged_on: ls.date, vals, notes };
-    const saved = await sb.from('exercise_logs').upsert(row, { onConflict: 'student_id,exercise_key,logged_on' }).select().single().then(must);
+    // Editing changes that log (its day too, when it was moved); otherwise a new one is added.
+    const { data: saved, error } = await (ls.editing ? sb.from('exercise_logs').update(row).eq('id', ls.editing.id)
+      : sb.from('exercise_logs').upsert(row, { onConflict: 'student_id,exercise_key,logged_on' })).select().single();
+    if (error) throw error.code === '23505' ? new Error(`You already logged this on ${midDay(ls.date)}. Edit that log instead.`) : error;
     logCtx.logs = sortLogs([saved, ...logCtx.logs.filter(l => l.id !== saved.id)]);
     const mine = logsOf(logCtx.logs, ls.key), wasBest = mine[0] === saved && isNewBest(mine);
     logSheet.close();
