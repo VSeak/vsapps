@@ -19,13 +19,15 @@ let studentsTab = 'mine';   // the Students list's tab, kept while you move arou
 async function adminStudents() {
   const t = ++navToken;
   view(loading);
-  const [students, recent, coachList] = await Promise.all([
+  const [students, recent, coachList, ups] = await Promise.all([
     sb.from('students').select(`id,name,pronouns,email,invited_at,user_id,coach_id,training_ended_at,${NEXT_COLS},plans(id,title,active)`).order('name').then(must),
     sb.from('notes').select('id,session_id,body,created_at,session:sessions(title,week,plan:plans(id,title,repeats,blocks,student:students(id,name,email,coach_id)))')
       .eq('from_coach', false).order('created_at', { ascending: false }).limit(40).then(must),
     sb.rpc('coach_list').then(must),
+    sb.from('upcoming_sessions').select('student_id,session_date,start_time,end_time,location').then(must),
   ]);
   if (t !== navToken) return;
+  applySchedules(students, ups);
   const coachName = id => coachList.find(c => c.id === id)?.name || 'another coach';
   // A card per student: whose they are or Inactive comes from the tab. Warn chips and Not Invited or Invited only on
   // students you coach; a next session chip while one is coming up.

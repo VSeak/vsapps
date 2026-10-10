@@ -434,6 +434,13 @@ a.card.group-link:hover h2 { color: var(--accent); }
 .next-card button { background: transparent; color: var(--deep-ink); border-color: color-mix(in srgb, var(--deep-ink) 25%, transparent); }
 .next-btns { margin-top: 12px; }
 .next-card button.next-go { width: 100%; min-height: 46px; margin-top: 12px; background: var(--deep-accent); border-color: var(--deep-accent); color: var(--goal-ink); }
+/* The sessions scheduled after the next one, listed under it (the coach's card and the student's) */
+.next-later { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--deep-line); display: grid; gap: 8px; }
+.next-later ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.next-later li { display: flex; justify-content: space-between; align-items: center; gap: .4rem .8rem; flex-wrap: wrap; }
+.next-later li > span:first-child { display: grid; }
+.next-later small { color: var(--deep-muted); font-size: .85rem; }
+.next-later .next-add { width: 100%; }
 /* The coach's Goals card: a plain card (a green fill hid its hover, Unsaved edge and tag), with each goal
    marked by a green bar like the student's green goals card */
 .goals-card .goal-text { border-left: 4px solid var(--goal); padding-left: 10px; }
@@ -814,6 +821,11 @@ button.log-row > svg:last-child { flex: none; color: var(--muted); }
 .cs-next-day { margin: 4px 0 2px; font: 800 1.25rem "Bricolage Grotesque", sans-serif; }
 .cs-next .muted { margin: 0; }
 .cs-big { min-height: 48px; }
+.cs-next .hint { margin: 6px 0 0; }
+.cs-others { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.cs-others .hint { flex: 1 1 100%; margin: 0; }
+.cs-live-now[hidden] { display: none; }
+.cs-live-now button { display: block; margin-top: 8px; }
 .cs-card .ex-head { margin-top: 4px; }
 .cs-rnote { color: var(--ink-2); }
 .cs-add-note { font-style: italic; }

@@ -409,13 +409,15 @@ const dayBlock = d => `<span class="day-block"><small>${day(d).toLocaleDateStrin
 async function homeNeeds() {
   // All at once: notes and history filter on the student's coach through the join, so they don't wait for the ids.
   const mineOnly = q => q.eq('student.coach_id', me.staffId).is('student.training_ended_at', null).then(must);
-  const [mine, noCoach, notes, log] = await Promise.all([
+  const [mine, noCoach, notes, log, ups] = await Promise.all([
     me.isCoach ? sb.from('students').select(`id,first_name,name,email,invited_at,user_id,coach_id,training_ended_at,${NEXT_COLS}`)
       .is('training_ended_at', null).eq('coach_id', me.staffId).then(must) : [],
     me.isAdmin ? sb.from('students').select('id,name').is('training_ended_at', null).is('coach_id', null).then(must) : [],
     me.isCoach ? mineOnly(sb.from('coach_notes').select('student_id,session_date,student:students!inner(coach_id,training_ended_at)')) : [],
     me.isCoach ? mineOnly(sb.from('session_history').select('student_id,session_date,start_time,student:students!inner(coach_id,training_ended_at)')) : [],
+    me.isCoach ? mineOnly(sb.from('upcoming_sessions').select('student_id,session_date,start_time,end_time,location,student:students!inner(coach_id,training_ended_at)')) : [],
   ]);
+  applySchedules(mine, ups);
   const items = [];
   for (const s of mine) {
     if (accountStatus(s) === 'Not Invited') items.push({ name: s.name, href: '#/student/' + s.id, sub: 'No invite sent yet', tag: 'Send Invite' });
@@ -426,8 +428,9 @@ async function homeNeeds() {
       sub: missing.length === 1 ? `Session on ${fmtSessionDay(missing[0])}` : `${missing.length} sessions have no notes` });
   }
   for (const s of noCoach) items.push({ name: s.name, href: '#/user/' + s.id, sub: 'Student with no coach', tag: 'Pick a Coach' });
-  const upcoming = mine.filter(s => !nextPassed(s))
-    .sort((a, b) => (a.next_date + a.next_start).localeCompare(b.next_date + b.next_start)).slice(0, COMING_UP);
+  // Every session coming up, not just each student's next one.
+  const upcoming = mine.flatMap(s => [...(nextPassed(s) ? [] : [nextOf(s)]), ...s.later].map(h => ({ ...h, id: s.id, name: s.name })))
+    .sort(bySession).slice(0, COMING_UP);
   return { items, upcoming, coaching: mine.length };
 }
 
@@ -441,8 +444,8 @@ async function adminHome() {
   const name = me.firstName ? ' ' + esc(me.firstName) : '';
   const n = items.length;
   const todo = i => `<a class="todo" href="${i.href}"><span><b>${esc(i.name)}</b><span>${esc(i.sub)}</span></span><span class="pill warn">${i.tag}</span></a>`;
-  const up = s => `<a class="todo" href="#/student/${s.id}">${dayBlock(s.next_date)}<span><b>${esc(s.name)}</b>
-    <span>${fmtTime(s.next_start)} – ${fmtTime(s.next_end)} · ${esc(s.next_location)}</span></span></a>`;
+  const up = h => `<a class="todo" href="#/student/${h.id}">${dayBlock(h.session_date)}<span><b>${esc(h.name)}</b>
+    <span>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</span></span></a>`;
   // Nothing to do: a calm card that still shows what's coming up (or, coaching nobody, how to start).
   const clear = me.isCoach ? `<div class="needs-clear"><span class="check">${ICON_CHECK}</span><div><b>Nothing needs attention right now</b>
       <span>${coaching ? 'Every student is invited and has a next session, and every session has a note.' : "You're not coaching anyone at the moment."}</span></div></div>` : '';

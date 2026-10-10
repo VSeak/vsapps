@@ -6,7 +6,7 @@ async function adminStudent(id, again = false) {
   const t = ++navToken;
   const restore = again && keepEdits(again);
   if (!again) view(loading);
-  const [s, coaches, notes, cnotes, log, logs, csRows] = await Promise.all([
+  const [s, coaches, notes, cnotes, log, logs, csRows, ups] = await Promise.all([
     sb.from('students').select('*, plans(id,title,active,start_date,repeats,blocks,updated_at), goals(*)').eq('id', id).maybeSingle().then(must),
     sb.rpc('coaches_of', { p_id: id }).then(must),
     // This student's own notes on any of their plans, newest first (like Latest Student Notes on the Students list).
@@ -16,9 +16,16 @@ async function adminStudent(id, again = false) {
     sb.from('session_history').select('*').eq('student_id', id).then(must),
     sb.from('exercise_logs').select('*').eq('student_id', id).order('logged_on', { ascending: false }).order('created_at', { ascending: false }).then(must),
     sb.from('coaching_sessions').select('*').eq('student_id', id).then(must),
+    sb.from('upcoming_sessions').select('*').eq('student_id', id).then(must),
   ]);
   if (t !== navToken) return;
   if (!s) { location.hash = '#/students'; return; }
+  // Their sessions in order: one that ended since the last visit goes to Session History and the one after it
+  // becomes the Next Session. Their coach's visit saves that; anyone else just sees it that way.
+  if (applySchedule(s, ups) && canCoach(s) && !s.training_ended_at) {
+    try { await settleSessions(id, s, log); } catch (e) { flash(msgOf(e), 'error'); }
+    if (t !== navToken) return;
+  }
   // Your own student page: as your students see theirs.
   if (isSelf(s)) return redirect('#/me');
   s.plans.sort((a, b) => (b.active - a.active) || b.updated_at.localeCompare(a.updated_at));
@@ -111,6 +118,8 @@ async function adminStudent(id, again = false) {
   // Coach Notes redraw when the sessions change, for their prompt about the newest past session.
   const hist = { log, page: 1, readOnly: !edit, notes: d => cnotes.filter(n => n.session_date === d).length, showNotes: showCoachNotes,
     addNotes: startCoachNote, changed: () => { renderCoachNotes(); csNextChanged(); } };
+  // missing: past sessions with no Coach Note yet, oldest first (what a new coaching session can be for).
+  const csMissing = () => { const days = cnoteMissing(cnotes, s, log); return historyOf(log, s).filter(h => days.includes(h.session_date)).reverse(); };
   bindSessions(id, s, hist);
   bindCoachLogCard();
 
@@ -199,6 +208,8 @@ async function adminStudent(id, again = false) {
       else card.querySelector('[data-cnote-more]')?.focus();
     };
     hist.redraw();
+    // Which sessions need notes decides what a new coaching session is for.
+    if (cs?.s === s && !cs.open) renderCoachSession();
     const form = $('#cnoteForm');
     if (typed) {
       form.elements.body.value = typed[0];
@@ -227,7 +238,7 @@ async function adminStudent(id, again = false) {
   }
   renderCoachNotes();
   // The Coaching Session card, between the plan and Student Notes (coaching-session.js).
-  bindCoachSession(s, csRows, { plan: current, showNotes: showCoachNotes, redraw: () => adminStudent(id, true) });
+  bindCoachSession(s, csRows, { plan: current, showNotes: showCoachNotes, redraw: () => adminStudent(id, true), missing: csMissing });
   // From Session History: the page of session notes with that day's first note, scrolled to, and every note from
   // that day lit up for a moment. If they run onto the next page, paging there lights those up too (cnoteAt.spot).
   function spotCoachNotes() {

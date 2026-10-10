@@ -65,7 +65,7 @@ async function studentHome() {
   const t = ++navToken;
   view(loading);
   // Coaches can read every student's plans and goals, so ask for this student's (and not archived goals) by name.
-  const [plans, goals, coaches, next, log, logs] = await Promise.all([
+  const [plans, goals, coaches, next, log, logs, ups] = await Promise.all([
     sb.from('plans').select('id,title,active,start_date').eq('student_id', me.student.id)
       .order('active', { ascending: false }).order('created_at', { ascending: false }).then(must),
     sb.from('goals').select('*').eq('student_id', me.student.id).neq('status', 'archived').then(must).then(sortGoals),
@@ -73,8 +73,11 @@ async function studentHome() {
     sb.from('students').select(NEXT_COLS).eq('id', me.student.id).maybeSingle().then(must),
     sb.from('session_history').select('*').eq('student_id', me.student.id).then(must),
     myLogs(),
+    sb.from('upcoming_sessions').select('*').eq('student_id', me.student.id).then(must),
   ]);
   if (t !== navToken) return;
+  // The next session is the earliest that hasn't ended, with the ones after it under it (Also Coming Up).
+  if (next) applySchedule(next, ups);
   const current = plans.find(p => p.active);   // at most one (one_current_plan)
   const history = studentHistory(log, next);
   if (current) return studentPlan(current.id, plans, goals, coaches, next, history, logs);

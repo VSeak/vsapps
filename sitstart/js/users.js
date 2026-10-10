@@ -192,13 +192,19 @@ async function adminUser(id, again = false) {
   // Students: their row (coach and next session), who could coach them, past coaches and past sessions.
   // Staff: the students they coach. twin: the same person's other record (a staff member who is also a student).
   const twinOf = t => u.email ? sb.from(t).select('id').eq('email', u.email).maybeSingle().then(must) : null;
-  const [stu, coachOpts, coaches, log, pupils, twin] = await Promise.all(staff
-    ? [null, [], [], [], sb.from('students').select('id,name').eq('coach_id', id).order('name').then(must), twinOf('students')]
+  const [stu, coachOpts, coaches, log, pupils, twin, ups] = await Promise.all(staff
+    ? [null, [], [], [], sb.from('students').select('id,name').eq('coach_id', id).order('name').then(must), twinOf('students'), []]
     : [sb.from('students').select('first_name,pronouns,email,invited_at,user_id,coach_id,training_ended_at,' + NEXT_COLS).eq('id', id).single().then(must),
        sb.from('staff').select('id,name,email').contains('roles', ['coach']).is('deactivated_at', null).order('first_name').then(must),
        sb.rpc('coaches_of', { p_id: id }).then(must),
-       sb.from('session_history').select('*').eq('student_id', id).then(must), [], twinOf('staff')]);
+       sb.from('session_history').select('*').eq('student_id', id).then(must), [], twinOf('staff'),
+       sb.from('upcoming_sessions').select('*').eq('student_id', id).then(must)]);
   if (t !== navToken) return;
+  // Their sessions in order (see adminStudent): an admin's visit saves it too.
+  if (stu && applySchedule(stu, ups) && !stu.training_ended_at) {
+    try { await settleSessions(id, stu, log); } catch (e) { flash(msgOf(e), 'error'); }
+    if (t !== navToken) return;
+  }
   const coachId = stu?.coach_id ?? null;
   // Keep their coach in the list even if they've lost the Coach role since. Nobody can coach themselves.
   const cur = coaches.find(c => c.is_current);

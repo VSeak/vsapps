@@ -58,11 +58,59 @@ const nextOverdue = s => !!s.next_date && nextPassed(s);
 const hm = t => t ? t.slice(0, 5) : '';
 const HISTORY_PAGE = 3;   // past sessions per page
 
-// Past sessions newest first, with an ended next session that isn't logged yet on top.
+// ---------- Several sessions ahead (upcoming_sessions: the ones after the Next Session) ----------
+// A coach can schedule more than one. The Next Session is the earliest that hasn't ended; when it ends it goes to
+// Session History and the one after it takes its place (settle_sessions() in schema.sql, which works it out the same
+// way as applySchedule here).
+
+const LATER_SHOWN = 3;    // sessions after the next one listed before Show All
+const REPEAT_MAX = 12;    // weeks one Add can repeat for
+const sessEnded = h => new Date(`${h.session_date}T${h.end_time}`) <= new Date();
+const bySession = (a, b) => a.session_date.localeCompare(b.session_date) || a.start_time.localeCompare(b.start_time);
+const sameSession = (a, b) => a.session_date === b.session_date && hm(a.start_time) === hm(b.start_time);
+const localNow = () => `${localToday()}T${new Date().toTimeString().slice(0, 8)}`;
+const nextOf = s => ({ session_date: s.next_date, start_time: s.next_start, end_time: s.next_end, location: s.next_location });
+const addDays = (d, n) => { const x = day(d); x.setDate(x.getDate() + n); return x.toLocaleDateString('en-CA'); };
+
+// Puts a student's sessions in order as of now, on the row itself, so every page shows the same thing whether or not
+// the database has caught up: next_* becomes the earliest session that hasn't ended (or, when all have, the last
+// one, which shows as ended until the coach sets a new one), s.later the ones after it, and s.ended the other ended
+// ones, which count as past sessions (historyOf). ups: their upcoming_sessions rows. True when the database is behind.
+function applySchedule(s, ups = []) {
+  const all = ups.filter(u => !s.next_date || !sameSession(u, nextOf(s))).map(u => ({ ...u }));
+  if (s.next_date) all.push({ ...nextOf(s), isNext: true });
+  all.sort(bySession);
+  const coming = all.filter(h => !sessEnded(h)), past = all.filter(sessEnded), next = coming[0] ?? past.at(-1) ?? null;
+  s.later = coming.slice(1);
+  s.ended = past.filter(h => h !== next);
+  Object.assign(s, { next_date: next?.session_date ?? null, next_start: next?.start_time ?? null, next_end: next?.end_time ?? null,
+    next_location: next?.location ?? null });
+  return s.ended.length > 0 || s.later.some(h => h.isNext) || (!!next && !next.isNext);
+}
+// Has the database put them in order (only their coach or an admin can), then reads them again. log: the student's
+// session_history rows, refilled in place.
+async function settleSessions(id, s, log) {
+  must(await sb.rpc('settle_sessions', { p_student: id, p_now: localNow() }));
+  const [row, ups, hist] = await Promise.all([
+    sb.from('students').select(NEXT_COLS).eq('id', id).single().then(must),
+    sb.from('upcoming_sessions').select('*').eq('student_id', id).then(must),
+    sb.from('session_history').select('*').eq('student_id', id).then(must),
+  ]);
+  Object.assign(s, row);
+  applySchedule(s, ups);
+  log?.splice(0, Infinity, ...hist);
+}
+// Each student's upcoming_sessions rows, for a list of students.
+function applySchedules(students, ups) {
+  for (const s of students) applySchedule(s, ups.filter(u => u.student_id === s.id));
+}
+
+// Past sessions newest first, with ended scheduled sessions that aren't logged yet (an ended next session, and any
+// before it the database hasn't moved yet) on top.
 function historyOf(log, s) {
   const list = [...log];
-  if (nextOverdue(s) && !log.some(h => h.session_date === s.next_date && hm(h.start_time) === hm(s.next_start)))
-    list.push({ session_date: s.next_date, start_time: s.next_start, end_time: s.next_end, location: s.next_location });
+  for (const h of [...(s.ended ?? []), ...(nextOverdue(s) ? [nextOf(s)] : [])])
+    if (!list.some(x => sameSession(x, h))) list.push({ session_date: h.session_date, start_time: h.start_time, end_time: h.end_time, location: h.location });
   return list.sort((a, b) => b.session_date.localeCompare(a.session_date) || b.start_time.localeCompare(a.start_time));
 }
 // Before the next session changes, keep it in the history if it has ended. Logging it twice does nothing.
@@ -99,11 +147,19 @@ function historyHTML(s, hist) {
 }
 
 // The Next Session card: dark, like the one the student sees. Coming up, it says how soon; ended, it's struck through
-// with Set Next Session; not set, it says so. The date and time are set in a dialog (nextSessionFields).
+// with Set Next Session; not set, it says so. The date and time are set in a dialog (sessionFields).
 // edit: false for a coach who isn't theirs: they see it, without buttons. Coaching ended: no card.
-function nextCardHTML(s, edit = true) {
+// Under it, the sessions after it (s.later), each with Change and Remove, and + Add Session. all: every one is listed.
+function nextCardHTML(s, edit = true, all = false) {
   if (s.training_ended_at) return '';
-  const p = pro(s.pronouns), overdue = nextOverdue(s), set = !!s.next_date && !overdue;
+  const p = pro(s.pronouns), overdue = nextOverdue(s), set = !!s.next_date && !overdue, later = s.later ?? [];
+  const shown = all ? later : later.slice(0, LATER_SHOWN);
+  const laterHTML = !set ? '' : `<div class="next-later">${later.length ? `<span class="eyebrow">After That · ${later.length}</span>
+      <ul>${shown.map(h => `<li><span><b>${esc(shortSessionDay(h.session_date))}</b><small>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</small></span>
+        ${edit && h.id ? `<span class="row"><button type="button" class="small ghost" data-later-edit="${h.id}">Change</button>
+          <button type="button" class="small ghost" data-later-del="${h.id}">Remove</button></span>` : ''}</li>`).join('')}</ul>
+      ${later.length > LATER_SHOWN ? `<button type="button" class="small ghost" data-next="all" aria-expanded="${all}">${all ? 'Show Fewer' : `Show All ${later.length}`}</button>` : ''}` : ''}
+    ${edit ? '<button type="button" class="ghost next-add" data-next="add">+ Add Session</button>' : ''}</div>`;
   const n = set && Math.round((day(s.next_date) - day(localToday())) / 864e5);
   const date = s.next_date && day(s.next_date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   return `<section class="next-card" id="nextCard">
@@ -114,20 +170,32 @@ function nextCardHTML(s, edit = true) {
       : `<p class="next-say">${!edit ? `Only ${p.their} coach sets the next session.` : overdue ? `It's in Session History now. Set the next one so ${esc(s.first_name)} knows when to come in.`
         : `Set one so ${esc(s.first_name)} knows when to come in.`}</p>`}
     ${!edit ? '' : set ? `<div class="row next-btns"><button type="button" class="ghost" data-next="set">Change</button>
-      <button type="button" class="ghost" data-next="clear">Clear</button></div>`
+      <button type="button" class="ghost" data-next="clear">${later.length ? 'Remove' : 'Clear'}</button></div>`
       : '<button type="button" class="next-go" data-next="set">Set Next Session</button>'}
+    ${laterHTML}
   </section>`;
 }
-// The next session's fields, for the dialog. End Time follows Start Time (pairTimes).
-const nextSessionFields = s => `<div class="stack">
-  <label>Date<input type="date" name="next_date" value="${nextOverdue(s) ? '' : esc(s.next_date || '')}" min="${localToday()}"
+// "Tue, Oct 13", with the year when it isn't this one.
+const shortSessionDay = d => day(d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric',
+  ...(day(d).getFullYear() !== new Date().getFullYear() && { year: 'numeric' }) });
+// A scheduled session's fields, for the dialog. h: what they start at ({ session_date, start_time, end_time, location }).
+// End Time follows Start Time (pairTimes). repeat: also ask how many weeks to repeat it for.
+const sessionFields = (h, repeat = false) => `<div class="stack">
+  <label>Date<input type="date" name="next_date" value="${esc(h.session_date || '')}" min="${localToday()}"
     required data-need="Pick the day." data-low="Pick today or a later day."></label>
   <div class="row">
-    <label class="grow" style="min-width:120px">Start Time<input type="time" name="start_time" value="${hm(s.next_start)}" required data-need="Pick a start time."></label>
-    <label class="grow" style="min-width:120px">End Time<input type="time" name="end_time" value="${hm(s.next_end)}" required data-need="Pick an end time." data-low="End after the start time."></label>
+    <label class="grow" style="min-width:120px">Start Time<input type="time" name="start_time" value="${hm(h.start_time)}" required data-need="Pick a start time."></label>
+    <label class="grow" style="min-width:120px">End Time<input type="time" name="end_time" value="${hm(h.end_time)}" required data-need="Pick an end time." data-low="End after the start time."></label>
   </div>
-  <label>Location<input name="location" value="${esc(s.next_location || '')}" maxlength="200" required
-    data-need="Say where it is." autocomplete="off" placeholder="e.g. Gym/Wall"></label></div>`;
+  <label>Location<input name="location" value="${esc(h.location || '')}" maxlength="200" required
+    data-need="Say where it is." autocomplete="off" placeholder="e.g. Gym/Wall"></label>
+  ${repeat ? `<label>Repeat Weekly<span class="hint field-hint">Adds a session at the same time each week, so you only enter it once.</span>
+    <select name="repeat"><option value="1">Just This One</option>${Array.from({ length: REPEAT_MAX - 1 }, (_, i) =>
+      `<option value="${i + 2}">For ${i + 2} Weeks</option>`).join('')}</select></label>` : ''}</div>`;
+// What the dialog asked for, as rows: one session, or one a week for as many weeks as picked.
+const scheduleRows = (id, f) => Array.from({ length: Math.min(REPEAT_MAX, Math.max(1, +f.get('repeat') || 1)) }, (_, k) => ({
+  student_id: id, session_date: addDays(f.get('next_date'), 7 * k), start_time: f.get('start_time'), end_time: f.get('end_time'),
+  location: f.get('location').trim() }));
 // Session History: one of the cards you rarely open, folded to its heading and a count until you tap it.
 function historyCardHTML(s) {
   return `<section class="card" id="histCard" data-fold="history" data-fold-start>
@@ -180,16 +248,27 @@ function bindSessions(id, s, hist) {
   };
   hist.redraw = drawHistory;   // e.g. after a Coach Note changes its Notes count
   drawHistory();
-  // Changes the next session and redraws its card. keep: log an ended one in the history first.
-  const save = (btn, patch, msg, keep = true) => busy(btn, async () => {
-    if (keep) await logEnded(id, s, hist.log);
-    Object.assign(s, await sb.from('students').update(patch).eq('id', id).select(NEXT_COLS).single().then(must));
+  const redrawNext = () => { $('#nextCard').outerHTML = nextCardHTML(s, !hist.readOnly, hist.allLater); bindSessions(id, s, hist); };
+  // Runs change() (a change to the next session or the ones after it), has the database put them back in order,
+  // then redraws the card and the history.
+  const change = (btn, fn, msg) => busy(btn, async () => {
+    await fn();
+    await settleSessions(id, s, hist.log);
     hist.page = 1;
-    $('#nextCard').outerHTML = nextCardHTML(s, !hist.readOnly);
-    bindSessions(id, s, hist);
+    redrawNext();
     hist.changed?.();
     flash(msg);
   });
+  // Changes the next session itself. keep: log an ended one in the history first.
+  const save = (btn, patch, msg, keep = true) => change(btn, async () => {
+    if (keep) await logEnded(id, s, hist.log);
+    must(await sb.from('students').update(patch).eq('id', id));
+  }, msg);
+  // Adds sessions (one, or one a week): each lands in order, the earliest as the Next Session. One already there stays.
+  const addSessions = (btn, rows, msg) => change(btn, async () => {
+    must(await sb.from('upcoming_sessions').upsert(rows, { onConflict: 'student_id,session_date,start_time', ignoreDuplicates: true }));
+  }, msg);
+  const taken = e => e.code === '23505' ? new Error('There is already a session at that time.') : e;
   const noNext = { next_date: null, next_start: null, next_end: null, next_location: null };
   box.onclick = async e => {
     const b = e.target.closest('button');
@@ -232,19 +311,59 @@ function bindSessions(id, s, hist) {
   // Set Next Session / Change opens the dialog; Clear asks first.
   const card = $('#nextCard');
   if (card) card.onclick = async e => {
-    const b = e.target.closest('[data-next]');
+    const b = e.target.closest('button');
     if (!b) return;
-    if (b.dataset.next === 'clear') {
-      if (await ask({ title: 'Clear the Next Session?', ok: 'Clear', warn: true,
-        body: `<p>${pro(s.pronouns).They} won't see a next session until you set one.</p>` }))
-        save(b, noNext, 'Next session cleared.');
+    const p = pro(s.pronouns), later = s.later ?? [], d = b.dataset;
+    const added = n => n > 1 ? `${n} sessions added.` : 'Session added.';
+    if (d.next === 'all') { hist.allLater = !hist.allLater; redrawNext(); $('#nextCard [data-next="all"]')?.focus(); return; }
+    if (d.next === 'clear') {
+      if (await ask(later.length ? { title: 'Remove This Session?', ok: 'Remove', warn: true,
+          body: `<p>${esc(shortSessionDay(s.next_date))} is removed, and ${esc(shortSessionDay(later[0].session_date))} becomes ${p.their} next session.</p>` }
+        : { title: 'Clear the Next Session?', ok: 'Clear', warn: true, body: `<p>${p.They} won't see a next session until you set one.</p>` }))
+        save(b, noNext, later.length ? 'Session removed.' : 'Next session cleared.');
       return;
     }
-    const asked = ask({ title: nextOverdue(s) || !s.next_date ? 'Set the Next Session' : 'Change the Next Session', ok: 'Save Session',
-      body: `<p class="hint">${pro(s.pronouns).They} ${pro(s.pronouns).v('see', 'sees')} it at the top of ${pro(s.pronouns).their} page until it ends. Then it moves to Session History.</p>${nextSessionFields(s)}` });
+    // A session after the next one: Change or Remove.
+    const h = later.find(x => x.id && x.id === (d.laterEdit || d.laterDel));
+    if (h && d.laterDel) {
+      if (await ask({ title: 'Remove This Session?', ok: 'Remove', warn: true,
+        body: `<p>${esc(shortSessionDay(h.session_date))}, ${fmtTime(h.start_time)} – ${fmtTime(h.end_time)}, comes off ${p.their} upcoming sessions.</p>` }))
+        change(b, async () => { must(await sb.from('upcoming_sessions').delete().eq('id', h.id)); }, 'Session removed.');
+      return;
+    }
+    if (h) {
+      const asked = ask({ title: 'Change This Session', ok: 'Save Session', body: sessionFields(h) });
+      pairTimes($('#dlg'));
+      const f = await asked;
+      if (f) change(b, async () => {
+        const { error } = await sb.from('upcoming_sessions').update({ session_date: f.get('next_date'), start_time: f.get('start_time'),
+          end_time: f.get('end_time'), location: f.get('location').trim() }).eq('id', h.id);
+        if (error) throw taken(error);
+      }, 'Session saved.');
+      return;
+    }
+    // + Add Session: starts a week after the last one scheduled, at the same time and place.
+    if (d.next === 'add') {
+      const last = later.at(-1) ?? nextOf(s);
+      const asked = ask({ title: 'Add a Session', ok: 'Add Session', body: `<p class="hint">It goes in order with the others. When one ends, the one after it becomes the next session by itself.</p>
+        ${sessionFields({ ...last, session_date: addDays(last.session_date, 7) }, true)}` });
+      pairTimes($('#dlg'));
+      const f = await asked;
+      if (f) { const rows = scheduleRows(id, f); addSessions(b, rows, added(rows.length)); }
+      return;
+    }
+    if (d.next !== 'set') return;
+    // Set Next Session (none, or it has ended): one session, or one a week. Change: the next session itself.
+    const fresh = nextOverdue(s) || !s.next_date;
+    const asked = ask({ title: fresh ? 'Set the Next Session' : 'Change the Next Session', ok: 'Save Session',
+      body: `<p class="hint">${p.They} ${p.v('see', 'sees')} it at the top of ${p.their} page until it ends. Then it moves to Session History.</p>
+        ${sessionFields(fresh ? { start_time: s.next_start, end_time: s.next_end, location: s.next_location } : nextOf(s), fresh)}` });
     pairTimes($('#dlg'));
     const f = await asked;
-    if (f) save(b, { next_date: f.get('next_date'), next_start: f.get('start_time'), next_end: f.get('end_time'),
+    if (!f) return;
+    const rows = scheduleRows(id, f);
+    if (fresh) addSessions(b, rows, rows.length > 1 ? added(rows.length) : 'Next session saved.');
+    else save(b, { next_date: f.get('next_date'), next_start: f.get('start_time'), next_end: f.get('end_time'),
       next_location: f.get('location').trim() }, 'Next session saved.');
   };
 }
@@ -329,6 +448,8 @@ function nextSessionAlert(s) {
     <div class="row between"><span class="eyebrow">Next Session</span><span class="pill">${n <= 0 ? 'Today' : n === 1 ? 'Tomorrow' : `In ${n} days`}</span></div>
     <p class="next-day">${esc(date)}</p>
     <div class="next-meta"><span>${ICON_CLOCK}${fmtTime(s.next_start)} – ${fmtTime(s.next_end)}</span><span>${ICON_PIN}${esc(s.next_location)}</span></div>
+    ${s.later?.length ? `<div class="next-later"><span class="eyebrow">Also Coming Up</span>
+      <ul>${s.later.map(h => `<li><span><b>${esc(shortSessionDay(h.session_date))}</b><small>${fmtTime(h.start_time)} – ${fmtTime(h.end_time)} · ${esc(h.location)}</small></span></li>`).join('')}</ul></div>` : ''}
   </section>`;
 }
 
