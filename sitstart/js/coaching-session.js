@@ -152,9 +152,11 @@ function csRowHTML(x, k, n) {
     <span class="ex-rname">${esc(x.name.trim() || 'Unnamed Exercise')}</span>${sum ? `<span class="ex-val">${esc(sum)}</span>` : ''}
     ${note ? `<span class="ex-rnote cs-rnote">${esc(note)}</span>` : '<span class="ex-rnote cs-add-note">+ Add Note</span>'}</span>${CHEVRON}</button></div>`;
 }
-const csFromHTML = x => String(x.plan_notes ?? '').trim()
-  ? `<p class="cs-from"><strong>${x.from === 'list' ? 'From Exercises &amp; Drills' : 'From the plan'}:</strong> ${para(x.plan_notes)}</p>` : '';
-// The open exercise, like the plan editor's: name (the exercise list picker), Sets / Reps/Time / Rest, the plan's notes,
+// The description copied in from the plan or Exercises & Drills (plan_notes), for the coach to read or change. A change
+// stays in this coaching session: the plan and the list keep theirs.
+const csDescHTML = x => `<label class="ex-notes cs-desc">Description${x.from ? `<span class="hint">From ${x.from === 'list' ? 'Exercises &amp; Drills' : 'the plan'}. Changes here stay in this coaching session.</span>` : ''}
+  ${rich(`<textarea rows="2" data-grow data-csx="plan_notes" maxlength="1000" placeholder="What the exercise is and how to do it">${esc(x.plan_notes ?? '')}</textarea>`)}</label>`;
+// The open exercise, like the plan editor's: name (the exercise list picker), Sets / Reps/Time / Rest, its description,
 // the coach's notes, Move Up / Move Down (only where it can go) and Remove.
 function csExEditHTML(x, k, n) {
   const f = (field, label) => `<label class="ex-${field}">${label}<input data-csx="${field}" value="${esc(x[field])}" placeholder="${label}" autocomplete="off"
@@ -164,7 +166,7 @@ function csExEditHTML(x, k, n) {
       <span class="ex-count">Exercise ${k + 1} of ${n}</span></span><button type="button" class="small fill" data-cs="close">Done</button></div>
     ${f('name', 'Exercise')}
     <div class="ex-three">${f('sets', 'Sets')}${f('reps', 'Reps/Time')}${f('rest', 'Rest')}</div>
-    ${csFromHTML(x)}
+    ${csDescHTML(x)}
     <label class="ex-notes">Notes${rich(`<textarea rows="2" data-grow data-csx="notes" maxlength="1000" placeholder="How did the exercise go?">${esc(x.notes)}</textarea>`)}</label>
     <div class="ex-acts"><span class="row">${k > 0 ? btn('up', 'Move Up') : ''}${k < n - 1 ? btn('down', 'Move Down') : ''}</span>
       <button type="button" class="small ghost danger" data-cs="remove" data-k="${k}">Remove</button></div></div>`;
@@ -312,9 +314,7 @@ function csSetName(x, input) {
   Object.assign(x, { sets: m.sets ?? '', reps: m.reps ?? '', rest: m.rest ?? '', plan_notes: (m.notes ?? '').slice(0, 1000), from: 'list' });
   const box = input.closest('.ex-edit');
   for (const f of ['sets', 'reps', 'rest']) box.querySelector(`[data-csx="${f}"]`).value = x[f];
-  const old = box.querySelector('.cs-from');
-  if (old) old.outerHTML = csFromHTML(x) || '<span hidden class="cs-from"></span>';
-  else if (x.plan_notes.trim()) box.querySelector('.ex-three').insertAdjacentHTML('afterend', csFromHTML(x));
+  box.querySelector('.cs-desc').outerHTML = csDescHTML(x);
 }
 
 // Drag an exercise by its grip to reorder (drag.js).
@@ -399,7 +399,7 @@ function csOpenAdd(btn) {
 }
 
 // Copy From Training Plan: pick one of the current plan's sessions (tabs), untick any you'll skip, then add them.
-// Copies name, sets, reps and rest; the plan's notes come along to read, not as the coach's notes.
+// Copies name, sets, reps and rest; the plan's notes come along as the description, not as the coach's notes.
 async function csCopy(btn) {
   const plan = cs.plan;
   const sessions = await busy(btn, () => sb.from('sessions').select('id,week,title,exercises').eq('plan_id', plan.id)
@@ -538,7 +538,7 @@ function renderCoachView() {
       <div class="cv-bar" aria-hidden="true">${ex.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('')}</div>
       <h2 class="cv-name">${esc(x.name.trim() || 'Unnamed Exercise')}</h2>
       <div class="stats cv-stats">${statHTML('Sets', x.sets)}${statHTML('Reps/Time', x.reps)}${statHTML('Rest', x.rest)}</div>
-      ${String(x.plan_notes ?? '').trim() ? `<p class="cv-from">${x.from === 'list' ? 'From Exercises &amp; Drills' : 'From the plan'}: ${para(x.plan_notes)}</p>` : ''}
+      ${String(x.plan_notes ?? '').trim() ? `<p class="cv-from">${para(x.plan_notes)}</p>` : ''}
       <label class="cv-l">Notes<textarea data-cv-f="notes" rows="4" data-grow maxlength="1000" placeholder="How did the exercise go?">${esc(x.notes)}</textarea></label>`
       : `<p class="cv-empty">No exercises yet.</p><button type="button" class="cv-add cv-add-main" data-cv="add">+ Add Exercises</button>`}</main>
     <aside class="cv-side"><label class="cv-l">Session Notes<textarea data-cv-f="session" rows="3" data-grow maxlength="4000">${esc(c.notes)}</textarea></label>

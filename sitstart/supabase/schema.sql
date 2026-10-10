@@ -150,8 +150,9 @@ create table public.session_history (
 -- While open it follows the student's Next Session (the page keeps the date, times and place in step until that time
 -- has passed). Submitting it (submit_coaching_session) puts its notes into one Coach Note for that day, logs the session
 -- in Session History and makes it a past coaching session, read only for good. At most one open per student.
--- exercises: [{id, name, sets, reps, rest, plan_notes, notes}]. plan_notes: the notes copied from the plan or the
--- exercise list (the student's instructions), shown but never put in the Coach Note; notes: the coach's notes.
+-- exercises: [{id, name, sets, reps, rest, plan_notes, notes}]. plan_notes: the description copied from the plan or the
+-- exercise list (the student's instructions), which the coach can change for this session; never put in the Coach Note.
+-- notes: the coach's notes.
 create table public.coaching_sessions (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students (id) on delete cascade,
