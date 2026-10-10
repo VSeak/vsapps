@@ -5,7 +5,7 @@ const CONFIG = {
   supabaseUrl: "https://loxyrqffevvdhwltccxr.supabase.co",   // e.g. https://abcd1234.supabase.co
   supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxveHlycWZmZXZ2ZGh3bHRjY3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNzc5NzAsImV4cCI6MjEwNTk1Mzk3MH0.czgnKpu18kuEghIC3Ixy6jR-AFvBHQVH7rDDqmFF_EI",   // the publishable (or "anon") key. Never the secret key.
   siteUrl: "https://vseak.github.io/vsapps/sitstart/",   // where emailed sign-in links go, even when sent from localhost. Leave "" to use the current address.
-  vapidKey: "",   // the PUBLIC push key from supabase/functions/make-push-keys.ps1 (SETUP.md step 9). Empty = no notifications.
+  vapidKey: "BLcejisiunCym0k63Qhz6ldzi5Bw0F8GCccoE1vfYqpE-dPSmqE2ZLp7lA0HwgF0tWBqrts5iNofHIUv6I6KuQw",   // the PUBLIC push key from supabase/functions/make-push-keys.ps1 (SETUP.md step 9). Empty = no notifications.
 };
 
 const $ = (sel, root = document) => root.querySelector(sel);
