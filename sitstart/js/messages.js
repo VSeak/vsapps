@@ -463,12 +463,13 @@ async function pushState() {
   return Notification.permission === 'granted' && await pushSub() ? 'on' : 'off';
 }
 // The notifications line at the top of a thread or the inbox (#pushBox). who: "your coach" or "a student".
+// Nothing once they are on (the user asked for that line and its Turn Off to go): the phone's or browser's own
+// settings turn them off.
 async function drawPushBox(who) {
   const state = await pushState().catch(() => 'none'), box = $('#pushBox');
   if (!box) return;
   box.innerHTML = state === 'off' ? `<div class="push-box"><span>Get a notification on this device when ${who} messages you.</span>
       <button type="button" class="primary small" data-push="on">Turn On Notifications</button></div>`
-    : state === 'on' ? '<p class="hint push-hint">Notifications are on for this device. <button type="button" class="link" data-push="off">Turn Off</button></p>'
     : state === 'blocked' ? '<p class="hint push-hint">Notifications are blocked for this site. Allow them in your browser or phone settings to get one when a message arrives.</p>'
     : state === 'ios' ? `<p class="hint push-hint">To get notifications on an iPhone, install the app first: tap Share ${SHARE_ICON} then <b>Add to Home Screen</b>, and open it from there.</p>`
     : '';
