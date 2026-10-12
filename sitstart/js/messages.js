@@ -305,7 +305,7 @@ async function msgThread(sid, fromStudent = false) {
   view(`${crumbs(own ? [['Home', '#/'], ...(me.isStaff ? [['My Training', '#/me']] : []), ['Messages']]
       : fromStudent ? [['Home', '#/'], ['Students', '#/students'], [s.name, '#/student/' + sid], ['Messages']]
       : [['Home', '#/'], ['Messages', '#/messages'], [s.name]])}
-    <div class="page-head"><div>${own ? `<h1>Messages</h1>${coach ? `<span class="eyebrow msg-with">With ${esc(coach.name)}</span>` : ''}`
+    <div class="page-head"><div>${own ? `<h1>${coach ? esc(coach.name) : 'Messages'}</h1>`
       : `<h1>${namePro(s.name, s.pronouns)}</h1>`}</div>
       ${own || fromStudent ? '' : `<a class="fill" href="#/student/${sid}">Open Student Page</a>`}</div>
     <section class="card msg-card" id="msgThread">
