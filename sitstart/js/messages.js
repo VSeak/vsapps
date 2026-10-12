@@ -306,7 +306,7 @@ async function msgThread(sid, fromStudent = false) {
       : fromStudent ? [['Home', '#/'], ['Students', '#/students'], [s.name, '#/student/' + sid], ['Messages']]
       : [['Home', '#/'], ['Messages', '#/messages'], [s.name]])}
     <div class="page-head"><div>${own ? `<h1>Messages</h1>${coach ? `<span class="eyebrow msg-with">With ${esc(coach.name)}</span>` : ''}`
-      : `<span class="eyebrow">Messages</span><h1>${esc(s.name) + pronounsTag(s.pronouns)}</h1>`}</div>
+      : `<span class="eyebrow">Messages</span><h1>${namePro(s.name, s.pronouns)}</h1>`}</div>
       ${own || fromStudent ? '' : `<a class="fill" href="#/student/${sid}">Open Student Page</a>`}</div>
     <section class="card msg-card" id="msgThread">
       <div id="pushBox"></div>

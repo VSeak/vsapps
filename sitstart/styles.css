@@ -161,6 +161,10 @@ a.back:hover { background: color-mix(in srgb, var(--chip) 80%, var(--ink)); }
 /* Preferred pronouns by a name: smaller and grayed */
 .pronouns { font: 400 .85rem "DM Sans", sans-serif; color: var(--muted); white-space: nowrap; }
 h1 .pronouns { font-size: 1rem; margin-left: .3rem; vertical-align: .15em; }
+/* In a page heading the pronouns stay beside the name's last word (namePro), and on a phone the name is a little
+   smaller so most names and their pronouns fit on one line, as they do on a wide screen */
+.name-end { display: inline-block; max-width: 100%; }
+@media (max-width: 480px) { h1:has(.pronouns) { font-size: 2rem; } }
 .tag { display: inline-flex; align-items: center; gap: .35rem; align-self: center; font-size: .75rem; font-weight: 600;
   line-height: 1.5; padding: .15rem .6rem; border-radius: 99px; border: 1px solid var(--line);
   background: var(--soft); color: var(--muted); white-space: nowrap; }

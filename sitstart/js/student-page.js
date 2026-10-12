@@ -49,7 +49,7 @@ async function adminStudent(id, again = false) {
   const stat = (label, n, id = '') => `<div class="stat"><span class="stat-l">${label}</span><span class="stat-v"${id ? ` id="${id}"` : ''}>${n}</span></div>`;
 
   view(`${crumbs([['Home', '#/'], ['Students', '#/students'], [s.name]])}
-  <div class="page-head"><div><span class="eyebrow">${status}</span><h1>${esc(s.name)}${pronounsTag(s.pronouns)}</h1></div>
+  <div class="page-head"><div><span class="eyebrow">${status}</span><h1>${namePro(s.name, s.pronouns)}</h1></div>
     <div class="stats head-stats">${stat('Sessions', historyOf(log, s).length)}${stat('Goals', s.goals.filter(g => g.status === 'current').length, 'statGoals')}${stat('Notes', notes.length)}</div></div>
   ${edit ? '' : `<p class="alert">${esc(s.first_name)} is coached by ${esc(coach?.name || 'another coach')}. You can read everything here,
     add Coach Notes and add past sessions you ran. Only ${p.their} coach can change the rest.</p>`}

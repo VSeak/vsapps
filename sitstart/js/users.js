@@ -245,7 +245,7 @@ async function adminUser(id, again = false) {
     </section>`;
 
   view(`${crumbs([['Home', '#/'], ['Users', '#/users'], [title]])}
-  <div class="page-head"><div><span class="eyebrow">${esc(status)}</span><h1>${esc(title)}${pronounsTag(u.pronouns)}</h1>
+  <div class="page-head"><div><span class="eyebrow">${esc(status)}</span><h1>${namePro(title, u.pronouns)}</h1>
     <span class="chips">${sortRoles(u.roles).map(r => `<span class="chip${r === 'student' ? '' : ' role'}">${esc(ROLE_LABEL[r] || r)}</span>`).join('')}
       ${pickCoach ? '<span class="chip warn">No Coach</span>' : ''}</span></div></div>
   <div class="grid2 phone-order" data-folds="user">

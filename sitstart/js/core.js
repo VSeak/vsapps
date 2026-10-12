@@ -265,6 +265,13 @@ function pro(pronouns) {
 }
 // Shown after a name, smaller and grayed.
 const pronounsTag = p => p ? ` <span class="pronouns">${esc(p)}</span>` : '';
+// A name with its pronouns for a page heading: the pronouns stay on the line of the name's last word, never on a
+// line of their own (on a phone they used to drop under the name; the user asked).
+const namePro = (name, p) => {
+  if (!p) return esc(name);
+  const i = name.trimEnd().lastIndexOf(' ') + 1;
+  return `${esc(name.slice(0, i))}<span class="name-end">${esc(name.slice(i))}${pronounsTag(p)}</span>`;
+};
 // A pick of the common ones, or Other with a box to type them. readPronouns() gets the value back.
 function pronounsField(value = '', whose = 'Their') {
   const other = !!value && !PRONOUNS.includes(value);
