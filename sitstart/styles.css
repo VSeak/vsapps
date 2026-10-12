@@ -141,8 +141,10 @@ button.link { border: 0; background: none; padding: 0; min-height: 0; color: var
 .page-head h1 { margin: 0; }
 .page-head .eyebrow { margin-bottom: .4rem; }
 
-.crumb-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem; margin-bottom: .8rem; }
-.crumbs { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .9rem; color: var(--muted); }
+/* The trail stays beside Back however long it is (the user asked): a long one wraps in its own space, not under the button */
+.crumb-bar { display: flex; align-items: center; gap: .5rem .9rem; margin-bottom: .8rem; }
+.crumbs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 0 .4rem; font-size: .9rem; color: var(--muted); overflow-wrap: anywhere; }
+a.back { flex: none; }
 .crumbs a { text-decoration: none; }
 .crumbs a { font-weight: 700; }
 a.back { font-weight: 700; font-size: .82rem; min-height: 36px; padding: 0 .75rem; border-radius: 10px; background: var(--chip);
