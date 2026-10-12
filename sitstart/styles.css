@@ -969,6 +969,38 @@ dialog.cs-view[open] { display: flex; flex-direction: column; }
 .msg-form { position: sticky; bottom: 0; display: flex; gap: 8px; align-items: flex-end; margin: 0 -18px; padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
   background: var(--card); border-top: 1px solid var(--line); border-radius: 0 0 21px 21px; }
 .msg-form textarea { flex: 1; min-height: 44px; max-height: 40vh; border-radius: 14px; resize: none; }
+/* A reply: the message it answers, quoted on top of the bubble and, while it's being written, over the box to type in */
+.msg-quote, .msg-reply { border-left: 3px solid var(--accent); border-radius: 6px; font-size: .8rem; color: var(--ink-2); }
+.msg-quote { display: block; width: 100%; min-height: 0; margin: 0 0 4px; padding: 4px 8px; border-width: 0 0 0 3px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent); font-weight: 400; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(.msg-quote, .msg-reply) b { display: block; color: var(--accent); overflow: hidden; text-overflow: ellipsis; }
+.msg-form { flex-wrap: wrap; }
+.msg-reply { flex: 0 0 100%; display: flex; align-items: center; gap: 8px; min-width: 0; padding: 4px 10px; background: var(--bg); }
+.msg-reply[hidden] { display: none; }
+.msg-reply span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.note.msg.spot { animation: spot 2s ease-out; }
+/* Reactions: chips under a message's text, the reader's own outlined */
+.msg-rxs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.note.mine .msg-rxs { justify-content: flex-end; }
+.msg-rx { min-height: 28px; padding: 0 8px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); color: var(--ink);
+  font-size: .9rem; font-weight: 600; line-height: 1; }
+.msg-rx.on { border-color: var(--accent); }
+/* A message's menu (press and hold on a phone, More or right-click with a mouse): a sheet from the bottom on a phone */
+dialog.msg-menu { padding: 0; border: 0; margin: auto 0 0; width: 100%; max-width: 100%; border-radius: 22px 22px 0 0; }
+@media (min-width: 700px) { dialog.msg-menu { margin: auto; width: min(380px, calc(100% - 32px)); border-radius: 22px; } }
+.msg-menu-in { display: grid; gap: 12px; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+.msg-menu-text { margin: 0; padding: 8px 12px; border-radius: 12px; background: var(--bg); color: var(--ink-2); font-size: .9rem;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.msg-emojis { display: flex; gap: 4px; }
+.msg-emojis button { flex: 1; min-height: 48px; padding: 0; border: 0; border-radius: 14px; background: none; font-size: 1.6rem; line-height: 1; }
+.msg-emojis button:hover, .msg-emojis button.on { background: var(--soft); }
+.msg-menu-acts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.msg-menu-acts button { min-height: 48px; }
+/* On a touch screen the hold opens the menu, so More goes and the hold doesn't start picking text */
+@media (pointer: coarse) {
+  .msg-act { display: none; }
+  .note.msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+}
 .msg-why { padding-bottom: 18px; }
 .push-box { display: flex; justify-content: space-between; align-items: center; gap: .5rem 1rem; flex-wrap: wrap; margin-bottom: 12px;
   padding: .6rem .8rem; border-radius: 12px; background: var(--soft); font-size: .9rem; }

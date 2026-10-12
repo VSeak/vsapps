@@ -6,10 +6,12 @@
 const MSG_PAGE = 40;      // messages loaded at a time (Show Earlier loads the next lot)
 const MSG_INBOX = 500;    // the newest messages the coach's inbox reads, for each thread's latest
 const PUSH_OFF = 'sitstart.pushOff';   // localStorage: Turn Off was tapped on this device, so don't turn back on by itself
+const MSG_EMOJI = ['👍', '❤️', '😂', '🎉', '💪', '🔥'];   // the reactions to pick from
+const MSG_HOLD = 450;     // ms a finger stays on a message before its menu opens
 // Unread messages: mine from my coach (as a student), students[id] from each student I coach.
 let msgNew = { mine: 0, students: {} };
 let msgChan = null, msgFor = null;   // the live channel, and whose sign-in it is for
-let msgCtx = null;                   // the open thread: { sid, own, list, more }
+let msgCtx = null;                   // the open thread: { sid, own, name, list, more, canRead, canSend, quotes, replyTo }
 
 // Where the header's Messages button goes: a coach's inbox, a student's own thread (under My Training for staff who
 // are also students but don't coach), or nowhere for admin-only staff.
@@ -87,7 +89,7 @@ function msgEvent(p) {
   }
   if (!c) return;
   if (gone) {
-    if (c.list.some(m => m.id === gone)) { c.list = c.list.filter(m => m.id !== gone); msgDraw(); }
+    if (c.list.some(m => m.id === gone)) { msgDrop(gone); msgDraw(); }
   } else if (p.new?.student_id === c.sid) { msgPut(p.new); msgDraw(); msgRead(); }
 }
 // A phone pauses the page in the background, so catch up when it comes back.
@@ -118,6 +120,15 @@ function msgPut(row) {
   if (i >= 0) list[i] = row;
   else { list.push(row); list.sort((a, b) => a.created_at.localeCompare(b.created_at)); }
 }
+// A deleted message leaves the thread, and replies to it lose their quote (as the database does).
+function msgDrop(id) {
+  const c = msgCtx;
+  c.list = c.list.filter(m => m.id !== id);
+  c.list.forEach(m => { if (m.reply_to === id) m.reply_to = null; });
+}
+// Who wrote a message, to the reader, and its text on one line (for a quote).
+const msgWho = m => m.author_id === me.user.id ? 'You' : m.from_coach ? m.author_name || 'Coach' : msgCtx.name;
+const msgSnip = s => s.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim().slice(0, 140);
 
 const msgTime = t => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 // Today, Yesterday, or "Wed, Oct 1" (with the year when it isn't this one).
@@ -129,18 +140,29 @@ function msgDay(t) {
 }
 
 // Bubbles like the plan notes: the reader's own on the right. A day line starts each day. The last of your own
-// messages the other side has seen says Read.
+// messages the other side has seen says Read. A reply quotes the message it answers on top (tap it to go there),
+// and reactions are chips under the text (yours outlined; tap one to add or remove yours). More opens the message's
+// menu with a mouse or keyboard; on a phone, press and hold does (msgHold).
 function msgListHTML() {
-  const { list, more, own } = msgCtx, mine = m => m.author_id === me.user.id;
-  const lastRead = list.findLast(m => mine(m) && m.read_at)?.id;
+  const { list, more, own, quotes } = msgCtx, mine = m => m.author_id === me.user.id;
+  const lastRead = list.findLast(m => mine(m) && m.read_at)?.id, shown = new Map(list.map(m => [m.id, m]));
   let prev = '';
   return (more ? '<div class="msg-more"><button type="button" class="small" data-msg-more>Show Earlier</button></div>' : '')
     + (list.map(m => {
       const d = msgDay(m.created_at), head = d !== prev ? `<p class="msg-day">${d}</p>` : '';
       prev = d;
-      return `${head}<div class="note msg${mine(m) ? ' mine' : ''}"><p>${para(m.body)}</p>
+      const q = m.reply_to && (shown.get(m.reply_to) || quotes[m.reply_to]);
+      const qText = q && `<b>${esc(msgWho(q))}</b>${esc(msgSnip(q.body))}`;
+      const quote = !q ? '' : shown.has(q.id) ? `<button type="button" class="msg-quote" data-msg-to="${q.id}">${qText}</button>`
+        : `<div class="msg-quote">${qText}</div>`;
+      const by = {};
+      for (const [who, e] of Object.entries(m.reactions || {})) (by[e] ||= []).push(who);
+      const chips = Object.entries(by).map(([e, who]) => { const on = who.includes(me.user.id);
+        return `<button type="button" class="msg-rx${on ? ' on' : ''}" data-rx="${esc(e)}" data-rx-msg="${m.id}" aria-pressed="${on}">${esc(e)}${who.length > 1 ? ` ${who.length}` : ''}</button>`; }).join('');
+      return `${head}<div class="note msg${mine(m) ? ' mine' : ''}" data-msg="${m.id}">${quote}<p>${para(m.body)}</p>${chips ? `<div class="msg-rxs">${chips}</div>` : ''}
         <div class="note-meta">${m.from_coach && !mine(m) ? `${esc(m.author_name || 'Coach')} · ` : ''}${msgTime(m.created_at)}${m.id === lastRead ? ' · Read' : ''}${
-          mine(m) ? ` · <button type="button" class="link" data-del-msg="${m.id}">Delete</button>` : ''}</div></div>`;
+          mine(m) ? ` · <button type="button" class="link" data-del-msg="${m.id}">Delete</button>` : ''
+          }<span class="msg-act"> · <button type="button" class="link" data-msg-menu="${m.id}">More</button></span></div></div>`;
     }).join('') || `<p class="muted msg-none">No messages yet.${own ? ' Say hi, or ask your coach a question.' : ''}</p>`);
 }
 // Redraws the bubbles, which scroll inside the card (so a long thread never makes a long page). Stays at the newest message if the reader was there (or toEnd), so a new one is in view.
@@ -150,6 +172,96 @@ function msgDraw(toEnd = false) {
   const atEnd = toEnd || box.scrollTop + box.clientHeight >= box.scrollHeight - 80;
   box.innerHTML = msgListHTML();
   if (atEnd) box.scrollTop = box.scrollHeight;
+  msgReplyDraw();
+  msgQuotes();
+}
+// Replies to a message further back than the ones loaded: reads those once, so their quotes can show.
+async function msgQuotes() {
+  const c = msgCtx;
+  const need = [...new Set(c.list.map(m => m.reply_to).filter(id => id && !(id in c.quotes) && !c.list.some(m => m.id === id)))];
+  if (!need.length) return;
+  need.forEach(id => { c.quotes[id] = null; });
+  const { data } = await sb.from('messages').select('id,author_id,from_coach,author_name,body').in('id', need);
+  if (c !== msgCtx || !data?.length) return;
+  for (const r of data) c.quotes[r.id] = r;
+  msgDraw();
+}
+// The "Replying to …" line over the box to type in, while a reply is being written.
+function msgReplyDraw() {
+  const bar = $('#msgReply'), c = msgCtx;
+  if (!bar || !c) return;
+  const m = c.list.find(x => x.id === c.replyTo);
+  if (!m) c.replyTo = null;
+  bar.hidden = !m;
+  bar.innerHTML = !m ? '' : `<span><b>Replying to ${esc(msgWho(m) === 'You' ? 'Yourself' : msgWho(m))}</b>${esc(msgSnip(m.body))}</span>
+    <button type="button" class="link" data-reply-x>Cancel</button>`;
+}
+
+// ---------- A message's menu: reactions, Reply and Copy ----------
+// Press and hold a message on a phone, like a texting app (the user asked); right-click or More with a mouse.
+// One reaction a person per message: picking yours again takes it off (react_to_message).
+const msgMenu = Object.assign(document.createElement('dialog'), { id: 'msgMenu', className: 'msg-menu' });
+msgMenu.setAttribute('aria-label', 'Message');
+document.body.append(msgMenu);
+let msgMenuAt = 0;
+
+function openMsgMenu(id) {
+  const m = msgCtx?.list.find(x => x.id === id);
+  if (!m || msgMenu.open) return;
+  const mine = m.reactions?.[me.user.id];
+  msgMenu.dataset.id = id;
+  msgMenu.innerHTML = `<div class="msg-menu-in"><p class="msg-menu-text">${esc(msgSnip(m.body))}</p>
+    <div class="msg-emojis">${MSG_EMOJI.map(e => `<button type="button" data-rx="${e}" aria-pressed="${e === mine}"${e === mine ? ' class="on"' : ''}>${e}</button>`).join('')}</div>
+    <div class="msg-menu-acts">${msgCtx.canSend ? '<button type="button" data-do="reply">Reply</button>' : ''}<button type="button" data-do="copy">Copy</button></div></div>`;
+  msgMenuAt = Date.now();
+  msgMenu.showModal();
+}
+msgMenu.addEventListener('click', e => {
+  // Outside the menu closes it (but not the finger lifting from the press that opened it).
+  if (e.target === msgMenu) { if (Date.now() - msgMenuAt > 400) msgMenu.close(); return; }
+  const id = msgMenu.dataset.id, rx = e.target.closest('[data-rx]'), act = e.target.closest('[data-do]')?.dataset.do;
+  if (!rx && !act) return;
+  msgMenu.close();
+  const m = msgCtx?.list.find(x => x.id === id);
+  if (!m) return;
+  if (rx) msgReact(id, rx.dataset.rx);
+  else if (act === 'copy') Promise.resolve().then(() => navigator.clipboard.writeText(m.body.replace(/\*\*/g, '')))
+    .then(() => flash('Copied.'), () => flash("Couldn't copy the message.", 'error'));
+  else if (act === 'reply') { msgCtx.replyTo = id; msgReplyDraw(); $('#msgForm textarea')?.focus(); }
+});
+
+async function msgReact(id, emoji) {
+  const m = msgCtx?.list.find(x => x.id === id);
+  if (!m) return;
+  try {
+    const r = must(await sb.rpc('react_to_message', { p_message: id, p_emoji: m.reactions?.[me.user.id] === emoji ? '' : emoji }));
+    const now = msgCtx?.list.find(x => x.id === id);
+    if (now && r) { now.reactions = r; msgDraw(); }
+  } catch (e) { flash(msgOf(e), 'error'); }
+}
+
+// Press and hold on a message opens its menu. Moving (a scroll) or lifting first calls it off, the tap that would
+// follow the hold is swallowed, and links and buttons inside a message keep their own press.
+function msgHold(box) {
+  let timer, x = 0, y = 0, held = false;
+  const stop = () => clearTimeout(timer);
+  box.addEventListener('pointerdown', e => {
+    stop();
+    held = false;
+    const b = e.pointerType !== 'mouse' && !e.target.closest('button, a') && e.target.closest('.msg[data-msg]');
+    if (!b) return;
+    x = e.clientX; y = e.clientY;
+    timer = setTimeout(() => { held = true; try { navigator.vibrate?.(10); } catch {} openMsgMenu(b.dataset.msg); }, MSG_HOLD);
+  });
+  box.addEventListener('pointermove', e => { if (Math.hypot(e.clientX - x, e.clientY - y) > 10) stop(); });
+  for (const t of ['pointerup', 'pointercancel', 'pointerleave', 'scroll']) box.addEventListener(t, stop, { passive: true });
+  box.addEventListener('contextmenu', e => {
+    const b = !e.target.closest('a') && e.target.closest('.msg[data-msg]');
+    if (!b) return;
+    e.preventDefault();   // ours instead of the browser's (a phone's press and hold asks for it too)
+    openMsgMenu(b.dataset.msg);
+  });
+  box.addEventListener('click', e => { if (held) { held = false; e.preventDefault(); e.stopPropagation(); } }, true);
 }
 // Marks the other side's messages read once they are on screen (not while the page is in the background).
 async function msgRead() {
@@ -178,7 +290,7 @@ async function msgThread(sid, fromStudent = false) {
   if (!s) return redirect(own ? '#/' : '#/messages');
   const p = pro(s.pronouns), coach = coaches.find(c => c.is_current);
   const canSend = own ? !!s.coach_id : canCoach(s);
-  msgCtx = { sid, own, list: page.rows, more: page.more, canRead: own || canSend };
+  msgCtx = { sid, own, name: s.first_name, list: page.rows, more: page.more, canRead: own || canSend, canSend, quotes: {}, replyTo: null };
   const why = own ? "You don't have a coach right now, so there's nobody to message."
     : `Only ${esc(s.first_name)}'s coach can message ${p.them}.`;
 
@@ -191,7 +303,7 @@ async function msgThread(sid, fromStudent = false) {
     <section class="card msg-card" id="msgThread">
       <div id="pushBox"></div>
       <div id="msgList" class="msg-list"></div>
-      ${canSend ? `<form id="msgForm" class="msg-form">
+      ${canSend ? `<form id="msgForm" class="msg-form"><div id="msgReply" class="msg-reply" hidden></div>
         <textarea name="body" rows="1" maxlength="4000" data-grow aria-label="Message"
           placeholder="Message ${own ? (coach ? esc(coach.name.split(' ')[0]) : 'your coach') : esc(s.first_name)}…"></textarea>
         <button class="fill">Send</button></form>` : `<p class="muted msg-why">${why}</p>`}
@@ -199,14 +311,28 @@ async function msgThread(sid, fromStudent = false) {
   msgDraw(true);
   msgRead();
   drawPushBox(own ? 'your coach' : 'a student');
+  msgHold($('#msgList'));
 
   $('#msgThread').onclick = async e => {
+    const rx = e.target.closest('[data-rx-msg]');
+    if (rx) return msgReact(rx.dataset.rxMsg, rx.dataset.rx);
+    const menu = e.target.closest('[data-msg-menu]');
+    if (menu) return openMsgMenu(menu.dataset.msgMenu);
+    const to = e.target.closest('[data-msg-to]');
+    if (to) {
+      const el = $(`#msgList [data-msg="${to.dataset.msgTo}"]`);
+      if (!el) return;
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.add('spot');
+      return el.addEventListener('animationend', () => el.classList.remove('spot'), { once: true });
+    }
+    if (e.target.closest('[data-reply-x]')) { msgCtx.replyTo = null; return msgReplyDraw(); }
     const del = e.target.closest('[data-del-msg]');
     if (del) {
       if (!await ask({ title: 'Delete This Message?', body: "<p>It's removed for both of you. This can't be undone.</p>", ok: 'Delete', warn: true })) return;
       return busy(del, async () => {
         must(await sb.from('messages').delete().eq('id', del.dataset.delMsg));
-        msgCtx.list = msgCtx.list.filter(m => m.id !== del.dataset.delMsg);
+        msgDrop(del.dataset.delMsg);
         msgDraw();
       });
     }
@@ -230,10 +356,11 @@ async function msgThread(sid, fromStudent = false) {
     if (send.disabled) return;   // Enter again while the last one is still going
     if (!body) return box.focus();
     busy(send, async () => {
-      const m = await sb.from('messages').insert({ student_id: sid, body, from_coach: !own }).select().single().then(must);
+      const reply = msgCtx?.sid === sid && msgCtx.replyTo;
+      const m = await sb.from('messages').insert({ student_id: sid, body, from_coach: !own, ...(reply && { reply_to: reply }) }).select().single().then(must);
       box.value = '';
       grow(box);
-      if (msgCtx?.sid === sid) { msgPut(m); msgDraw(true); }
+      if (msgCtx?.sid === sid) { msgCtx.replyTo = null; msgPut(m); msgDraw(true); }
       box.focus();
       // The other side's notification. It only works once push is set up (SETUP.md), and never holds up the page.
       // A device the push service turned down goes to the error log, so a missing notification can be traced.
