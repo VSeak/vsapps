@@ -160,9 +160,7 @@ function msgListHTML() {
       const chips = Object.entries(by).map(([e, who]) => { const on = who.includes(me.user.id);
         return `<button type="button" class="msg-rx${on ? ' on' : ''}" data-rx="${esc(e)}" data-rx-msg="${m.id}" aria-pressed="${on}">${esc(e)}${who.length > 1 ? ` ${who.length}` : ''}</button>`; }).join('');
       return `${head}<div class="note msg${mine(m) ? ' mine' : ''}" data-msg="${m.id}">${quote}<p>${para(m.body)}</p>${chips ? `<div class="msg-rxs">${chips}</div>` : ''}
-        <div class="note-meta">${m.from_coach && !mine(m) ? `${esc(m.author_name || 'Coach')} · ` : ''}${msgTime(m.created_at)}${m.id === lastRead ? ' · Read' : ''}${
-          mine(m) ? ` · <button type="button" class="link" data-del-msg="${m.id}">Delete</button>` : ''
-          }<span class="msg-act"> · <button type="button" class="link" data-msg-menu="${m.id}">More</button></span></div></div>`;
+        <div class="note-meta">${m.from_coach && !mine(m) ? `${esc(m.author_name || 'Coach')} · ` : ''}${msgTime(m.created_at)}${m.id === lastRead ? ' · Read' : ''}<span class="msg-act"> · <button type="button" class="link" data-msg-menu="${m.id}">More</button></span></div></div>`;
     }).join('') || `<p class="muted msg-none">No messages yet.${own ? ' Say hi, or ask your coach a question.' : ''}</p>`);
 }
 // Redraws the bubbles, which scroll inside the card (so a long thread never makes a long page). Stays at the newest message if the reader was there (or toEnd), so a new one is in view.
@@ -197,7 +195,7 @@ function msgReplyDraw() {
     <button type="button" class="link" data-reply-x>Cancel</button>`;
 }
 
-// ---------- A message's menu: reactions, Reply and Copy ----------
+// ---------- A message's menu: reactions, Reply, Copy, and Delete on your own ----------
 // Press and hold a message on a phone, like a texting app (the user asked); right-click or More with a mouse.
 // One reaction a person per message: picking yours again takes it off (react_to_message).
 const msgMenu = Object.assign(document.createElement('dialog'), { id: 'msgMenu', className: 'msg-menu' });
@@ -212,7 +210,8 @@ function openMsgMenu(id) {
   msgMenu.dataset.id = id;
   msgMenu.innerHTML = `<div class="msg-menu-in"><p class="msg-menu-text">${esc(msgSnip(m.body))}</p>
     <div class="msg-emojis">${MSG_EMOJI.map(e => `<button type="button" data-rx="${e}" aria-pressed="${e === mine}"${e === mine ? ' class="on"' : ''}>${e}</button>`).join('')}</div>
-    <div class="msg-menu-acts">${msgCtx.canSend ? '<button type="button" data-do="reply">Reply</button>' : ''}<button type="button" data-do="copy">Copy</button></div></div>`;
+    <div class="msg-menu-acts">${msgCtx.canSend ? '<button type="button" data-do="reply">Reply</button>' : ''}<button type="button" data-do="copy">Copy</button>${
+      m.author_id === me.user.id ? '<button type="button" class="danger" data-do="delete">Delete</button>' : ''}</div></div>`;
   msgMenuAt = Date.now();
   msgMenu.showModal();
 }
@@ -228,7 +227,16 @@ msgMenu.addEventListener('click', e => {
   else if (act === 'copy') Promise.resolve().then(() => navigator.clipboard.writeText(m.body.replace(/\*\*/g, '')))
     .then(() => flash('Copied.'), () => flash("Couldn't copy the message.", 'error'));
   else if (act === 'reply') { msgCtx.replyTo = id; msgReplyDraw(); $('#msgForm textarea')?.focus(); }
+  else if (act === 'delete') msgDelete(id);
 });
+
+async function msgDelete(id) {
+  if (!await ask({ title: 'Delete This Message?', body: "<p>It's removed for both of you. This can't be undone.</p>", ok: 'Delete', warn: true })) return;
+  try {
+    must(await sb.from('messages').delete().eq('id', id));
+    if (msgCtx?.list.some(m => m.id === id)) { msgDrop(id); msgDraw(); }
+  } catch (e) { flash(msgOf(e), 'error'); }
+}
 
 async function msgReact(id, emoji) {
   const m = msgCtx?.list.find(x => x.id === id);
@@ -327,15 +335,6 @@ async function msgThread(sid, fromStudent = false) {
       return el.addEventListener('animationend', () => el.classList.remove('spot'), { once: true });
     }
     if (e.target.closest('[data-reply-x]')) { msgCtx.replyTo = null; return msgReplyDraw(); }
-    const del = e.target.closest('[data-del-msg]');
-    if (del) {
-      if (!await ask({ title: 'Delete This Message?', body: "<p>It's removed for both of you. This can't be undone.</p>", ok: 'Delete', warn: true })) return;
-      return busy(del, async () => {
-        must(await sb.from('messages').delete().eq('id', del.dataset.delMsg));
-        msgDrop(del.dataset.delMsg);
-        msgDraw();
-      });
-    }
     const more = e.target.closest('[data-msg-more]');
     if (more) busy(more, async () => {
       const c = msgCtx, box = $('#msgList'), was = box.scrollHeight;
