@@ -90,7 +90,7 @@ function msgEvent(p) {
   if (!c) return;
   if (gone) {
     if (c.list.some(m => m.id === gone)) { msgDrop(gone); msgDraw(); }
-  } else if (p.new?.student_id === c.sid) { msgPut(p.new); msgDraw(); msgRead(); }
+  } else if (p.new?.student_id === c.sid && (p.new.coach_id ?? null) === c.cid) { msgPut(p.new); msgDraw(); msgRead(); }
 }
 // A phone pauses the page in the background, so catch up when it comes back.
 document.addEventListener('visibilitychange', async () => {
@@ -98,7 +98,7 @@ document.addEventListener('visibilitychange', async () => {
   msgSoon();
   const c = $('#msgThread') && msgCtx;
   if (!c) return;
-  const page = await msgFetch(c.sid).catch(() => null);
+  const page = await msgFetch(c.sid, c.cid).catch(() => null);
   if (!page || c !== msgCtx) return;
   const first = page.rows[0]?.created_at;
   c.list = [...c.list.filter(m => first && m.created_at < first), ...page.rows];
@@ -109,9 +109,12 @@ document.addEventListener('visibilitychange', async () => {
 // ---------- A thread ----------
 
 // The newest MSG_PAGE messages (before a time, for Show Earlier), oldest first. more: there are older ones.
-async function msgFetch(sid, before) {
-  let q = sb.from('messages').select('*').eq('student_id', sid).order('created_at', { ascending: false }).limit(MSG_PAGE + 1);
+// cid: the coach whose thread it is (null: one whose coach is gone).
+async function msgFetch(sid, cid, before) {
+  let q = sb.from('messages').select('*').eq('student_id', sid);
+  q = cid ? q.eq('coach_id', cid) : q.is('coach_id', null);
   if (before) q = q.lt('created_at', before);
+  q = q.order('created_at', { ascending: false }).limit(MSG_PAGE + 1);
   const rows = await q.then(must);
   return { more: rows.length > MSG_PAGE, rows: rows.slice(0, MSG_PAGE).reverse() };
 }
@@ -275,7 +278,7 @@ function msgHold(box) {
 async function msgRead() {
   const c = msgCtx, theirs = m => !m.read_at && m.from_coach === c.own;
   if (!c || !c.canRead || !$('#msgThread') || document.hidden || !c.list.some(theirs)) return;
-  const { error } = await sb.rpc('mark_messages_read', { p_student: c.sid });
+  const { error } = await sb.rpc('mark_messages_read', { p_student: c.sid, p_coach: c.cid });
   if (error) return;
   const now = new Date().toISOString();
   c.list.forEach(m => { if (theirs(m)) m.read_at = now; });
@@ -285,29 +288,46 @@ async function msgRead() {
 // A student's thread: their own (own, at #/messages or #/me/messages) or, for their coach, #/messages/<student id>.
 // fromStudent: opened from the student page's Messages card (#/student/<id>/messages), so the trail and Back lead
 // back there instead of to the inbox (the user asked).
-async function msgThread(sid, fromStudent = false) {
+// One thread per student and coach (messages.coach_id; the user asked, for privacy: a new coach starts empty). A coach
+// only ever sees their own thread with the student. A student's page opens on their current coach's thread (pick:
+// another coach's id, from the tabs), with a tab per coach once they have messages with more than one; an earlier
+// coach's thread can be read but not added to, on either side.
+async function msgThread(sid, fromStudent = false, pick) {
   const t = ++navToken;
   const own = !!me.student && sid === me.student.id;
   view(loading);
-  const [s, page, coaches] = await Promise.all([
+  // The thread to read is known before the student's row arrives, bar a coach change since sign-in (then read again).
+  const guess = !own ? me.staffId : pick !== undefined ? pick : me.student.coach_id || null;
+  const [s, first, threads, coaches] = await Promise.all([
     sb.from('students').select('*').eq('id', sid).maybeSingle().then(must),
-    msgFetch(sid),
+    msgFetch(sid, guess),
+    own ? sb.rpc('message_threads', { p_student: sid }).then(must) : [],
     own ? sb.rpc('coaches_of', { p_id: sid }).then(must) : [],
   ]);
   if (t !== navToken) return;
   if (!s) return redirect(own ? '#/' : '#/messages');
+  const cid = !own ? me.staffId : pick !== undefined ? pick : s.coach_id || threads[0]?.coach_id || null;
+  const page = cid === guess ? first : await msgFetch(sid, cid);
+  if (t !== navToken) return;
   const p = pro(s.pronouns), coach = coaches.find(c => c.is_current);
-  const canSend = own ? !!s.coach_id : canCoach(s);
-  msgCtx = { sid, own, name: s.first_name, list: page.rows, more: page.more, canRead: own || canSend, canSend, quotes: {}, replyTo: null };
-  const why = own ? "You don't have a coach right now, so there's nobody to message."
-    : `Only ${esc(s.first_name)}'s coach can message ${p.them}.`;
+  // The student's threads, their coach's first (even before its first message).
+  const tabs = !own ? [] : [...(s.coach_id && !threads.some(x => x.coach_id === s.coach_id) ? [{ coach_id: s.coach_id, coach_name: coach?.name || '' }] : []),
+    ...threads].sort((a, b) => (b.coach_id === s.coach_id) - (a.coach_id === s.coach_id));
+  const withName = tabs.find(x => x.coach_id === cid)?.coach_name || coaches.find(c => c.staff_id === cid)?.name || '';
+  const canSend = own ? !!s.coach_id && cid === s.coach_id : me.isCoach && s.coach_id === me.staffId && !isSelf(s);
+  msgCtx = { sid, cid, own, name: s.first_name, list: page.rows, more: page.more, canRead: true, canSend, quotes: {}, replyTo: null };
+  const why = !own ? `Only ${esc(s.first_name)}'s coach can message ${p.them}.`
+    : s.coach_id ? `${esc(withName || 'This coach')} isn't your coach anymore, so this conversation is closed.`
+    : "You don't have a coach right now, so there's nobody to message.";
 
   view(`${crumbs(own ? [['Home', '#/'], ...(me.isStaff ? [['My Training', '#/me']] : []), ['Messages']]
       : fromStudent ? [['Home', '#/'], ['Students', '#/students'], [s.name, '#/student/' + sid], ['Messages']]
       : [['Home', '#/'], ['Messages', '#/messages'], [s.name]])}
-    <div class="page-head"><div>${own ? `<h1>${coach ? esc(coach.name) : 'Messages'}</h1>`
+    <div class="page-head"><div>${own ? `<h1>${esc(withName || (page.rows.length ? 'Former Coach' : 'Messages'))}</h1>`
       : `<h1>${namePro(s.name, s.pronouns)}</h1>`}</div>
       ${own || fromStudent ? '' : `<a class="fill" href="#/student/${sid}">Open Student Page</a>`}</div>
+    ${tabs.length > 1 ? `<div class="tabs msg-threads" role="tablist" aria-label="Conversations">${tabs.map(x =>
+      `<button type="button" role="tab" aria-selected="${x.coach_id === cid}" data-msg-with="${x.coach_id || ''}">${esc(x.coach_name || 'Former Coach')}</button>`).join('')}</div>` : ''}
     <section class="card msg-card" id="msgThread">
       <div id="pushBox"></div>
       <div id="msgList" class="msg-list"></div>
@@ -320,6 +340,11 @@ async function msgThread(sid, fromStudent = false) {
   msgRead();
   drawPushBox(own ? 'your coach' : 'a student');
   msgHold($('#msgList'));
+  const threadTabs = $('.msg-threads');
+  if (threadTabs) threadTabs.onclick = e => {
+    const b = e.target.closest('[data-msg-with]');
+    if (b && b.getAttribute('aria-selected') !== 'true') msgThread(sid, fromStudent, b.dataset.msgWith || null);
+  };
 
   $('#msgThread').onclick = async e => {
     const rx = e.target.closest('[data-rx-msg]');
@@ -338,7 +363,7 @@ async function msgThread(sid, fromStudent = false) {
     const more = e.target.closest('[data-msg-more]');
     if (more) busy(more, async () => {
       const c = msgCtx, box = $('#msgList'), was = box.scrollHeight;
-      const older = await msgFetch(sid, c.list[0].created_at);
+      const older = await msgFetch(sid, c.cid, c.list[0].created_at);
       if (c !== msgCtx) return;
       c.list = [...older.rows, ...c.list];
       c.more = older.more;
@@ -359,7 +384,7 @@ async function msgThread(sid, fromStudent = false) {
       const m = await sb.from('messages').insert({ student_id: sid, body, from_coach: !own, ...(reply && { reply_to: reply }) }).select().single().then(must);
       box.value = '';
       grow(box);
-      if (msgCtx?.sid === sid) { msgCtx.replyTo = null; msgPut(m); msgDraw(true); }
+      if (msgCtx?.sid === sid && msgCtx.cid === m.coach_id) { msgCtx.replyTo = null; msgPut(m); msgDraw(true); }
       box.focus();
       // The other side's notification. It only works once push is set up (SETUP.md), and never holds up the page.
       // A device the push service turned down goes to the error log, so a missing notification can be traced.

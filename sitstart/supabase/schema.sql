@@ -717,14 +717,16 @@ create policy "coach: delete" on public.coaching_sessions for delete to authenti
   using (public.can_coach(student_id) and submitted_at is null);
 
 -- 3b. Messages and push notifications -----------------------------------------
--- Messages: texting between a student and their coach, one thread per student (apart from plan notes, which stay on
--- a session). A message is never edited; its sender can delete it. read_at is when the other side first saw it.
+-- Messages: texting between a student and their coach (apart from plan notes, which stay on a session). One thread
+-- per student and coach (coach_id), for privacy: a new coach starts empty and never sees an earlier coach's thread.
+-- A message is never edited; its sender can delete it. read_at is when the other side first saw it.
 -- Push notifications: each device that turned them on has a push_subscriptions row, and the message-push Edge Function
 -- (supabase/functions/message-push) sends to them. SETUP.md has the steps.
 
 create table public.messages (
   id uuid primary key default gen_random_uuid(),
   student_id uuid not null references public.students (id) on delete cascade,
+  coach_id uuid references public.staff (id) on delete set null,   -- whose thread: the student's coach when it was sent (stamp_message)
   author_id uuid default auth.uid() references auth.users (id) on delete set null,   -- the message outlives the login
   from_coach boolean not null default false,
   author_name text not null default '',   -- a coach's name on their messages (stamp_message); empty for students
@@ -736,9 +738,11 @@ create table public.messages (
   reply_to uuid references public.messages (id) on delete set null   -- the message a reply answers
 );
 create index on public.messages (student_id, created_at);
+create index on public.messages (student_id, coach_id, created_at);
 
--- Who sent it and when come from the server (nobody can post as someone else). A coach's message is signed with
--- their name, since students can't read staff. A student with no coach can't send: nobody would get it.
+-- Who sent it, when and in whose thread come from the server (nobody can post as someone else). A coach's message is
+-- signed with their name, since students can't read staff. It goes in the thread of the student's coach right now:
+-- only that coach sends on the coach side, and a student with no coach can't send or be sent to.
 create function public.stamp_message() returns trigger
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -747,18 +751,22 @@ begin
   new.read_at := null;
   new.pushed_at := null;
   new.reactions := '{}';
-  -- A reply only answers a message in its own thread.
-  if new.reply_to is not null and not exists
-      (select 1 from public.messages where id = new.reply_to and student_id = new.student_id) then
-    new.reply_to := null;
-  end if;
+  new.coach_id := (select coach_id from public.students where id = new.student_id);
   if new.from_coach then
+    if new.coach_id is null or new.coach_id is distinct from public.my_staff_id() then
+      raise exception 'Only this student''s coach can message them.';
+    end if;
     new.author_name := coalesce((select nullif(name, '') from public.staff where email = lower(auth.jwt() ->> 'email')), '');
   else
     new.author_name := '';
-    if not exists (select 1 from public.students where id = new.student_id and coach_id is not null) then
+    if new.coach_id is null then
       raise exception 'You don''t have a coach right now, so there is nobody to message.';
     end if;
+  end if;
+  -- A reply only answers a message in its own thread.
+  if new.reply_to is not null and not exists
+      (select 1 from public.messages where id = new.reply_to and student_id = new.student_id and coach_id = new.coach_id) then
+    new.reply_to := null;
   end if;
   return new;
 end;
@@ -766,9 +774,10 @@ $$;
 create trigger stamp_message before insert on public.messages
   for each row execute function public.stamp_message();
 
--- A student reads and sends in their own thread. Only the student's coach (or any coach, for a student with no coach:
--- can_coach) reads and sends on the coach side; other coaches and admins never see a thread. Nobody changes a message
--- (no update rule: read_at and pushed_at are set by the functions below); its sender can delete it.
+-- A student reads all their own threads and sends to their current coach. A coach reads only the threads that are
+-- theirs (coach_id), still after they stop coaching the student, and sends only while they are the student's coach
+-- (stamp_message); other coaches and admins never see a thread. Nobody changes a message (no update rule: read_at,
+-- pushed_at and reactions are set by the functions below); its sender can delete it.
 alter table public.messages enable row level security;
 grant select, insert, delete on public.messages to authenticated;
 create policy "student: read" on public.messages for select to authenticated
@@ -776,21 +785,37 @@ create policy "student: read" on public.messages for select to authenticated
 create policy "student: send" on public.messages for insert to authenticated
   with check (not from_coach and student_id = (select public.my_student_id()));
 create policy "coach: read" on public.messages for select to authenticated
-  using (public.can_coach(student_id));
+  using (coach_id = (select public.my_staff_id()) and (select public.is_coach()));
 create policy "coach: send" on public.messages for insert to authenticated
-  with check (from_coach and public.can_coach(student_id));
+  with check (from_coach and coach_id = (select public.my_staff_id()) and (select public.is_coach()));
 create policy "sender: delete" on public.messages for delete to authenticated
   using (author_id = (select auth.uid()));
 
--- Opening a thread marks the other side's messages read: the student reads the coach's, the coach the student's.
-create function public.mark_messages_read(p_student uuid) returns void
+-- Opening a thread marks the other side's messages in it read: the student reads the coach's, the coach the
+-- student's. p_coach: whose thread (null for one whose coach is gone).
+create function public.mark_messages_read(p_student uuid, p_coach uuid) returns void
 language sql volatile security definer set search_path = '' as $$
   update public.messages set read_at = now()
-  where student_id = p_student and read_at is null
-    and ((from_coach and p_student = public.my_student_id()) or (not from_coach and public.can_coach(p_student)));
+  where student_id = p_student and coach_id is not distinct from p_coach and read_at is null
+    and ((from_coach and p_student = public.my_student_id())
+      or (not from_coach and coach_id = public.my_staff_id() and public.is_coach()));
 $$;
-revoke execute on function public.mark_messages_read(uuid) from public, anon;
-grant execute on function public.mark_messages_read(uuid) to authenticated;
+revoke execute on function public.mark_messages_read(uuid, uuid) from public, anon;
+grant execute on function public.mark_messages_read(uuid, uuid) to authenticated;
+
+-- A student's own threads, latest first: one per coach they have messages with, and that coach's name (students
+-- can't read staff). The page shows them as tabs when there is more than one.
+create function public.message_threads(p_student uuid)
+returns table (coach_id uuid, coach_name text, last_at timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select m.coach_id, coalesce(max(nullif(a.name, '')), max(nullif(m.author_name, '')), ''), max(m.created_at)
+  from public.messages m left join public.staff a on a.id = m.coach_id
+  where m.student_id = p_student and p_student = public.my_student_id()
+  group by m.coach_id
+  order by 3 desc;
+$$;
+revoke execute on function public.message_threads(uuid) from public, anon;
+grant execute on function public.message_threads(uuid) to authenticated;
 
 -- Sets, changes or (with an empty p_emoji) removes the caller's own reaction on a message they can read, and
 -- returns the message's reactions. Nothing happens for a message in someone else's thread.
@@ -804,7 +829,8 @@ begin
   update public.messages m
     set reactions = case when coalesce(p_emoji, '') = '' then m.reactions - auth.uid()::text
       else m.reactions || jsonb_build_object(auth.uid()::text, p_emoji) end
-    where m.id = p_message and (m.student_id = public.my_student_id() or public.can_coach(m.student_id))
+    where m.id = p_message
+      and (m.student_id = public.my_student_id() or (m.coach_id = public.my_staff_id() and public.is_coach()))
     returning m.reactions into r;
   return r;
 end;
@@ -874,7 +900,7 @@ begin
     is_staff := exists (select 1 from public.staff a where a.email = s.email and a.deactivated_at is null);
   else
     select u.id into who from public.staff a join auth.users u on lower(u.email) = a.email
-      where a.id = s.coach_id and a.deactivated_at is null;
+      where a.id = m.coach_id and a.deactivated_at is null;   -- the coach whose thread it is in
   end if;
   if who is null then return; end if;
   return query
