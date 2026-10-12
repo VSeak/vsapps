@@ -413,9 +413,10 @@ async function adminMessages(again = false) {
 
 // The Messages card on a student's home page, and on the coach's student page (key: 'mine' or the student's id).
 // The count is filled in as the card is drawn; drawMsgBadge keeps it right after that.
-function msgCardHTML(href, blurb, key) {
+// off: grayed out, for a student with no coach (the user asked). It still opens, so earlier messages can be read.
+function msgCardHTML(href, blurb, key, off = false) {
   const n = key === 'mine' ? msgNew.mine : msgNew.students[key] || 0;
-  return `<a class="card tile msg-tile" id="msgCard" href="${href}">
+  return `<a class="card tile msg-tile${off ? ' off' : ''}" id="msgCard" href="${href}">
     <div><h2>Messages</h2><p class="muted">${blurb}</p></div><span class="msg-n" data-msg-n="${key}"${n ? '' : ' hidden'}>${n}</span>${ICON_ARROW}</a>`;
 }
 

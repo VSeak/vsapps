@@ -1026,5 +1026,7 @@ a.msg-row { align-items: center; }
 .msg-when { flex: none; font-size: .8rem; }
 .msg-prev { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* The Messages card: under Next Session on a phone (the student's home, and the coach's student page) */
+a.msg-tile.off { opacity: .55; }
+a.msg-tile.off:hover { border-color: var(--line); }
 @media (max-width: 860px) { .stu-grid .msg-tile { order: 1; } }
 @media (max-width: 760px) { .phone-order .msg-tile { order: 1; } }
