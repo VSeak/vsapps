@@ -6,7 +6,8 @@
   --deep-danger: #F09A92;
   --goal: #A4BA8F; --goal-ink: #17220D; --chip: #E6E0D6; --ink-2: #4A4138; --blank: #B5AB9E;
   --best: #E3AE5A; --best-ink: #2C1A00;
-  --live: #B3261E;   /* Live strip and Submit Session, with white text in both themes */
+  --live: #B3261E;   /* Live strip, Submit Session and the timer's Hang, with white text in both themes */
+  --recover: #3F6B3A;   /* The timer's Rest, with white text in both themes */
   --radius: 10px;
   color-scheme: light;
 }
@@ -1030,3 +1031,41 @@ a.msg-tile.off { opacity: .55; }
 a.msg-tile.off:hover { border-color: var(--line); }
 @media (max-width: 860px) { .stu-grid .msg-tile { order: 1; } }
 @media (max-width: 760px) { .phone-order .msg-tile { order: 1; } }
+
+/* ---------- Hang Timer (timer.js): full screen, the whole screen the color of the phase ---------- */
+.timer-row { margin-top: 10px; }
+.timer-row button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+dialog.timer { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0;
+  border: 0; border-radius: 0; overflow: auto; background: var(--bg); color: var(--ink); transition: background-color .25s; }
+dialog.timer[open] { display: flex; flex-direction: column; }
+dialog.timer:is([data-phase="ready"], [data-phase="done"]) { background: var(--deep); color: var(--deep-ink); }
+dialog.timer[data-phase="hang"] { background: var(--live); color: #fff; }
+dialog.timer[data-phase="rest"] { background: var(--recover); color: #fff; }
+dialog.timer:not([data-phase="setup"]) button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent); }
+.tm-top { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; }
+.tm-top button { min-height: 44px; }
+.tm-setup { width: 100%; max-width: 30rem; margin: 0 auto; padding: 8px 16px 24px; }
+.tm-setup h2 { margin: .1rem 0 .2rem; font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.tm-setup .hint { margin: 0 0 .6rem; }
+.tm-time { flex: none; display: flex; align-items: center; gap: 6px; }
+.tm-time input { width: 3.4rem; height: 48px; margin: 0; padding: 6px 2px; text-align: center; font: 800 1.35rem "Bricolage Grotesque", sans-serif; border-radius: 12px; }
+.tm-time span { font-size: .85rem; color: var(--muted); }
+.tm-err { margin: 12px 0 0; color: var(--danger); font-weight: 600; }
+.tm-err:empty { display: none; }
+.tm-go { display: flex; gap: 10px; margin-top: 18px; }
+.tm-go button { flex: 1; min-height: 52px; }
+.tm-go .fill { flex: 2; font-size: 1.05rem; }
+.tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  padding: 0 16px calc(20px + env(safe-area-inset-bottom)); text-align: center; }
+.tm-name { margin: 0; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }
+.tm-ring { position: relative; width: min(80vw, 54dvh, 440px); aspect-ratio: 1; }
+.tm-ring svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.tm-ring circle { fill: none; stroke: currentColor; stroke-width: 12; }
+.tm-track { opacity: .22; }
+.tm-mid { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.tm-phase { font: 800 clamp(1.1rem, 6vw, 1.9rem) "Bricolage Grotesque", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.tm-left { font: 800 min(24vw, 16dvh, 8.5rem)/1 "Bricolage Grotesque", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.tm-set { font-weight: 700; opacity: .9; }
+.timer.paused .tm-ring { opacity: .5; }
+.tm-btns { display: flex; gap: 10px; width: 100%; max-width: 24rem; }
+.tm-btns button { flex: 1; min-height: 52px; font-size: 1rem; }

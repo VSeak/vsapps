@@ -40,14 +40,14 @@ function sessionReadHTML(s, withNotes, hide, log) {
 }
 
 // One exercise: its name, then Sets, Reps/Time and Rest in three equal boxes ("—" when empty), then its notes,
-// then (log) what was logged last and Log / History.
+// a Timer button when it has a time to count (timer.js), then (log) what was logged last and Log / History.
 const statHTML = (label, v) => {
   v = String(v ?? '').trim();
   return `<div class="stat"><span class="stat-l">${label}</span><span class="stat-v${v ? '' : ' none'}">${v ? esc(v) : '—'}</span></div>`;
 };
 const exCardHTML = (x, sid, log) => `<div class="ex-card"><p class="ex-name">${esc(x.name || 'Exercise')}</p>
   <div class="stats">${statHTML('Sets', x.sets)}${statHTML('Reps/Time', x.reps)}${statHTML('Rest', x.rest)}</div>
-  ${String(x.notes ?? '').trim() ? `<p class="ex-note">${para(x.notes)}</p>` : ''}${log ? logAreaHTML(x, sid) : ''}</div>`;
+  ${String(x.notes ?? '').trim() ? `<p class="ex-note">${para(x.notes)}</p>` : ''}${timerBtnHTML(x)}${log ? logAreaHTML(x, sid) : ''}</div>`;
 
 // Session tabs: show that session and hide the rest of its week. openNotes uses it to reach a hidden session.
 function showSession(sid) {
