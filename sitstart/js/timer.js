@@ -1,5 +1,5 @@
 // ---------- Hang Timer: sets of a hang and a rest, counted down full screen ----------
-// Opened from an exercise card (exCardHTML) whose Reps/Time or Rest holds a time, and filled in from the exercise.
+// Opened from an exercise card (exCardHTML) whose Reps/Time holds a time (a rest time alone is not a hang), and filled in from the exercise.
 // Nothing is saved: it only counts. The screen changes color with the phase (Get Ready, Hang, Rest, Done) and the
 // ring fills once per hang and once per rest.
 const TM_READY = 5;     // seconds counted down before the first hang
@@ -28,8 +28,9 @@ function tmSecs(s) {
   return Math.min(TM_MAX, Math.round(t)) || null;
 }
 
-// The Timer button on an exercise card: only for an exercise with a time to count.
-const timerBtnHTML = x => tmSecs(x.reps) || tmSecs(x.rest) ? `<div class="timer-row"><button type="button" data-timer="${esc(x.name || 'Exercise')}"
+// The Timer button on an exercise card: only when Reps/Time is a time to hang for. A rest time alone (campus rungs,
+// boulders) gets none (the user asked).
+const timerBtnHTML = x => tmSecs(x.reps) ? `<div class="timer-row"><button type="button" data-timer="${esc(x.name || 'Exercise')}"
   data-sets="${esc(x.sets)}" data-reps="${esc(x.reps)}" data-rest="${esc(x.rest)}">${TM_ICON}Timer</button></div>` : '';
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-timer]');
@@ -80,7 +81,10 @@ function openTimer(name, x) {
   if (!tmDlg.open) tmDlg.showModal();
 }
 const tmTopHTML = () => `<div class="tm-top"><button type="button" data-close>‹ Close</button>
-  <button type="button" data-sound aria-pressed="${tmSound()}">Sound ${tmSound() ? 'On' : 'Off'}</button></div>`;
+  <button type="button" class="tm-sound" data-sound aria-pressed="${tmSound()}" aria-label="Sound">${tmSoundIcon()}</button></div>`;
+// A speaker with sound waves when on, crossed out when off.
+const tmSoundIcon = () => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M11 5 6 9H2v6h4l5 4z"/>${tmSound() ? '<path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>' : '<path d="m22 9-6 6M16 9l6 6"/>'}</svg>`;
 const tmTimeHTML = (k, label, t) => `<div class="log-step"><div class="log-lab"><b>${label}</b></div><div class="tm-time">
   <input data-tm="${k}M" inputmode="numeric" maxlength="2" value="${t >= 60 ? Math.floor(t / 60) : ''}" placeholder="0" aria-label="${label}, minutes" autocomplete="off"><span>min</span>
   <input data-tm="${k}S" inputmode="numeric" maxlength="2" value="${t ? t % 60 : ''}" placeholder="0" aria-label="${label}, seconds" autocomplete="off"><span>sec</span></div></div>`;
@@ -185,7 +189,7 @@ tmDlg.addEventListener('click', e => {
   if ('sound' in d) {
     try { localStorage.setItem('sitstart.timerSound', tmSound() ? 'off' : 'on'); } catch {}
     b.setAttribute('aria-pressed', tmSound());
-    b.textContent = `Sound ${tmSound() ? 'On' : 'Off'}`;
+    b.innerHTML = tmSoundIcon();
     return;
   }
   if (d.step) {

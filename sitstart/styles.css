@@ -1044,6 +1044,7 @@ dialog.timer[data-phase="rest"] { background: var(--recover); color: #fff; }
 dialog.timer:not([data-phase="setup"]) button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent); }
 .tm-top { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; }
 .tm-top button { min-height: 44px; }
+.tm-top .tm-sound { width: 44px; padding: 0; display: grid; place-items: center; }
 .tm-setup { width: 100%; max-width: 30rem; margin: 0 auto; padding: 8px 16px 24px; }
 .tm-setup h2 { margin: .1rem 0 .2rem; font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .tm-setup .hint { margin: 0 0 .6rem; }
