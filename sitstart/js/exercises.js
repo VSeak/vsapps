@@ -554,7 +554,7 @@ function exbListHTML(wide) {
   }
   // Not on the list yet: add the typed text as a new exercise.
   const isNew = text && !src.library.some(x => x.name_key === q), nk = 'new:' + q;
-  const sub = 'Not on the list? Adds it here, and to Exercises &amp; Drills when you save.';
+  const sub = `Not on the list? Adds it here, and to Exercises &amp; Drills when you ${exCtx ? 'submit the coaching session' : 'save the plan'}.`;
   const add = !isNew ? '' : wide
     ? `<li class="exb-item"><span class="exb-main"><span class="exb-name">New Exercise “${esc(text)}”</span><span class="exb-sub">${sub}</span></span><button type="button" class="small" data-new>+ Add</button></li>`
     : `<li><button type="button" class="exb-item exb-new" data-new aria-pressed="${exb.picked.has(nk)}"><span class="${exb.picked.has(nk) ? 'tick' : 'plus'}">${exb.picked.has(nk) ? EXB_ICON.tick : EXB_ICON.plus}</span>
