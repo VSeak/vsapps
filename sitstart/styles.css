@@ -1040,7 +1040,7 @@ dialog.timer { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width
 dialog.timer[open] { display: flex; flex-direction: column; }
 dialog.timer:is([data-phase="ready"], [data-phase="done"]) { background: var(--deep); color: var(--deep-ink); }
 dialog.timer[data-phase="hang"] { background: var(--live); color: #fff; }
-dialog.timer[data-phase="rest"] { background: var(--recover); color: #fff; }
+dialog.timer:is([data-phase="rest"], [data-phase="gap"]) { background: var(--recover); color: #fff; }
 dialog.timer:not([data-phase="setup"]) button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent); }
 .tm-top { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; }
 .tm-top button { min-height: 44px; }
