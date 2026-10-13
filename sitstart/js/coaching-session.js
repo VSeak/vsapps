@@ -607,6 +607,22 @@ function csNote(c) {
   return [`**Coaching Session, ${csTimes(c)} at ${c.location}**`, c.notes.trim(), ...ex].filter(Boolean).join('\n\n');
 }
 
+// Adds a submitted session's exercises that aren't on the master list yet, with the session's values and description
+// (like addToMasterList for a plan). Existing names are left alone (ignoreDuplicates).
+async function csToMasterList(c) {
+  const known = new Set((cs.library ?? []).map(x => x.name_key)), add = new Map();
+  for (const x of c.exercises) {
+    const k = exKey(x.name);
+    if (k && !known.has(k) && !add.has(k))
+      add.set(k, { name: x.name.trim().slice(0, 200), sets: x.sets.trim(), reps: x.reps.trim(), rest: x.rest.trim(), notes: String(x.plan_notes ?? '').trim() });
+  }
+  if (!add.size) return 0;
+  const added = await sb.from('exercises').upsert([...add.values()], { onConflict: 'name_key', ignoreDuplicates: true })
+    .select().then(must);
+  cs.library?.push(...added);
+  return added.length;
+}
+
 async function csSubmit(btn) {
   const c = cs.open;
   if (!csEnded(c)) return;
@@ -623,7 +639,9 @@ async function csSubmit(btn) {
     if (cvDlg.open) cvDlg.close();
     cs.opens = cs.opens.filter(o => o !== c);
     csPick();
-    flash('Submitted. Its notes are in Coach Notes.');
+    const msg = 'Submitted. Its notes are in Coach Notes.';
+    const added = await csToMasterList(c).catch(e => { flash(`${msg} Couldn't add new exercises to the master list: ${msgOf(e)}`, 'error'); });
+    if (added != null) flash(added ? `${msg} ${added === 1 ? '1 new exercise' : `${added} new exercises`} added to the master list.` : msg);
     cs.ctx.redraw();   // Coach Notes, Session History and this card
   });
 }

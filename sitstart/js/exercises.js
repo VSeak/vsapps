@@ -121,7 +121,7 @@ async function adminExercises() {
     <aside>
       <section class="card" id="exAddCard"><h2>Add Exercises & Drills</h2>
         <p class="hint">Picking an exercise in a training plan fills in these values. Changing them in a plan doesn't change this list.
-          New exercises typed into a plan are added here when the plan is saved.</p>
+          New exercises typed into a plan are added here when the plan is saved, and ones typed into a coaching session when it is submitted.</p>
         <form id="exAdd" class="stack" data-save>${exFieldsHTML({}, purNames())}<button class="primary">+ Add Exercises & Drills</button></form>
       </section>
       <div data-folds="exercises"><section class="card" data-fold="purposes" data-fold-start><h2>Purposes (<span id="purCount"></span>)</h2>
