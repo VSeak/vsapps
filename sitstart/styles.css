@@ -32,7 +32,11 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 "DM Sans", system-ui, sans-serif; }
+html { background: var(--bg); }   /* the page itself, not only body: Android colors the strip behind its gesture bar from it */
+/* The page draws under the phone's gesture bar and camera cutout (viewport-fit=cover in index.html), so there is no
+   strip of another color at the bottom (the user asked). The insets keep content clear of them; anything fixed to the
+   bottom adds env(safe-area-inset-bottom) itself. */
+body { margin: 0; padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg); color: var(--ink); font: 15px/1.5 "DM Sans", system-ui, sans-serif; }
 h1, h2, h3 { font-family: "Bricolage Grotesque", "DM Sans", sans-serif; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; margin: 0 0 .5rem; }
 /* Page headings are big and heavy, like the student pages */
 h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; } h2 { font-size: 1.2rem; } h3 { font-size: 1.05rem; }
@@ -206,7 +210,7 @@ form.unsaved button.primary:not([type="button"]):not(:disabled), .savebar.unsave
 #unsavedBar[hidden] { display: none; }
 #unsavedBar > span { color: var(--warn); font-weight: 600; min-width: 0; }
 body.has-bar main { padding-bottom: 8rem; }
-body.has-bar #flash { bottom: 5.5rem; }
+body.has-bar #flash { bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
 .card { scroll-margin-top: 1rem; }
 /* Foldable cards (applyFolds, inside [data-folds]): tap the heading to hide the rest of the card. The heading row stays,
    so a folded card still shows its Unsaved or Needs Update tag. */
@@ -528,7 +532,7 @@ body:has(.savebar.unsaved) main { padding-bottom: 7rem; }
   #saveState { font-size: .85rem; line-height: 1.3; }
   body.typing .savebar.unsaved { display: none; }
   body:has(.savebar.unsaved) main { padding-bottom: 8rem; }
-  body:has(.savebar.unsaved) #flash { bottom: 5.5rem; }
+  body:has(.savebar.unsaved) #flash { bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
 }
 .session-edit .wk, .block-fields .wk { width: 90px; }
 /* Training Blocks: a block's name and length, under its heading */
@@ -715,7 +719,7 @@ fieldset.picks + fieldset.track-picks { margin-top: .75rem; }
 @media (max-width: 760px) { #exAddCard:not(.open) { display: none; } #exAddCard.open { margin-bottom: 12px; } }
 .danger-zone { margin-top: 2rem; display: flex; justify-content: flex-end; gap: .5rem; flex-wrap: wrap; }
 
-#flash { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); max-width: calc(100% - 32px);
+#flash { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: calc(100% - 32px);
   background: var(--ink); color: var(--bg); padding: .6rem 1rem; border-radius: 8px; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
 #flash.error { background: var(--danger); color: #fff; }
 
@@ -742,6 +746,7 @@ dialog .row { margin-top: 1rem; }
 /* The Log and History sheets: the exercise browser's sheet, only as tall as it needs */
 /* fit-content, not auto: a modal dialog is pinned top and bottom, so auto would fill the screen */
 dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
+#logHist .log-body { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }   /* no footer under it, unlike the Log sheet */
 @media (min-width: 700px) { dialog.log-sheet { height: fit-content; max-height: min(760px, calc(100dvh - 48px)); } }
 .log-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
 .log-step { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -970,7 +975,7 @@ dialog.cs-view[open] { display: flex; flex-direction: column; }
 /* A thread's page is exactly one screen tall, so only the bubbles scroll (the user found two scroll bars annoying): the card takes
    what the header, trail and heading leave. Not on a very short screen (a phone on its side), where the bubbles would get no room */
 @media (min-height: 520px) {
-  body:has(#msgThread) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+  body:has(#msgThread) { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; padding-bottom: 0; box-sizing: border-box; }
   body:has(#msgThread) main { flex: 1; min-height: 0; display: flex; flex-direction: column; box-sizing: border-box; width: 100%; padding-bottom: 12px; }
   body:has(#msgThread) .msg-card { flex: 1; min-height: 0; }
   body:has(#msgThread) .msg-list { flex: 1; min-height: 0; max-height: none; }

@@ -31,8 +31,11 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 Figtree, system-ui, sans-serif; }
+/* The background is on the page itself, not only body: Android colors the strip behind its gesture bar from it */
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+/* The page draws under the phone's gesture bar and camera cutout (viewport-fit=cover in index.html), so there is no
+   strip of another color at the bottom (the user asked). The insets keep content clear of them. */
+body { margin: 0; padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg); color: var(--ink); font: 16px/1.5 Figtree, system-ui, sans-serif; }
 h1, h2, h3 { font-family: "Space Grotesk", Figtree, sans-serif; line-height: 1.15; margin: 0 0 .5rem; letter-spacing: -.01em; }
 h2 { font-size: 1.2rem; }
 h3 { font-size: 1rem; margin-top: 1.1rem; }
@@ -392,7 +395,7 @@ dialog::backdrop { background: rgba(16, 19, 31, .5); }
 dialog form { display: flex; flex-direction: column; gap: .8rem; }
 dialog h3 { margin: .3rem 0 0; }
 dialog .row.end { margin-top: .4rem; flex-wrap: wrap; position: sticky; bottom: -1.3rem; background: var(--card); padding: .6rem 0 .6rem; }
-#flash { position: fixed; left: 50%; bottom: 1.2rem; transform: translateX(-50%); z-index: 30; padding: .7rem 1.1rem; border-radius: 14px;
+#flash { position: fixed; left: 50%; bottom: calc(1.2rem + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 30; padding: .7rem 1.1rem; border-radius: 14px;
   background: var(--navy); color: var(--navy-ink); font-weight: 600; box-shadow: 0 8px 24px rgba(0, 0, 0, .2); max-width: calc(100vw - 32px); }
 #flash.error { background: var(--danger); color: #fff; }
 
