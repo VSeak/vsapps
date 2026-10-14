@@ -769,7 +769,11 @@ dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
 .log-other { margin-top: 8px; max-width: 12rem; }
 .log-notes { margin-top: 10px; }
 .log-del { align-self: flex-start; margin-top: 6px; }
-.log-diff { font-size: .85rem; color: var(--deep-muted); }
+.log-diff { font-size: .85rem; color: var(--muted); }
+/* The Log sheet's footer is part of the sheet, not a dark bar (the user asked; the exercise browser keeps the dark one) */
+.log-sheet .exb-foot { background: var(--card); color: var(--ink); border-top: 1px solid var(--line); }
+.log-sheet .exb-foot .exb-add:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.log-sheet .exb-foot button:disabled { color: var(--ink); border-color: var(--line); }
 /* History: the best and its trend on a dark card, edge chips, then the logs */
 .hist-best { background: var(--deep); color: var(--deep-ink); border-radius: 18px; padding: 14px 16px; margin-top: 6px; }
 .hist-best .eyebrow { color: var(--deep-accent); }
