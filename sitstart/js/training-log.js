@@ -433,8 +433,9 @@ function drawLogHistory() {
     <button type="button" class="exb-close" data-close aria-label="Close">${EXB_ICON.close}</button></div>
     <div class="log-body">${bestCard}${chips}
       <ul class="hist-list">${shown.map(l => `<li><div><span class="hist-d">${logDay(l.logged_on, true)}</span>
-        <span class="hist-s">${esc(logLine(l))}${l === best && list.length > 1 ? ' <span class="tag best">Best</span>' : ''}</span>
-        ${l.notes && logSummary(l.vals) ? `<span class="hist-n">${para(l.notes)}</span>` : ''}</div>${
+        ${!logSummary(l.vals) && l.notes?.trim() ? `<span class="hist-n whole">${para(l.notes)}</span>` /* notes only: the whole note, never cut */
+          : `<span class="hist-s">${esc(logLine(l))}${l === best && list.length > 1 ? ' <span class="tag best">Best</span>' : ''}</span>
+        ${l.notes ? `<span class="hist-n">${para(l.notes)}</span>` : ''}`}</div>${
         canEdit ? `<button type="button" class="small" data-edit="${l.logged_on}">Edit</button>` : ''}</li>`).join('')}</ul>
       <div class="hist-pager">${pagerHTML(page, list.length, LOG_PAGE)}</div></div>`;
   bindPager(logHist.querySelector('.hist-pager'), n => { lh.page = n; drawLogHistory(); });

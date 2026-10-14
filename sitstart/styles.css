@@ -787,6 +787,7 @@ dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
 .hist-d { display: block; font-size: .78rem; color: var(--muted); }
 .hist-s { display: block; font: 800 1rem/1.3 "Bricolage Grotesque", sans-serif; overflow-wrap: anywhere; }
 .hist-n { display: block; font-size: .85rem; color: var(--ink-2); margin-top: 2px; }
+.hist-n.whole { font-size: 1rem; color: var(--ink); overflow-wrap: anywhere; }
 /* Training Log cards: the student's home (latest per exercise) and the coach's student page */
 .log-card .big-count { font: 800 2.5rem/1 "Bricolage Grotesque", sans-serif; color: var(--accent); }
 .log-card .hint { margin-top: .3rem; }
