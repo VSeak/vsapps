@@ -54,6 +54,12 @@ const GRADES = ['VB', ...Array.from({ length: 18 }, (_, i) => 'V' + i)];
 const LOG_PAGE = 3;   // logs (or days, or exercises) per page
 const trackOf = x => LOG_KEYS.filter(k => (x?.track ?? []).includes(k));
 const trackNames = list => list.length ? list.map(k => LOG_FIELDS[k].label).join(' · ') : 'Notes only';
+// Log Each Boulder: 'each' in an exercise's track (beside the field keys; never a log_fields key, which are standard
+// names or 'c' + hex) makes the Log sheet repeat the fields once per boulder, kept as vals.each = [{...}, ...].
+const LOG_EACH = 'each', LOG_EACH_MAX = 20;
+const eachOf = x => (x?.track ?? []).includes(LOG_EACH);
+const trackKeys = x => [...trackOf(x), ...(eachOf(x) ? [LOG_EACH] : [])];
+const trackLine = x => `${eachOf(x) && trackOf(x).length ? 'Each boulder: ' : ''}${trackNames(trackOf(x))}`;
 
 // Weight: lb unless the student picked kg (kept on this device). Steps are 2.5 lb or 1.25 kg (small plates).
 const KG = 2.20462;
@@ -69,7 +75,13 @@ const inLb = v => v.weight == null ? null : v.unit === 'kg' ? v.weight * KG : v.
 const fmtMin = n => n >= 60 ? `${Math.floor(n / 60)} h${n % 60 ? ` ${+(n % 60).toFixed(1)} min` : ''}` : `${n} min`;
 
 // One log's values on a line: "4 × 5 · +25 lb", "+40 lb · 20 mm · 10s · Half Crimp · Left", "V5 · 40° · 4 tries · Sent · RPE 8".
+// Log Each Boulder: "3 boulders · 2 sent: V6, 2 tries, Sent; V6, 3 tries, Sent; V5, 3 tries, Not Yet".
 function logSummary(v = {}) {
+  if (Array.isArray(v.each)) {
+    const n = v.each.length, sent = v.each.filter(r => r.sent === true).length, any = v.each.some(r => r.sent != null);
+    const rows = v.each.map(r => logSummary({ ...r, unit: v.unit }).replaceAll(' · ', ', ')).filter(Boolean);
+    return n ? `${n} boulder${n === 1 ? '' : 's'}${any ? ` · ${sent} sent` : ''}${rows.length ? `: ${rows.join('; ')}` : ''}` : '';
+  }
   const has = k => v[k] != null && v[k] !== '';
   const both = has('sets') && has('reps');
   return [both && `${v.sets} × ${v.reps}`, has('weight') && fmtWeight(v.weight, v.unit), has('edge') && `${v.edge} mm`,
@@ -110,20 +122,30 @@ const sortLogs = logs => logs.sort((a, b) => b.logged_on.localeCompare(a.logged_
 // The trend: the first number the logs have, of weight (in the latest log's unit), grade, time, reps, sets, duration,
 // problems, then custom numbers. Never Effort: a harder RPE isn't better.
 // list: newest first. Returns { key, label, val(l), show(n) } or null.
+// A Log Each Boulder log counts by its best boulder: the highest of each value among the ones sent (all of them when
+// Sent isn't asked), so the trend is the hardest grade sent. None sent: nothing to count.
+function eachBest(v) {
+  const sentAsked = v.each.some(r => r.sent != null), rows = sentAsked ? v.each.filter(r => r.sent === true) : v.each, out = { unit: v.unit };
+  for (const r of rows) for (const [k, x] of Object.entries(r))
+    if (k === 'grade') { if (GRADES.indexOf(x) > GRADES.indexOf(out.grade)) out.grade = x; }
+    else if (typeof x === 'number' && (out[k] == null || x > out[k])) out[k] = x;
+  return out;
+}
+const lvals = l => Array.isArray(l.vals.each) ? eachBest(l.vals) : l.vals;
 function logMetric(list) {
-  const unit = list.find(l => l.vals.weight != null)?.vals.unit || 'lb';
+  const unit = list.find(l => lvals(l).weight != null)?.vals.unit || 'lb';
   const M = {
-    weight: { label: 'Added weight', val: l => { const w = inLb(l.vals); return w == null ? null : unit === 'kg' ? w / KG : w; },
+    weight: { label: 'Added weight', val: l => { const w = inLb(lvals(l)); return w == null ? null : unit === 'kg' ? w / KG : w; },
       show: n => fmtWeight(+n.toFixed(1), unit) },
-    grade: { label: 'Grade', val: l => { const i = GRADES.indexOf(l.vals.grade); return i < 0 ? null : i; }, show: n => GRADES[Math.round(n)] },
-    time: { label: 'Time', val: l => l.vals.time ?? null, show: n => `${n}s` },
-    reps: { label: 'Reps', val: l => l.vals.reps ?? null, show: n => `${n} reps` },
-    sets: { label: 'Sets', val: l => l.vals.sets ?? null, show: n => `${n} sets` },
-    duration: { label: 'Duration', val: l => l.vals.duration ?? null, show: fmtMin },
-    problems: { label: 'Problems', val: l => l.vals.problems ?? null, show: n => `${n} problems` },
+    grade: { label: 'Grade', val: l => { const i = GRADES.indexOf(lvals(l).grade); return i < 0 ? null : i; }, show: n => GRADES[Math.round(n)] },
+    time: { label: 'Time', val: l => lvals(l).time ?? null, show: n => `${n}s` },
+    reps: { label: 'Reps', val: l => lvals(l).reps ?? null, show: n => `${n} reps` },
+    sets: { label: 'Sets', val: l => lvals(l).sets ?? null, show: n => `${n} sets` },
+    duration: { label: 'Duration', val: l => lvals(l).duration ?? null, show: fmtMin },
+    problems: { label: 'Problems', val: l => lvals(l).problems ?? null, show: n => `${n} problems` },
   };
   for (const k of LOG_KEYS) if (LOG_FIELDS[k].custom && LOG_FIELDS[k].kind === 'step')
-    M[k] = { label: LOG_FIELDS[k].label, val: l => typeof l.vals[k] === 'number' ? l.vals[k] : null, show: n => customNum(LOG_FIELDS[k], n) };
+    M[k] = { label: LOG_FIELDS[k].label, val: l => typeof lvals(l)[k] === 'number' ? lvals(l)[k] : null, show: n => customNum(LOG_FIELDS[k], n) };
   for (const key of Object.keys(M)) if (list.some(l => M[key].val(l) != null)) return { key, ...M[key] };
   return null;
 }
@@ -217,17 +239,27 @@ function openLogSheet(key, sid, date = todayISO(), keep = null, browse = false) 
   const today = keep?.editing ?? (list[0]?.logged_on === date ? list[0] : null), before = list.filter(l => l !== today), last = before[0];
   const moved = !!today && today.logged_on !== date;
   const isToday = date === todayISO(), onDay = isToday ? 'today' : `on ${midDay(date)}`.replace('on yesterday', 'yesterday');
-  const fields = trackOf(x), from = today ?? last, unit = keep?.unit ?? logUnit();
+  const fields = trackOf(x), from = today ?? last, unit = keep?.unit ?? logUnit(), each = eachOf(x) && fields.length > 0;
   const vals = keep ? keep.vals : {};
+  const toUnit = (o, was) => { if (o.weight != null && (was || 'lb') !== unit) o.weight = round(unit === 'kg' ? o.weight / KG : o.weight * KG, wStep(unit)); };
   if (!keep) for (const k of fields) if (from?.vals[k] != null) vals[k] = from.vals[k];
-  if (!keep && vals.weight != null && (from.vals.unit || 'lb') !== unit) vals.weight = round(unit === 'kg' ? vals.weight / KG : vals.weight * KG, wStep(unit));
-  if (!from) {
+  if (!keep) toUnit(vals, from?.vals.unit);
+  // Each boulder: last time's boulders (Sent cleared on a new log), else as many as Sets says ("3", "3 boulders").
+  let rows = keep?.rows ?? null;
+  if (each && !rows) {
+    rows = Array.isArray(from?.vals.each) && from.vals.each.length ? from.vals.each.map(r => {
+      const o = {}; for (const k of fields) if (r[k] != null) o[k] = r[k];
+      if (!today) delete o.sent;
+      toUnit(o, from.vals.unit); return o;
+    }) : Array.from({ length: Math.min(LOG_EACH_MAX, Math.max(1, parseInt(/^\s*(\d+)/.exec(x.sets ?? '')?.[1] ?? '1', 10))) }, () => ({}));
+  }
+  if (!from && !each) {
     const int = s => /^\s*\d+\s*$/.test(s ?? '') ? parseInt(s, 10) : null, secs = /^\s*(\d+)\s*(s|sec|secs|seconds)\b/i.exec(x.reps ?? '');
     if (fields.includes('sets') && int(x.sets) != null) vals.sets = int(x.sets);
     if (fields.includes('reps') && int(x.reps) != null) vals.reps = int(x.reps);
     if (fields.includes('time') && secs) vals.time = +secs[1];
   }
-  ls = { key, sid, x, fields, vals, unit, date, other: keep?.other ?? {}, notes: keep ? keep.notes : today?.notes ?? '',
+  ls = { key, sid, x, fields, vals, each, rows, unit, date, other: keep?.other ?? {}, notes: keep ? keep.notes : today?.notes ?? '',
     editing: today, pinned: !!today && !browse, last, before };
   // A new log whose Day was changed to one that has a log: say so in red (the user asked), since Save changes that log.
   const exists = browse && !!today;
@@ -240,7 +272,7 @@ function openLogSheet(key, sid, date = todayISO(), keep = null, browse = false) 
         ? `<span class="hint exists" role="alert">A log already exists for ${isToday ? 'today' : midDay(date)}. Saving will change that log.</span>`
         : `<span class="hint">${dayHint}</span>`}</div>
         <input type="date" data-date aria-labelledby="lf-date" value="${date}" max="${todayISO()}" required></div>
-      ${fields.map(logFieldHTML).join('')}
+      ${each ? `<div class="log-each-list">${eachRowsHTML()}</div>` : fields.map(k => logFieldHTML(k)).join('')}
       <label class="log-notes">Notes<textarea data-lf="notes" rows="2" data-grow maxlength="2000" placeholder="How did it feel?">${esc(ls.notes)}</textarea></label>
       ${today ? '<button type="button" class="small ghost danger log-del" data-del>Delete Log</button>' : ''}</div>
     <div class="exb-foot"><span class="log-diff" aria-live="polite"></span><button type="button" class="exb-add" data-save>Save Log</button></div>`;
@@ -273,11 +305,25 @@ logSheet.addEventListener('change', e => {
   logSheet.querySelector('[data-date]').focus();
 });
 
-function logFieldHTML(k) {
-  const F = LOG_FIELDS[k], id = 'lf-' + k;
+// Log Each Boulder: a box per boulder (Boulder n, its fields, Remove while there are several), then + Add Boulder.
+function eachRowsHTML() {
+  const n = ls.rows.length;
+  return ls.rows.map((_, r) => `<section class="log-each" data-row="${r}" aria-labelledby="lf-row-${r}"><div class="log-each-head">
+      <h3 id="lf-row-${r}">Boulder ${r + 1}</h3>${n > 1 ? `<button type="button" class="small ghost" data-row-del="${r}">Remove</button>` : ''}</div>
+      ${ls.fields.map(k => logFieldHTML(k, r)).join('')}</section>`).join('') +
+    (n < LOG_EACH_MAX ? '<button type="button" class="log-each-add" data-row-add>+ Add Boulder</button>' : '');
+}
+const drawRows = () => { logSheet.querySelector('.log-each-list').innerHTML = eachRowsHTML(); };
+// r: the boulder (Log Each Boulder), or none for the log's own fields.
+const valsOf = r => r == null ? ls.vals : ls.rows[r];
+const inRow = (r, sel) => r == null ? sel : `[data-row="${r}"] ${sel}`;
+const rowOf = el => { const r = el.closest('[data-row]')?.dataset.row; return r == null ? null : +r; };
+
+function logFieldHTML(k, r = null) {
+  const F = LOG_FIELDS[k], id = `lf-${k}${r == null ? '' : `-${r}`}`, V = valsOf(r), ok = r == null ? k : `${r}:${k}`;
   if (F.kind === 'pick') {
     // F.other: an Other chip opens a box for a value not in opts (Edge, Board Angle); ls.other[k] keeps it open.
-    const v = ls.vals[k], opts = F.opts, isOther = !!F.other && v != null && !opts.includes(v), open = isOther || ls.other[k];
+    const v = V[k], opts = F.opts, isOther = !!F.other && v != null && !opts.includes(v), open = isOther || ls.other[ok];
     const val = o => k === 'sent' ? o === 'Sent' : o, on = o => k === 'sent' ? v === (o === 'Sent') : v === o;
     return `<fieldset class="log-pick" data-pick="${k}" data-field="${k}"><legend>${esc(F.label)}</legend>${F.sub ? `<span class="hint">${esc(F.sub)}</span>` : ''}<div class="log-chips">${opts.map(o =>
       `<button type="button" data-chip="${esc(JSON.stringify(val(o)))}" aria-pressed="${on(o)}">${esc(`${o}${F.unit && !F.custom ? F.unit : ''}`)}</button>`).join('')}${
@@ -286,7 +332,7 @@ function logFieldHTML(k) {
   }
   const sub = k === 'weight' ? `${ls.unit} · <button type="button" class="link" data-unit>Switch to ${ls.unit === 'lb' ? 'kg' : 'lb'}</button>`
     : k === 'sets' && /^\s*\d+\s*$/.test(ls.x.sets ?? '') ? `Plan says ${ls.x.sets.trim()}` : esc(F.sub ?? '');
-  const v = ls.vals[k];
+  const v = V[k];
   return `<div class="log-step" data-field="${k}"><div class="log-lab"><b id="${id}">${esc(F.label)}</b>${sub ? `<span class="hint">${sub}</span>` : ''}</div>
     <div class="log-sp"><button type="button" data-step="-1" data-f="${k}" aria-label="Less ${esc(F.label.toLowerCase())}">−</button>
       <input data-lf="${k}" aria-labelledby="${id}" ${F.kind === 'grade' ? 'readonly' : `inputmode="${k === 'weight' || F.dec ? 'decimal' : 'numeric'}"`}
@@ -295,23 +341,24 @@ function logFieldHTML(k) {
 }
 
 // Steppers: weight by 2.5 lb (1.25 kg) and can go below zero (an assisted hang); grade along GRADES.
-function stepLog(k, dir) {
-  const F = LOG_FIELDS[k], v = ls.vals[k];
+function stepLog(k, dir, r = null) {
+  const F = LOG_FIELDS[k], V = valsOf(r), v = V[k];
   if (F.kind === 'grade') {
     const i = GRADES.indexOf(v);
-    ls.vals[k] = GRADES[i < 0 ? 1 : Math.min(GRADES.length - 1, Math.max(0, i + dir))];
+    V[k] = GRADES[i < 0 ? 1 : Math.min(GRADES.length - 1, Math.max(0, i + dir))];
   } else if (F.kind === 'weight') {
     const st = wStep(ls.unit);
-    ls.vals[k] = v == null ? (dir > 0 ? st : 0) : Math.max(-500, Math.min(1000, round(v, st) + dir * st));
-  } else ls.vals[k] = v == null ? F.start : Math.max(F.min, Math.min(F.max, v + dir * F.step));
-  const input = logSheet.querySelector(`input[data-lf="${k}"]`);
-  input.value = k === 'weight' ? signed(ls.vals[k]) : ls.vals[k];
+    V[k] = v == null ? (dir > 0 ? st : 0) : Math.max(-500, Math.min(1000, round(v, st) + dir * st));
+  } else V[k] = v == null ? F.start : Math.max(F.min, Math.min(F.max, v + dir * F.step));
+  const input = logSheet.querySelector(inRow(r, `input[data-lf="${k}"]`));
+  input.value = k === 'weight' ? signed(V[k]) : V[k];
   logDiff();
 }
 // "+5 lb on last time" for weight (or time) while there's a last time to compare with: the last log on the same
-// edge when an edge is picked (weights on different edges don't compare).
+// edge when an edge is picked (weights on different edges don't compare). Not for Log Each Boulder.
 function logDiff() {
   const el = logSheet.querySelector('.log-diff'), e = ls.vals.edge;
+  if (ls.each) { el.textContent = ''; return; }
   const last = (e != null ? ls.before.find(l => l.vals.edge === e) : ls.before[0])?.vals;
   let t = '';
   if (last && ls.vals.weight != null && last.weight != null) {
@@ -330,33 +377,53 @@ logSheet.addEventListener('input', e => {
   if (k === 'notes') ls.notes = e.target.value;
   else {
     const n = num(e.target.value);
-    ls.vals[k] = n == null ? null : k === 'weight' ? n : Math.max(0, LOG_FIELDS[k]?.other || LOG_FIELDS[k]?.dec ? n : Math.round(n));
+    valsOf(rowOf(e.target))[k] = n == null ? null : k === 'weight' ? n : Math.max(0, LOG_FIELDS[k]?.other || LOG_FIELDS[k]?.dec ? n : Math.round(n));
     logDiff();
   }
 });
 logSheet.addEventListener('click', async e => {
   const b = e.target.closest('button');
   if (!b) return;
-  const d = b.dataset;
+  const d = b.dataset, r = rowOf(b);
   if ('close' in d) return logSheet.close();
-  if (d.step) return stepLog(d.f, +d.step);
+  if (d.step) return stepLog(d.f, +d.step, r);
   if ('unit' in d) {
     const to = ls.unit === 'lb' ? 'kg' : 'lb';
-    if (ls.vals.weight != null) ls.vals.weight = round(to === 'kg' ? ls.vals.weight / KG : ls.vals.weight * KG, wStep(to));
+    for (const V of ls.each ? ls.rows : [ls.vals]) if (V.weight != null) V.weight = round(to === 'kg' ? V.weight / KG : V.weight * KG, wStep(to));
     ls.unit = to; setLogUnit(to);
-    redrawField('weight');
-    logSheet.querySelector('[data-unit]')?.focus();
+    if (ls.each) drawRows(); else redrawField('weight');
+    logSheet.querySelector(inRow(r, '[data-unit]'))?.focus();
     return logDiff();
   }
   if (d.chip) {
-    const k = b.closest('[data-pick]').dataset.pick;
-    if (d.chip === 'other') { ls.other[k] = !(ls.other[k] || (ls.vals[k] != null && !LOG_FIELDS[k].opts.includes(ls.vals[k])));
-      if (!ls.other[k]) ls.vals[k] = null; }
-    else { const v = JSON.parse(d.chip); ls.vals[k] = ls.vals[k] === v ? null : v; ls.other[k] = false; }
-    redrawField(k);
+    const k = b.closest('[data-pick]').dataset.pick, V = valsOf(r), ok = r == null ? k : `${r}:${k}`;
+    if (d.chip === 'other') { ls.other[ok] = !(ls.other[ok] || (V[k] != null && !LOG_FIELDS[k].opts.includes(V[k])));
+      if (!ls.other[ok]) V[k] = null; }
+    else { const v = JSON.parse(d.chip); V[k] = V[k] === v ? null : v; ls.other[ok] = false; }
+    redrawField(k, r);
     logDiff();
-    const again = logSheet.querySelector(`[data-pick="${k}"] [data-chip="${CSS.escape(d.chip)}"]`);
-    if (ls.other[k]) logSheet.querySelector(`[data-field="${k}"] .log-other input`)?.focus(); else again?.focus();
+    const again = logSheet.querySelector(inRow(r, `[data-pick="${k}"] [data-chip="${CSS.escape(d.chip)}"]`));
+    if (ls.other[ok]) logSheet.querySelector(inRow(r, `[data-field="${k}"] .log-other input`))?.focus(); else again?.focus();
+    return;
+  }
+  // Log Each Boulder: a new boulder starts at the one before it (its grade, say), not sent yet.
+  if ('rowAdd' in d) {
+    if (ls.rows.length >= LOG_EACH_MAX) return;
+    const { sent, ...prev } = ls.rows.at(-1) ?? {};
+    ls.rows.push({ ...prev });
+    drawRows();
+    logSheet.querySelector(`[data-row="${ls.rows.length - 1}"] :is([data-step], [data-chip])`)?.focus();
+    return;
+  }
+  if (d.rowDel) {
+    ls.rows.splice(+d.rowDel, 1);
+    // Other boxes are kept by boulder number, so they follow the boulders that moved up.
+    ls.other = Object.fromEntries(Object.entries(ls.other).flatMap(([ok, v]) => {
+      const [i, k] = ok.split(':');
+      return k == null ? [[ok, v]] : +i === +d.rowDel ? [] : [[`${+i > +d.rowDel ? +i - 1 : i}:${k}`, v]];
+    }));
+    drawRows();
+    logSheet.querySelector('[data-row-add]')?.focus();
     return;
   }
   if ('del' in d) {
@@ -370,12 +437,17 @@ logSheet.addEventListener('click', async e => {
   }
   if ('save' in d) saveLog(b);
 });
-const redrawField = k => { logSheet.querySelector(`[data-field="${k}"]`).outerHTML = logFieldHTML(k); };
+const redrawField = (k, r = null) => { logSheet.querySelector(inRow(r, `[data-field="${k}"]`)).outerHTML = logFieldHTML(k, r); };
 
 function saveLog(btn) {
   if (ls.blocked) return;
-  const vals = {};
-  for (const k of ls.fields) if (ls.vals[k] != null && ls.vals[k] !== '') vals[k] = ls.vals[k];
+  const vals = {}, pickVals = V => Object.fromEntries(ls.fields.filter(k => V[k] != null && V[k] !== '').map(k => [k, V[k]]));
+  if (ls.each) {
+    // Empty boulders are left out; with none filled in it's a notes-only log.
+    const rows = ls.rows.map(pickVals).filter(o => Object.keys(o).length);
+    if (rows.length) vals.each = rows;
+    if (rows.some(o => o.weight != null)) vals.unit = ls.unit;
+  } else Object.assign(vals, pickVals(ls.vals));
   if (vals.weight != null) vals.unit = ls.unit;
   const notes = ls.notes.trim();
   if (!Object.keys(vals).length && !notes) { flash(ls.fields.length ? 'Fill in at least one value, or a note.' : 'Write a note to log it.', 'error'); return; }

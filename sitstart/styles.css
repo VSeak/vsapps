@@ -767,6 +767,14 @@ dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
 .log-chips button:is([aria-pressed="true"], [aria-selected="true"]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .log-chips .count { margin-left: .35rem; opacity: .7; font-weight: 500; }
 .log-other { margin-top: 8px; max-width: 12rem; }
+/* Log Each Boulder: a box per boulder, then + Add Boulder */
+.log-each-list { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.log-each { border: 1px solid var(--line); border-radius: 16px; padding: 4px 12px 8px; }
+.log-each .log-step:last-child { border-bottom: 0; }
+.log-each-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 6px; }
+.log-each-head h3 { margin: 0; font: 800 .8rem "Bricolage Grotesque", sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.log-each-add { align-self: flex-start; }
+.each-pick { margin-top: .75rem; font-weight: 700; }
 .log-notes { margin-top: 10px; }
 .log-del { align-self: flex-start; margin-top: 6px; }
 .log-diff { font-size: .85rem; color: var(--muted); }

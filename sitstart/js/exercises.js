@@ -39,13 +39,15 @@ const trackFieldsHTML = (picked = [], hint = 'What students fill in when they lo
     <div class="track-presets"><span class="muted">Quick Pick:</span>${LOG_PRESETS.map(([name, keys]) => [name, keys.filter(k => LOG_FIELDS[k])]).filter(([, keys]) => keys.length).map(([name, keys]) =>
       `<button type="button" class="small" data-preset="${keys.join(',')}">${name}</button>`).join('')}</div>
     <div class="pick-row">${LOG_KEYS.map(k => `<label><input type="checkbox" name="track" value="${k}"${(picked ?? []).includes(k) ? ' checked' : ''}>${esc(LOG_FIELDS[k].label)}</label>`).join('')}</div>
+    <label class="check each-pick"><input type="checkbox" name="track" value="${LOG_EACH}"${(picked ?? []).includes(LOG_EACH) ? ' checked' : ''}>Log Each Boulder</label>
+    <span class="hint field-hint">Students fill in the fields once per boulder, starting with as many as Sets says, and can add more.</span>
   </fieldset>`;
 // A quick pick ticks exactly its fields (in the Add form, the Edit dialog or the plan's Change dialog).
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-preset]'), box = b?.closest('fieldset');
   if (!box) return;
   const keys = b.dataset.preset.split(',');
-  box.querySelectorAll('input[name="track"]').forEach(c => { c.checked = keys.includes(c.value); });
+  box.querySelectorAll('input[name="track"]').forEach(c => { if (c.value !== LOG_EACH) c.checked = keys.includes(c.value); });
   box.querySelector('input[name="track"]').dispatchEvent(new Event('input', { bubbles: true }));
 });
 // Log fields: every Training Log field (log_fields rows): the standard ones (kind 'standard', worked by LOG_STANDARD)
@@ -262,7 +264,7 @@ async function adminExercises() {
         <button type="button" class="small ghost danger" data-act="ex-delete" data-ex="${x.id}">Delete</button></span></div>
         <div class="stats">${EX_FIELDS.slice(0, 3).map(([f, l]) =>
           `<div class="stat"><span class="stat-l">${l}</span><span class="stat-v${x[f] ? '' : ' none'}">${x[f] ? esc(x[f]) : '—'}</span></div>`).join('')}</div>
-        ${x.notes ? `<p class="ex-note">${para(x.notes)}</p>` : ''}${x.track?.length ? `<p class="ex-track">Log fields: ${esc(trackNames(trackOf(x)))}</p>` : ''}${x.purposes.length ? exPurposeTags(x.purposes)
+        ${x.notes ? `<p class="ex-note">${para(x.notes)}</p>` : ''}${x.track?.length ? `<p class="ex-track">Log fields: ${esc(trackLine(x))}</p>` : ''}${x.purposes.length ? exPurposeTags(x.purposes)
           : '<span class="ex-purposes"><span class="tag warn">Needs a Purpose</span></span>'}</article>`).join('')
       || `<p class="muted">${list.length ? 'No exercise matches that search or purpose.' : 'No exercises yet. Add your first one.'}</p>`;
   }
@@ -383,7 +385,7 @@ async function addToMasterList(rows) {
   for (const x of rows.flatMap(r => r.exercises)) {
     const k = exKey(x.name);
     if (k && !known.has(k) && !add.has(k))
-      add.set(k, { name: x.name.trim().slice(0, 200), ...Object.fromEntries(EX_FIELDS.map(([f]) => [f, String(x[f] ?? '').trim()])), track: trackOf(x) });
+      add.set(k, { name: x.name.trim().slice(0, 200), ...Object.fromEntries(EX_FIELDS.map(([f]) => [f, String(x[f] ?? '').trim()])), track: trackKeys(x) });
   }
   if (!add.size) return 0;
   const added = await sb.from('exercises').upsert([...add.values()], { onConflict: 'name_key', ignoreDuplicates: true })
