@@ -119,6 +119,14 @@ async function staffForm(s, locs) {
 }
 
 // ---------- Settings ----------
+// Each focus area folds to one line (name, group, Rated, how many sub-areas; the list was too long, the user asked) and
+// opens to its fields and sub-areas. The grip sits outside the fold, so a folded area still drags. Opened ones stay open
+// through a redraw (a save, a drag) for this visit; adding a sub-area opens its area.
+const openAreas = new Set();
+document.addEventListener('toggle', e => {
+  const id = e.target.matches?.('details.area-fold') && e.target.dataset.area;
+  if (id) e.target.open ? openAreas.add(id) : openAreas.delete(id);
+}, true);
 // Locations, circuit colors (easiest first), areas (rated and tag only) and check-in questions. Each row saves on its own.
 
 async function settingsPage() {
@@ -148,6 +156,9 @@ async function settingsPage() {
     question: n => `Its answers and tags come off ${n === 1 ? 'that check-in' : 'them'}.`,
   };
   const KEEP = { circuit: '', area: ' To keep old ratings, untick Shown instead.', question: ' To keep old answers, untick Shown instead.' };
+  const areaLine = a => { const n = subsOf(a, areas).length;
+    return `<b>${esc(a.name)}</b><small>${[AREA_GROUPS[a.area_group], a.rated ? 'Rated' : 'Tag Only', n ? `${n} ${n === 1 ? 'Sub-Area' : 'Sub-Areas'}` : '',
+      a.active ? '' : 'Hidden'].filter(Boolean).join(' · ')}</small>`; };
   // A sub-area's Focus Area Ratings button shows when its area is rated.
   const guideBtn = (a, top) => `<button type="button" class="small ghost" data-guide="${a.id}"${top.rated ? '' : ' hidden'}>${a.guide.some(g => g.trim()) ? 'Focus Area Ratings' : '+ Focus Area Ratings'}</button>`;
   const groupSelect = (val = 'skill') => `<select name="area_group" aria-label="Group">${Object.entries(AREA_GROUPS).map(([k, v]) =>
@@ -210,6 +221,7 @@ async function settingsPage() {
           + Sub-Area breaks an area into parts (like Footwork: Heel Hooks, Smearing). Sub-areas take their area's group and Rated;
           a coach can rate the area as a whole or Break Down and rate the parts, and the area becomes their average.</p>
         ${areas.filter(a => !a.parent_id).map(a => `<div class="area-block" data-kind="area" data-id="${a.id}">${GRIP}
+          <details class="area-fold" data-area="${a.id}"${openAreas.has(a.id) ? ' open' : ''}><summary>${areaLine(a)}</summary>
           <form class="set-row" data-kind="area" data-id="${a.id}" data-save>
           <input name="name" maxlength="40" required value="${esc(a.name)}" aria-label="Name" data-need="Name the focus area.">
           ${groupSelect(a.area_group)}
@@ -227,7 +239,7 @@ async function settingsPage() {
               <label class="check"><input type="checkbox" name="active"${s.active ? ' checked' : ''}> Shown</label>
               ${guideBtn(s, a)}
               <button class="small primary">Save</button>
-              <button type="button" class="small ghost danger" data-del="area" data-id="${s.id}">Delete</button></div></form>`).join('')}</div>` : ''}</div>`).join('')}
+              <button type="button" class="small ghost danger" data-del="area" data-id="${s.id}">Delete</button></div></form>`).join('')}</div>` : ''}</details></div>`).join('')}
         <form class="row add-row" data-kind="area" data-save><input name="name" maxlength="40" required placeholder="New focus area" aria-label="New focus area" data-need="Name the focus area.">
           ${groupSelect()}<label class="check"><input type="checkbox" name="rated" checked> Rated</label>
           <button class="primary">+ Add</button></form>
@@ -304,6 +316,7 @@ async function addSubArea(a, areas) {
   await busy(null, async () => {
     await sb.from('team_rating_areas').insert({ name: f.get('name').trim(), parent_id: a.id, area_group: a.area_group, rated: a.rated,
       position: Math.max(0, ...subsOf(a, areas).map(s => s.position)) + 1 }).then(must);
+    openAreas.add(a.id);
     flash('Added.'); redraw();
   });
 }

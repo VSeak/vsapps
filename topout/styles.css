@@ -325,9 +325,10 @@ details.history > summary { display: flex; align-items: center; gap: .5rem; flex
 details.history[open] { padding-bottom: .6rem; }
 /* The check-in form: questions with area tags, then each rated area with a Them row and a Coach row. */
 .q-block { margin-bottom: .8rem; }
-.tag-pick { display: flex; flex-direction: column; gap: .35rem; margin-top: .45rem; }
+.tag-pick { display: flex; flex-direction: column; gap: .6rem; margin-top: .45rem; }
 .tag-group { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
-.tag-group > small { color: var(--muted); font-size: .75rem; font-weight: 700; min-width: 4.2rem; }
+/* The group (Physical, Skill, Mental) on its own line, styled like a question (the user asked), its pills under it. */
+.tag-group > small { flex-basis: 100%; color: var(--ink); font-size: .92rem; font-weight: 600; }
 .chip-check { display: inline-block; font-weight: 600; }
 .chip-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .chip-check span { display: inline-flex; padding: .28rem .7rem; border-radius: 999px; border: 1.5px solid var(--line); font-size: .85rem; cursor: pointer; }
@@ -363,8 +364,10 @@ details.rate-subs > summary { margin-top: .3rem; color: var(--accent-text); }
 details.rate-guide > summary { margin: .15rem 0; font-size: .8rem; font-weight: 600; color: var(--muted); }
 .ratings > .sub-name, .area-table > .sub-name { padding-left: .9rem; font-size: .86rem; color: var(--ink-2); }
 details.tag-subs > summary { margin: .1rem 0 .3rem; font-size: .82rem; font-weight: 600; color: var(--accent-text); }
-details.tag-subs .tag-group { margin-bottom: .35rem; }
-details.tag-subs .tag-group > small { flex-basis: 100%; }
+/* Opened sub-areas sit indented under their group, so they read as part of it (the user asked). */
+details.tag-subs { margin: -.3rem 0 0 1rem; }
+details.tag-subs .tag-group { margin: 0 0 .5rem 1rem; }
+details.tag-subs .tag-group > small { color: var(--muted); font-size: .8rem; font-weight: 700; }
 
 /* Settings */
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 0 1rem; align-items: start; }
@@ -379,13 +382,17 @@ details.tag-subs .tag-group > small { flex-basis: 100%; }
 .circuit-row > input[name="name"] { flex: 1 1 4rem; min-width: 4rem; }
 .circuit-row .vrange input { width: 3.2rem; }
 .set-btns { display: inline-flex; gap: .4rem; margin-left: auto; }
-/* Settings: a focus area with its sub-areas under it. The grip sits outside the form so it drags the whole block;
-   sub-areas drag among themselves. */
+/* Settings: each focus area folds to one line (name, then group · Rated · sub-areas) and opens to its fields and
+   sub-areas. The grip sits outside the fold, so it drags the whole area, open or not; sub-areas drag among themselves. */
 .area-block { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .4rem; border-top: 1px solid var(--line); }
-.area-block > .grip { align-self: start; margin-top: .55rem; }
-.area-block > .set-row { border-top: 0; }
-.area-block > .set-row > .set-line { padding-left: 0; }
-.sub-list { grid-column: 2; padding-bottom: .4rem; }
+.area-block > .grip { align-self: start; margin-top: .45rem; }
+.area-fold > summary { margin: 0; padding: .55rem 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .6rem; }
+.area-fold > summary small { color: var(--muted); font-size: .8rem; font-weight: 600; }
+.area-fold > summary::before { content: "▸"; color: var(--accent-text); width: .7rem; }
+.area-fold[open] > summary::before { content: "▾"; }
+.area-fold > .set-row { border-top: 0; padding-top: 0; }
+.area-fold > .set-row > .set-line { padding-left: 0; }
+.sub-list { padding-bottom: .4rem; }
 .set-row.sub-row { border-top: 1px dashed var(--line); padding: .35rem 0; }
 .set-row.sub-row > input[name="name"] { font-size: .92rem; }
 /* New question: the question gets its own line, so the example answer has room for its placeholder. */
@@ -533,12 +540,6 @@ dialog .row.end.many > button[value="cancel"] { margin-right: auto; }
 /* A pop-up keeps the page behind it still (phones scrolled it). */
 html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 #dlg { overscroll-behavior: contain; }
-
-/* Focus Area pills on a phone: the group's name on its own line, its pills under it. */
-@media (max-width: 560px) {
-  .tag-group > small { flex-basis: 100%; min-width: 0; }
-  .tag-pick { gap: .6rem; }
-}
 
 /* Check-In Answers: the answers past the first few, under Show All N Answers / Show Fewer. */
 details.said-more { margin: -.4rem 0 .6rem; }
