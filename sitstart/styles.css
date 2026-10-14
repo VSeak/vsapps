@@ -748,7 +748,7 @@ dialog .row { margin-top: 1rem; }
 dialog.log-sheet { height: fit-content; max-height: calc(100dvh - 40px); }
 #logHist .log-body { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }   /* no footer under it, unlike the Log sheet */
 @media (min-width: 700px) { dialog.log-sheet { height: fit-content; max-height: min(760px, calc(100dvh - 48px)); } }
-.log-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.log-body { flex: 1 1 auto; min-height: 0;   /* auto, not 0: Safari shrinks a 0 basis to nothing in the fit-content sheet (iPhone showed only the head and Save Log) */ overflow-y: auto; overscroll-behavior: contain; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
 .log-step { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .log-lab { flex: 1; min-width: 0; }
 .log-lab b { display: block; font: 800 1rem "Bricolage Grotesque", sans-serif; }
