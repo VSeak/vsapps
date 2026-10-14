@@ -34,9 +34,10 @@ function areaScore(c, key, a, areas) {
 }
 const scoreText = x => Number.isInteger(x) ? String(x) : x.toFixed(1);
 // Area chips to tick (checkboxes called `name`), in a row per group. Used for check-in tags, Team Focus and practices.
-// Sub-areas fold under "<group> Sub-Areas" (open when one is picked), a line per area, so the list stays short.
+// Sub-areas fold under "<group> Sub-Areas" (open when one is picked), a line per area, so the list stays short. A
+// sub-area's box carries data-parent (its area's id), for pickers that tick the area too (practices).
 const areaChips = (name, list, picked, label) => {
-  const chip = a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`;
+  const chip = a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${a.parent_id ? ` data-parent="${a.parent_id}"` : ''}${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`;
   return `<div class="tag-pick" role="group" aria-label="${esc(label)}">
   ${Object.entries(AREA_GROUPS).map(([g, gl]) => {
     const inG = byGroup(list).filter(a => a.area_group === g);

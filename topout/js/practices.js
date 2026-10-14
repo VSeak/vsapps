@@ -219,6 +219,12 @@ function wirePracticeForm(form) {
   changed();
   wireGrips(changed, form);
   form.addEventListener('input', e => { if (e.target.name === 'b_min') changed(); });
+  // Ticking a sub-area ticks its area too (the user asked); an area can still be picked on its own.
+  form.addEventListener('change', e => {
+    const p = e.target.checked && e.target.dataset.parent;
+    const area = p && form.querySelector(`input[name="area"][value="${p}"]`);
+    if (area) area.checked = true;
+  });
   add.onclick = () => {
     box.insertAdjacentHTML('beforeend', blockEditHTML());
     wireGrips(changed, form);
