@@ -15,19 +15,24 @@ const avgText = x => x ? x.avg.toFixed(1) : '—';
 const firstLine = s => { const l = s.trim().split('\n')[0].replace(/\*\*/g, ''); return l.length > 90 ? l.slice(0, 88).trimEnd() + '…' : l; };
 
 // Per area: the average member and coach rating (with how many rated it) and, for each question with tags, how many tagged it.
+// An area's rating per member is its score (the average of their rated sub-areas, else its own; areaScore), and a tag on
+// a sub-area counts for its area too. Sub-areas are listed under their area only once someone rated or tagged them.
 function teamStats(rows, areas, questions) {
   const tagQs = questions.filter(q => q.tags || rows.some(r => r.c.tags[q.id]?.length));
-  const avg = (key, id) => {
-    const v = rows.map(r => r.c[key][id]).filter(x => x != null);
+  const avg = (key, a) => {
+    const v = rows.map(r => areaScore(r.c, key, a, areas)).filter(x => x != null);
     return v.length ? { avg: v.reduce((a, b) => a + b, 0) / v.length, n: v.length } : null;
   };
-  const list = byGroup(areas).map(a => ({ a, them: avg('ratings', a.id), coach: avg('coach_ratings', a.id),
-    tagged: tagQs.map(q => rows.filter(r => (r.c.tags[q.id] || []).includes(a.id)).length) }))
-    .filter(x => (x.a.active && (x.a.rated || tagQs.length)) || x.them || x.coach || x.tagged.some(Boolean));
+  const ids = a => [a.id, ...subsOf(a, areas).map(s => s.id)];
+  const list = byGroup(areas).map(a => ({ a, them: avg('ratings', a), coach: avg('coach_ratings', a),
+    tagged: tagQs.map(q => rows.filter(r => (r.c.tags[q.id] || []).some(id => ids(a).includes(id))).length) }))
+    .filter(x => (!x.a.parent_id && x.a.active && (x.a.rated || tagQs.length)) || x.them || x.coach || x.tagged.some(Boolean));
   for (const x of list) x.gap = x.them && x.coach && Math.abs(x.them.avg - x.coach.avg) >= 1;
-  const wanted = tagQs.length ? list.filter(x => x.tagged[0]).sort((p, q) => q.tagged[0] - p.tagged[0]).slice(0, 3) : [];
+  // Most Wanted and Lowest Rated name the most precise thing: a sub-area, or an area none of whose sub-areas are listed.
+  const leaves = list.filter(x => x.a.parent_id || !list.some(s => s.a.parent_id === x.a.id));
+  const wanted = tagQs.length ? leaves.filter(x => x.tagged[0]).sort((p, q) => q.tagged[0] - p.tagged[0]).slice(0, 3) : [];
   const score = x => (x.coach || x.them)?.avg;
-  const lowest = list.filter(x => score(x) != null).sort((p, q) => score(p) - score(q)).slice(0, 3);
+  const lowest = leaves.filter(x => score(x) != null).sort((p, q) => score(p) - score(q)).slice(0, 3);
   return { tagQs, list, wanted, lowest };
 }
 
@@ -168,10 +173,11 @@ function areaCardHTML({ rows, s }) {
     <div class="area-table" style="--cols:${2 + tagQs.length}">
       <span></span><small>Member</small><small>Coach</small>${tagQs.map(q => `<small>${esc(q.prompt)}</small>`).join('')}
       ${Object.entries(AREA_GROUPS).map(([g, label]) => { const inG = list.filter(x => x.a.area_group === g); return inG.length ? `<h3>${label}</h3>
-        ${inG.map(x => `<span>${esc(x.a.name)}</span>${x.a.rated || x.them || x.coach ? `${val(x.them)}<span class="${x.gap ? 'gap' : ''}">${val(x.coach)}</span>`
+        ${inG.map(x => `<span${x.a.parent_id ? ' class="sub-name"' : ''}>${esc(x.a.name)}</span>${x.a.rated || x.them || x.coach ? `${val(x.them)}<span class="${x.gap ? 'gap' : ''}">${val(x.coach)}</span>`
           : '<span class="muted small-text tag-only">Tag only</span>'}${x.tagged.map(count).join('')}`).join('')}` : ''; }).join('')}
     </div>
-    <p class="hint">Averages of each member's latest check-in; the small number is how many rated it. Lowest rated uses the coach average.
+    <p class="hint">Averages of each member's latest check-in; the small number is how many rated it. An area broken down counts as
+      the average of its rated sub-areas, which show under it once someone rates or tags them. Lowest rated uses the coach average.
       ${list.some(x => x.gap) ? '<span class="gap">Highlighted</span>: members and coaches differ by 1 or more on average.' : ''}</p>
   </section>`;
 }
@@ -228,7 +234,7 @@ function summaryText({ loc, members, rows, areas, questions, focus, s }) {
       const inG = s.list.filter(x => x.a.area_group === g);
       if (!inG.length) continue;
       L.push(label);
-      for (const x of inG) L.push(`- ${x.a.name}: ${[...(x.a.rated || x.them || x.coach ? [avgText(x.them), avgText(x.coach)] : ['tag only']),
+      for (const x of inG) L.push(`${x.a.parent_id ? '    - ' : '- '}${x.a.name}: ${[...(x.a.rated || x.them || x.coach ? [avgText(x.them), avgText(x.coach)] : ['tag only']),
         ...x.tagged.map(k => `${k} of ${rows.length}`)].join(' / ')}`);
     }
     L.push('');
@@ -248,11 +254,15 @@ function summaryTable({ rows, areas, questions }) {
   const cell = x => String(x ?? '').replace(/\*\*/g, '').replace(/\s*[\t\r\n]+\s*/g, ' ').trim();
   const qs = questions.filter(q => q.active || rows.some(r => r.c.answers[q.id] || r.c.tags[q.id]?.length));
   const tagQs = qs.filter(q => q.tags || rows.some(r => r.c.tags[q.id]?.length));
-  const rated = areas.filter(a => (a.rated && a.active) || rows.some(r => r.c.ratings[a.id] != null || r.c.coach_ratings[a.id] != null));
+  // Rated, shown areas, plus any area or sub-area someone has a score for. Sub-area columns are named "Area: Sub-Area".
+  const score = (c, key, a) => { const r = areaScore(c, key, a, areas); return r == null ? '' : scoreText(r); };
+  const rated = byGroup(areas).filter(a => (!a.parent_id && a.rated && a.active)
+    || rows.some(r => areaScore(r.c, 'ratings', a, areas) != null || areaScore(r.c, 'coach_ratings', a, areas) != null));
+  const full = a => a.parent_id ? `${areas.find(p => p.id === a.parent_id)?.name}: ${a.name}` : a.name;
   const head = ['Member', 'Check-In', 'By', ...qs.flatMap(q => tagQs.includes(q) ? [q.prompt, `${q.prompt}: Focus Areas`] : [q.prompt]),
-    ...rated.flatMap(a => [`${a.name} (Member)`, `${a.name} (Coach)`])];
+    ...rated.flatMap(a => [`${full(a)} (Member)`, `${full(a)} (Coach)`])];
   const line = ({ m, c }) => [m.name, c.checkin_date, c.author_name,
     ...qs.flatMap(q => [c.answers[q.id], ...(tagQs.includes(q) ? [byGroup(areas).filter(a => (c.tags[q.id] || []).includes(a.id)).map(a => a.name).join(', ')] : [])]),
-    ...rated.flatMap(a => [c.ratings[a.id], c.coach_ratings[a.id]])];
+    ...rated.flatMap(a => [score(c, 'ratings', a), score(c, 'coach_ratings', a)])];
   return [head, ...rows.map(line)].map(r => r.map(cell).join('\t')).join('\n') + '\n';
 }

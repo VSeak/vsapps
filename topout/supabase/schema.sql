@@ -124,8 +124,10 @@ create table public.team_rating_areas (
   active boolean not null default true,
   area_group text not null default 'skill' check (area_group in ('physical', 'skill', 'mental')),
   rated boolean not null default true,   -- false = tag only
-  guide text[] not null default '{}' check (cardinality(guide) in (0, 5))
+  guide text[] not null default '{}' check (cardinality(guide) in (0, 5)),
+  parent_id uuid references public.team_rating_areas (id) on delete cascade   -- a sub-area (one level; team_area_parent)
 );
+create index team_rating_areas_parent on public.team_rating_areas (parent_id);
 insert into public.team_rating_areas (name, position, area_group, rated, guide) values
   ('Technique', 1, 'skill', true, array[
     'Climbs mostly with arms; moves feel stiff or random.',
@@ -596,6 +598,39 @@ end;
 $$;
 create trigger team_area_cleanup before delete on public.team_rating_areas
   for each row execute function public.team_area_cleanup();
+
+-- A sub-area sits under a top-level area (one level only) and takes its group and Rated; changing an area changes its
+-- sub-areas too. The app scores an area on a check-in as the average of its rated sub-areas, else its own rating.
+create function public.team_area_parent() returns trigger
+language plpgsql set search_path = '' as $$
+declare
+  p public.team_rating_areas;
+begin
+  if new.parent_id is not null then
+    select * into p from public.team_rating_areas where id = new.parent_id;
+    if p.parent_id is not null then raise exception 'A sub-area can''t have sub-areas of its own.'; end if;
+    if exists (select 1 from public.team_rating_areas where parent_id = new.id) then
+      raise exception 'An area with sub-areas can''t become a sub-area.';
+    end if;
+    new.area_group := p.area_group;
+    new.rated := p.rated;
+  end if;
+  return new;
+end;
+$$;
+create trigger team_area_parent before insert or update on public.team_rating_areas
+  for each row execute function public.team_area_parent();
+
+create function public.team_area_children() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  update public.team_rating_areas set area_group = new.area_group, rated = new.rated
+  where parent_id = new.id and (area_group, rated) is distinct from (new.area_group, new.rated);
+  return null;
+end;
+$$;
+create trigger team_area_children after update of area_group, rated on public.team_rating_areas
+  for each row execute function public.team_area_children();
 
 create function public.team_question_cleanup() returns trigger
 language plpgsql security definer set search_path = '' as $$

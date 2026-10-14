@@ -13,14 +13,40 @@ const RATING_GUIDE = [
   '<b>A real strength.</b> Stands out on the team; could show others how.',
 ];
 const AREA_GROUPS = { physical: 'Physical', skill: 'Skill', mental: 'Mental' };
-// What number i (1–5) means for an area: its own line, else the general guide.
-const guideFor = (a, i) => a.guide?.[i - 1]?.trim() ? esc(a.guide[i - 1]) : RATING_GUIDE[i - 1];
-// Areas in Physical, Skill, Mental order (then the admin's order), for tag chips and the Team Summary.
-const byGroup = areas => Object.keys(AREA_GROUPS).flatMap(g => areas.filter(a => a.area_group === g));
-// Area chips to tick (checkboxes called `name`), in a row per group. Used for check-in tags and Team Focus.
-const areaChips = (name, list, picked, label) => `<div class="tag-pick" role="group" aria-label="${esc(label)}">
-  ${Object.entries(AREA_GROUPS).map(([g, gl]) => { const inG = list.filter(a => a.area_group === g); return inG.length ? `<div class="tag-group"><small>${gl}</small>
-    ${inG.map(a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`).join('')}</div>` : ''; }).join('')}</div>`;
+// What number i (1–5) means for an area: its own line, else its area's (for a sub-area), else the general guide.
+const guideFor = (a, i, parent) => a.guide?.[i - 1]?.trim() ? esc(a.guide[i - 1])
+  : parent?.guide?.[i - 1]?.trim() ? esc(parent.guide[i - 1]) : RATING_GUIDE[i - 1];
+// Sub-areas (parent_id, one level; the user asked): an area's, in the admin's order.
+const subsOf = (a, areas) => areas.filter(s => s.parent_id === a.id);
+// Areas in Physical, Skill, Mental order (then the admin's order), each followed by its sub-areas, for tag chips and the
+// Team Summary. A sub-area whose area isn't in the list stands on its own.
+const byGroup = areas => {
+  const tops = areas.filter(a => !a.parent_id || !areas.some(p => p.id === a.parent_id));
+  return Object.keys(AREA_GROUPS).flatMap(g => tops.filter(a => a.area_group === g).flatMap(a => [a, ...subsOf(a, areas)]));
+};
+// The ids plus their areas' ids, so a practice tagged Heel Hooks shows when filtering by Footwork.
+const withParents = (ids, areas) => [...new Set(ids.flatMap(id => [id, areas.find(a => a.id === id)?.parent_id].filter(Boolean)))];
+// An area's rating on a check-in (key 'ratings' or 'coach_ratings'): the average of its rated sub-areas, else its own
+// rating, else null. Only what was rated counts (the user asked).
+function areaScore(c, key, a, areas) {
+  const v = subsOf(a, areas).map(s => c[key][s.id]).filter(x => x != null);
+  return v.length ? v.reduce((p, q) => p + q, 0) / v.length : c[key][a.id] ?? null;
+}
+const scoreText = x => Number.isInteger(x) ? String(x) : x.toFixed(1);
+// Area chips to tick (checkboxes called `name`), in a row per group. Used for check-in tags, Team Focus and practices.
+// Sub-areas fold under "<group> Sub-Areas" (open when one is picked), a line per area, so the list stays short.
+const areaChips = (name, list, picked, label) => {
+  const chip = a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`;
+  return `<div class="tag-pick" role="group" aria-label="${esc(label)}">
+  ${Object.entries(AREA_GROUPS).map(([g, gl]) => {
+    const inG = byGroup(list).filter(a => a.area_group === g);
+    const tops = inG.filter(a => !inG.some(p => p.id === a.parent_id)), withSubs = tops.filter(a => subsOf(a, inG).length);
+    const open = withSubs.some(a => subsOf(a, inG).some(s => picked.includes(s.id)));
+    return inG.length ? `<div class="tag-group"><small>${gl}</small>${tops.map(chip).join('')}</div>
+      ${withSubs.length ? `<details class="tag-subs"${open ? ' open' : ''}><summary>${gl} Sub-Areas</summary>
+        ${withSubs.map(a => `<div class="tag-group"><small>${esc(a.name)}</small>${subsOf(a, inG).map(chip).join('')}</div>`).join('')}</details>` : ''}` : '';
+  }).join('')}</div>`;
+};
 
 const canChangeCheckin = c => me.isAdmin || c.author_id === me.user.id;
 
@@ -46,21 +72,23 @@ const answered = (c, questions, areas) => questions.map(q => ({ q, text: (c.answ
 
 function checkinDetailHTML(c, older, { m, circuits, areas, questions }) {
   const prevRank = key => { for (const o of older) { const p = gradeParts(o, circuits).find(x => x.key === key); if (p) return p.rank; } return null; };
-  const prevRating = (key, id) => older.find(o => o[key][id] != null)?.[key][id] ?? null;
+  const score = (o, key, a) => areaScore(o, key, a, areas);
+  const prevRating = (key, a) => { for (const o of older) { const r = score(o, key, a); if (r != null) return r; } return null; };
   const grades = gradeParts(c, circuits);
   const answers = answered(c, questions, areas);
-  const rated = areas.filter(a => c.ratings[a.id] != null || c.coach_ratings[a.id] != null);
-  const cell = (key, id) => {
-    const r = c[key][id];
-    return r == null ? '<span class="muted">—</span>' : `<span class="rcell"><span class="pips sm" aria-label="${r} out of 5">${[1, 2, 3, 4, 5].map(i =>
-      `<i class="${i <= r ? 'on' : ''}"></i>`).join('')}</span><b>${r}${delta(r, prevRating(key, id))}</b></span>`;
+  // Each area with a rating (its score: the average of its rated sub-areas, else its own), then those sub-areas.
+  const rated = byGroup(areas).filter(a => score(c, 'ratings', a) != null || score(c, 'coach_ratings', a) != null);
+  const cell = (key, a) => {
+    const r = score(c, key, a);
+    return r == null ? '<span class="muted">—</span>' : `<span class="rcell"><span class="pips sm" aria-label="${scoreText(r)} out of 5">${[1, 2, 3, 4, 5].map(i =>
+      `<i class="${i <= Math.round(r) ? 'on' : ''}"></i>`).join('')}</span><b>${scoreText(r)}${delta(r, prevRating(key, a))}</b></span>`;
   };
   return `${answers.length ? `<div class="answers">${answers.map(x => `<div class="answer"><small>${esc(x.q.prompt)}</small>
       ${x.text ? `<div>${para(x.text)}</div>` : ''}${x.tags.length ? `<span class="chips">${x.tags.map(a => `<span class="chip">${esc(a.name)}</span>`).join('')}</span>` : ''}</div>`).join('')}</div>` : ''}
     ${grades.length ? `<div class="grades">${grades.map(p => `<div class="grade"><small>${p.label}</small>
       <b>${p.show}${delta(p.rank, prevRank(p.key))}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</div>`).join('')}</div>` : ''}
     ${rated.length ? `<div class="ratings"><span></span><small>${esc(m?.first_name || 'Member')}</small><small>Coach</small>
-      ${rated.map(a => `<span>${esc(a.name)}</span>${cell('ratings', a.id)}${cell('coach_ratings', a.id)}`).join('')}</div>` : ''}
+      ${rated.map(a => `<span${a.parent_id ? ' class="sub-name"' : ''}>${esc(a.name)}</span>${cell('ratings', a)}${cell('coach_ratings', a)}`).join('')}</div>` : ''}
     ${!answers.length && !grades.length && !rated.length ? '<p class="muted">No answers, ratings or grades recorded.</p>' : ''}
     ${c.notes ? `<div class="note-body">${para(c.notes)}</div>` : ''}
     <div class="row between wrap check-foot"><span class="hint">Check-in by ${esc(c.author_name || 'staff')}${c.edited_at ? ' · edited' : ''}</span>
@@ -108,12 +136,27 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
   const shownQs = questions.filter(q => q.active || v.answers[q.id] || v.tags[q.id]?.length);
   const tagsOn = q => q.tags || v.tags[q.id]?.length;
   const tagAreas = q => byGroup(areas.filter(a => a.active || (v.tags[q.id] || []).includes(a.id)));
-  const shownAreas = areas.filter(a => (a.rated && a.active) || v.ratings[a.id] != null || v.coach_ratings[a.id] != null);
+  const hasRating = a => v.ratings[a.id] != null || v.coach_ratings[a.id] != null;
+  // Rated, shown sub-areas of a shown area, and any with a rating; areas that are rated and shown, have a rating, or have such a sub-area.
+  const shownSubs = areas.filter(s => s.parent_id && ((s.rated && s.active && areas.find(p => p.id === s.parent_id)?.active) || hasRating(s)));
+  const shownTops = areas.filter(a => !a.parent_id && ((a.rated && a.active) || hasRating(a) || shownSubs.some(s => s.parent_id === a.id)));
+  const shownAreas = [...shownTops, ...shownSubs];
   const tagPick = q => areaChips('t_' + q.id, tagAreas(q), v.tags[q.id] || [], `Focus areas for ${q.prompt}`);
   // The two sets of ratings: the member's own (labeled with their first name) and the coach's.
   const raters = [['ratings', m.first_name, 'r_'], ['coach_ratings', 'Coach', 'c_']];
-  const pick = (a, [key, label, prefix]) => `<div class="rate-row"><span>${esc(label)}</span><span class="rate-pick" role="radiogroup" aria-label="${esc(a.name)}: ${esc(label)}">
-    ${[1, 2, 3, 4, 5].map(i => `<label><input type="radio" name="${prefix}${a.id}" value="${i}"${v[key][a.id] === i ? ' checked' : ''}><span>${i}</span></label>`).join('')}</span></div>`;
+  const pick = (a, [key, label, prefix]) => `<div class="rate-row" data-rater="${prefix}"><span>${esc(label)}</span><span class="rate-pick" role="radiogroup" aria-label="${esc(a.name)}: ${esc(label)}">
+    ${[1, 2, 3, 4, 5].map(i => `<label><input type="radio" name="${prefix}${a.id}" value="${i}"${v[key][a.id] === i ? ' checked' : ''}><span>${i}</span></label>`).join('')}</span>
+    ${a.parent_id ? '' : '<small class="rate-avg"></small>'}</div>`;
+  const lines = (a, parent) => `<ol class="rate-lines">${[1, 2, 3, 4, 5].map(i => `<li><b>${i}</b><span>${guideFor(a, i, parent)}</span></li>`).join('')}</ol>`;
+  // An area: its lines and picks, then Break Down with each sub-area (its lines folded, to keep the form short). Open
+  // when a sub-area already has a rating.
+  const rateArea = a => { const subs = shownSubs.filter(s => s.parent_id === a.id); return `<div class="rate-area" data-area="${a.id}"><b>${esc(a.name)}</b>
+    ${lines(a)}${raters.map(r => pick(a, r)).join('')}
+    ${subs.length ? `<details class="rate-subs"${subs.some(hasRating) ? ' open' : ''}><summary>Break Down <span class="muted">(${subs.length} sub-areas)</span></summary>
+      <p class="hint">Rate any you like. ${esc(a.name)} becomes the average of the ones rated, for each person.</p>
+      ${subs.map(s => `<div class="rate-sub"><b>${esc(s.name)}</b>
+        <details class="rate-guide"><summary>What the Numbers Mean</summary>${lines(s, a)}</details>
+        ${raters.map(r => pick(s, r)).join('')}</div>`).join('')}</details>` : ''}</div>`; };
   const pr = pronounWords(m.pronouns);
   // A reminder from their intake and goals, to talk about progress against what they came for (the user asked).
   const cur = goals.filter(g => g.status === 'current');
@@ -135,11 +178,10 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
       <fieldset><legend>MoonBoard</legend><div class="two"><label>Grade<select name="moon_grade">${vOpts(v.moon_grade)}</select></label>${angle('moon_angle', v.moon_angle)}</div></fieldset>
       <div class="two"><label>Boulder (Outdoor/Other)<select name="boulder_grade">${vOpts(v.boulder_grade)}</select></label>
         <label>Route<select name="route_grade"><option value="">—</option>${ROUTE_GRADES.map(g => `<option${g === v.route_grade ? ' selected' : ''}>${g}</option>`).join('')}</select></label></div>
-      ${shownAreas.length ? `<h3 class="sec">Ratings</h3>
-        <p class="hint">${esc(m.first_name)}: how ${esc(m.first_name)} rates ${pr.self} (you tap it for ${pr.obj}).<br>Coach: your rating.</p>
-        ${shownAreas.map(a => `<div class="rate-area"><b>${esc(a.name)}</b>
-          <ol class="rate-lines">${[1, 2, 3, 4, 5].map(i => `<li><b>${i}</b><span>${guideFor(a, i)}</span></li>`).join('')}</ol>
-          ${raters.map(r => pick(a, r)).join('')}</div>`).join('')}` : ''}
+      ${shownTops.length ? `<h3 class="sec">Ratings</h3>
+        <p class="hint">${esc(m.first_name)}: how ${esc(m.first_name)} rates ${pr.self} (you tap it for ${pr.obj}).<br>Coach: your rating.
+          Every rating is optional; Break Down rates the parts of an area instead of the whole.</p>
+        ${byGroup(shownTops).map(rateArea).join('')}` : ''}
       <h3 class="sec">Notes</h3>
       ${rich(`<textarea name="notes" rows="3" aria-label="Notes" placeholder="E.g. Moved up a color since spring. Wants to try the Kilter at 45° next.">${esc(v.notes)}</textarea>`)}`,
     // Tapping the picked rating again clears it (a radio can't be unticked on its own); pointerdown notes whether it was already picked.
@@ -151,6 +193,20 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
         if (e.target === was) { e.target.checked = false; e.target.dispatchEvent(new Event('change', { bubbles: true })); }
         was = null;
       });
+      // Once a person has a sub-area rated, the area's own pick is off for them (a disabled radio isn't saved) and shows
+      // the average instead: a check-in holds one or the other, so the two can't disagree.
+      const sync = () => form.querySelectorAll('.rate-area[data-area]').forEach(box => {
+        for (const [, , prefix] of raters) {
+          const vals = [...box.querySelectorAll(`.rate-sub input[name^="${prefix}"]:checked`)].map(i => +i.value);
+          const row = box.querySelector(`:scope > .rate-row[data-rater="${prefix}"]`);
+          const avg = vals.length ? vals.reduce((p, q) => p + q, 0) / vals.length : null;
+          row.classList.toggle('from-subs', avg != null);
+          row.querySelectorAll('input').forEach(i => { i.disabled = avg != null; });
+          row.querySelector('.rate-avg').textContent = avg == null ? '' : `Average: ${scoreText(avg)}`;
+        }
+      });
+      form.addEventListener('change', e => { if (e.target.closest('.rate-sub')) sync(); });
+      sync();
     } });
   if (!f) return;
   const num = k => f.get(k) === '' || f.get(k) == null ? null : +f.get(k);

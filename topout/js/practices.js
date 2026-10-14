@@ -16,7 +16,7 @@ const practiceMeta = p => [blockMinutes(p) ? fmtMinutes(blockMinutes(p)) : '',
   p.blocks.length ? `${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No blocks yet'].filter(Boolean).join(' · ');
 const practiceAreaChips = (p, areas) => byGroup(areas).filter(a => p.area_ids.includes(a.id))
   .map(a => `<span class="chip">${esc(a.name)}</span>`).join('');
-const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active').order('position').then(must);
+const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active, parent_id').order('position').then(must);
 
 // Delete, after asking (from the list, the practice or the editor); then() runs once it's gone.
 async function deletePractice(p, then) {
@@ -55,11 +55,11 @@ async function practicesPage() {
   });
   const useDate = (d, at) => (d === now ? 'Today' : d.slice(0, 4) === now.slice(0, 4) ? fmtShort(d) : fmtDate(d)) + (at ? ` at ${esc(at)}` : '');
   const useLine = p => [p.last ? `Last used ${useDate(p.last, p.lastAt)}` : 'Not used yet', p.next ? `Next: ${useDate(p.next, p.nextAt)}` : ''].filter(Boolean).join(' · ');
-  const used = byGroup(areas).map(a => [a, list.filter(p => p.area_ids.includes(a.id)).length]).filter(([, n]) => n);
+  const used = byGroup(areas).map(a => [a, list.filter(p => withParents(p.area_ids, areas).includes(a.id)).length]).filter(([, n]) => n);
   practiceAreas = practiceAreas.filter(id => used.some(([a]) => a.id === id));
   const orig = p => all.find(o => o.id === p.based_on);
   // The name is the link, stretched over the card (.practice-go::after), so Delete can sit inside it.
-  const card = p => `<article class="card practice" data-id="${p.id}" data-area="${p.area_ids.join(' ')}" data-find="${esc((p.name + ' ' + p.summary).toLowerCase())}">
+  const card = p => `<article class="card practice" data-id="${p.id}" data-area="${withParents(p.area_ids, areas).join(' ')}" data-find="${esc((p.name + ' ' + p.summary).toLowerCase())}">
     <div class="row between"><h2><a class="practice-go" href="#/practice/${p.id}">${esc(p.name)}</a></h2>${ICON_ARROW}</div>
     <p class="muted small-text">${practiceMeta(p)}</p>
     ${p.event_only ? `<p class="small-text"><span class="chip soft">This Event Only</span>${orig(p) ? ` <span class="muted">Changed from ${esc(orig(p).name)}</span>` : ''}</p>` : ''}

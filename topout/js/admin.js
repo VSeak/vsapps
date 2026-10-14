@@ -136,7 +136,9 @@ async function settingsPage() {
   const nMembers = id => members.filter(m => m.location_id === id).length;
   const USES = {
     circuit: id => used.filter(c => c.circuit_id === id).length,
-    area: id => used.filter(c => c.ratings[id] != null || c.coach_ratings[id] != null || Object.values(c.tags).some(t => t.includes(id))).length,
+    // An area's count takes in its sub-areas (deleting it deletes them).
+    area: id => { const ids = [id, ...areas.filter(s => s.parent_id === id).map(s => s.id)];
+      return used.filter(c => ids.some(k => c.ratings[k] != null || c.coach_ratings[k] != null || Object.values(c.tags).some(t => t.includes(k)))).length; },
     question: id => used.filter(c => c.answers[id] != null || c.tags[id] != null).length,
   };
   // What comes off the check-ins that use it (the database does it: on delete set null, team_area_cleanup, team_question_cleanup).
@@ -146,6 +148,8 @@ async function settingsPage() {
     question: n => `Its answers and tags come off ${n === 1 ? 'that check-in' : 'them'}.`,
   };
   const KEEP = { circuit: '', area: ' To keep old ratings, untick Shown instead.', question: ' To keep old answers, untick Shown instead.' };
+  // A sub-area's Focus Area Ratings button shows when its area is rated.
+  const guideBtn = (a, top) => `<button type="button" class="small ghost" data-guide="${a.id}"${top.rated ? '' : ' hidden'}>${a.guide.some(g => g.trim()) ? 'Focus Area Ratings' : '+ Focus Area Ratings'}</button>`;
   const groupSelect = (val = 'skill') => `<select name="area_group" aria-label="Group">${Object.entries(AREA_GROUPS).map(([k, v]) =>
     `<option value="${k}"${k === val ? ' selected' : ''}>${v}</option>`).join('')}</select>`;
   view(`${crumbs([['Home', '#/'], ['Settings']])}
@@ -202,17 +206,28 @@ async function settingsPage() {
         <p class="hint">Rated focus areas get 1–5 ratings on a check-in, from the member and from the coach. Every focus area can tag an answer
           (like Want to Improve); tag-only ones are just for that. The group sorts the Team Summary into Physical, Skill and Mental.
           Focus Area Ratings: a line for each number, shown above the ratings on a check-in, so every coach (and member) rates the same way.
-          Hide one to leave it off new check-ins but keep old ratings.</p>
-        ${areas.map(a => `<form class="set-row" data-kind="area" data-id="${a.id}" data-save>
-          ${GRIP}
+          Hide one to leave it off new check-ins but keep old ratings.
+          + Sub-Area breaks an area into parts (like Footwork: Heel Hooks, Smearing). Sub-areas take their area's group and Rated;
+          a coach can rate the area as a whole or Break Down and rate the parts, and the area becomes their average.</p>
+        ${areas.filter(a => !a.parent_id).map(a => `<div class="area-block" data-kind="area" data-id="${a.id}">${GRIP}
+          <form class="set-row" data-kind="area" data-id="${a.id}" data-save>
           <input name="name" maxlength="40" required value="${esc(a.name)}" aria-label="Name" data-need="Name the focus area.">
           ${groupSelect(a.area_group)}
           <div class="set-line">
             <label class="check"><input type="checkbox" name="rated"${a.rated ? ' checked' : ''}> Rated</label>
             <label class="check"><input type="checkbox" name="active"${a.active ? ' checked' : ''}> Shown</label>
-            <button type="button" class="small ghost" data-guide="${a.id}"${a.rated ? '' : ' hidden'}>${a.guide.some(g => g.trim()) ? 'Focus Area Ratings' : '+ Focus Area Ratings'}</button>
+            ${guideBtn(a, a)}
+            <button type="button" class="small ghost" data-addsub="${a.id}">+ Sub-Area</button>
             <button class="small primary">Save</button>
-            <button type="button" class="small ghost danger" data-del="area" data-id="${a.id}">Delete</button></div></form>`).join('')}
+            <button type="button" class="small ghost danger" data-del="area" data-id="${a.id}">Delete</button></div></form>
+          ${subsOf(a, areas).length ? `<div class="sub-list">${subsOf(a, areas).map(s => `<form class="set-row sub-row" data-kind="area" data-id="${s.id}" data-save>
+            ${GRIP}
+            <input name="name" maxlength="40" required value="${esc(s.name)}" aria-label="Sub-area name" data-need="Name the sub-area.">
+            <div class="set-line">
+              <label class="check"><input type="checkbox" name="active"${s.active ? ' checked' : ''}> Shown</label>
+              ${guideBtn(s, a)}
+              <button class="small primary">Save</button>
+              <button type="button" class="small ghost danger" data-del="area" data-id="${s.id}">Delete</button></div></form>`).join('')}</div>` : ''}</div>`).join('')}
         <form class="row add-row" data-kind="area" data-save><input name="name" maxlength="40" required placeholder="New focus area" aria-label="New focus area" data-need="Name the focus area.">
           ${groupSelect()}<label class="check"><input type="checkbox" name="rated" checked> Rated</label>
           <button class="primary">+ Add</button></form>
@@ -237,8 +252,7 @@ async function settingsPage() {
     }
     if (kind === 'loc') row.short_name = f.get('short_name').trim();
     if (kind === 'area') {
-      row.area_group = f.get('area_group');
-      row.rated = !!f.get('rated');
+      if (f.has('area_group')) Object.assign(row, { area_group: f.get('area_group'), rated: !!f.get('rated') });   // not on a sub-area
       if (id) row.active = !!f.get('active');
     }
     if (kind === 'question') {
@@ -263,28 +277,47 @@ async function settingsPage() {
   });
   // Ticking Rated shows Focus Area Ratings at once (it saves on its own, so it needn't wait for Save).
   app.onchange = e => {
-    if (e.target.name === 'rated' && e.target.form.dataset.id) e.target.form.querySelector('[data-guide]').hidden = !e.target.checked;
+    if (e.target.name === 'rated' && e.target.form.dataset.id) e.target.closest('.area-block').querySelectorAll('[data-guide]').forEach(b => { b.hidden = !e.target.checked; });
   };
   app.onclick = async e => {
-    const del = e.target.closest('[data-del]'), gd = e.target.closest('[data-guide]');
-    if (gd) return guideForm(areas.find(a => a.id === gd.dataset.guide));
+    const del = e.target.closest('[data-del]'), gd = e.target.closest('[data-guide]'), add = e.target.closest('[data-addsub]');
+    if (gd) return guideForm(areas.find(a => a.id === gd.dataset.guide), areas);
+    if (add) return addSubArea(areas.find(a => a.id === add.dataset.addsub), areas);
     if (del) {
       const kind = del.dataset.del, item = LIST[kind].find(x => x.id === del.dataset.id);
       const n = USES[kind] ? USES[kind](item.id) : 0;
-      if (!await confirmDelete(`Delete ${item.name || item.prompt}?`, n ? `${n} ${n === 1 ? 'check-in uses' : 'check-ins use'} it. ${LOSES[kind](n)} This can't be undone.${KEEP[kind]}` : 'It will be gone for good.')) return;
+      const subs = kind === 'area' ? subsOf(item, areas).length : 0;
+      const also = subs ? ` Its ${subs} ${subs === 1 ? 'sub-area goes' : 'sub-areas go'} too.` : '';
+      const msg = n ? `${n} ${n === 1 ? 'check-in uses' : 'check-ins use'} it.${also} ${LOSES[kind](n)} This can't be undone.${KEEP[kind]}`
+        : subs ? `It and its ${subs} ${subs === 1 ? 'sub-area' : 'sub-areas'} will be gone for good.` : 'It will be gone for good.';
+      if (!await confirmDelete(`Delete ${item.name || item.prompt}?`, msg)) return;
       busy(del, async () => { await sb.from(TABLE[del.dataset.del]).delete().eq('id', item.id).then(must); flash('Deleted.'); redraw(); });
     }
   };
 }
 
+// + Sub-Area: a name, added last under the area (it takes the area's group and Rated: team_area_parent).
+async function addSubArea(a, areas) {
+  const f = await ask({ title: `New Sub-Area of ${a.name}`, ok: 'Add Sub-Area',
+    body: `<label>Name<input name="name" maxlength="40" required placeholder="E.g. Heel Hooks" data-need="Name the sub-area."></label>` });
+  if (!f) return;
+  await busy(null, async () => {
+    await sb.from('team_rating_areas').insert({ name: f.get('name').trim(), parent_id: a.id, area_group: a.area_group, rated: a.rated,
+      position: Math.max(0, ...subsOf(a, areas).map(s => s.position)) + 1 }).then(must);
+    flash('Added.'); redraw();
+  });
+}
+
 // Area Ratings: what each number 1–5 means for one area, listed above its ratings on a check-in. A blank line falls
-// back to the general guide (RATING_GUIDE).
-async function guideForm(a) {
-  const f = await ask({ title: `${a.name}: Focus Area Ratings`, ok: 'Save', wide: true,
+// back to its area's line (for a sub-area), else the general guide (RATING_GUIDE).
+async function guideForm(a, areas) {
+  const parent = areas.find(p => p.id === a.parent_id);
+  const fallback = i => parent?.guide[i]?.trim() || RATING_GUIDE[i].replace(/<\/?b>/g, '');
+  const f = await ask({ title: `${parent ? `${parent.name}: ` : ''}${a.name}: Focus Area Ratings`, ok: 'Save', wide: true,
     body: `<p class="hint">Describe what a coach would see at each level, so two coaches would pick the same number.
-      A blank line uses the general guide (shown as the example).</p>
+      A blank line uses ${parent ? `${esc(parent.name)}'s line, else ` : ''}the general guide (shown as the example).</p>
       ${[0, 1, 2, 3, 4].map(i => `<label>${i + 1}<textarea name="g${i}" rows="2" maxlength="200"
-        placeholder="${esc(RATING_GUIDE[i].replace(/<\/?b>/g, ''))}">${esc(a.guide[i] || '')}</textarea></label>`).join('')}` });
+        placeholder="${esc(fallback(i))}">${esc(a.guide[i] || '')}</textarea></label>`).join('')}` });
   if (!f) return;
   const guide = [0, 1, 2, 3, 4].map(i => f.get('g' + i).trim());
   await busy(null, async () => {
