@@ -84,6 +84,16 @@ create table public.fire_job_actuals (
   primary key (job_id, year)
 );
 
+-- W-2 totals by year for years without job and pay details: one per person per year, or a joint one (person_id null).
+-- A person's replaces their jobs' estimates that year; a joint one replaces the household total.
+create table public.fire_year_pay (
+  id uuid primary key default gen_random_uuid(),
+  person_id uuid references public.fire_people (id) on delete cascade,
+  year int not null check (year between 1950 and 2200),
+  amount numeric not null check (amount >= 0),
+  unique nulls not distinct (person_id, year)
+);
+
 -- Accounts: 401(k)s, IRAs, HSAs, brokerage. owner_id null = joint.
 create table public.fire_accounts (
   id uuid primary key default gen_random_uuid(),
@@ -169,6 +179,7 @@ alter table public.fire_updates enable row level security;
 alter table public.fire_spending enable row level security;
 alter table public.fire_contributions enable row level security;
 alter table public.fire_projections enable row level security;
+alter table public.fire_year_pay enable row level security;
 
 -- The app reads fire_owner only to know whether you're in. Nobody changes it from the app.
 create policy "owner: read" on public.fire_owner for select to authenticated
@@ -189,6 +200,8 @@ create policy "owner" on public.fire_job_actuals for all to authenticated
 create policy "owner" on public.fire_accounts for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_updates for all to authenticated
+  using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
+create policy "owner" on public.fire_year_pay for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_projections for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));

@@ -9,15 +9,15 @@ const WEEKS = 52;
 
 const loadJobs = () => sb.from('fire_jobs').select('*').order('start_date').then(must);
 async function loadSalaryData() {
-  const [people, jobs, pays, bonuses, actuals] = await Promise.all([loadPeople(), loadJobs(),
+  const [people, jobs, pays, bonuses, actuals, yearPay] = await Promise.all([loadPeople(), loadJobs(),
     sb.from('fire_pay').select('*').order('start_date').then(must), sb.from('fire_bonuses').select('*').order('paid_on').then(must),
-    sb.from('fire_job_actuals').select('*').then(must)]);
+    sb.from('fire_job_actuals').select('*').then(must), sb.from('fire_year_pay').select('*').order('year').then(must)]);
   for (const j of jobs) {
     j.pays = pays.filter(p => p.job_id === j.id);
     j.bonuses = bonuses.filter(b => b.job_id === j.id);
     j.actuals = Object.fromEntries(actuals.filter(a => a.job_id === j.id).map(a => [a.year, +a.amount]));
   }
-  return { people, jobs };
+  return { people, jobs, yearPay };
 }
 
 // Day numbers (days since 1970, UTC) so date math has no time-zone or daylight-saving surprises.
@@ -121,10 +121,12 @@ const fullYears = (job, upTo) => {
 };
 
 // One person's years: from the start age (or their first job) to this year, gaps included.
-function personYears(person, jobs, startAge) {
+// A person's W-2 total for a year (fire_year_pay, for years without job details) replaces their jobs' numbers.
+function personYears(person, jobs, startAge, yearPay = []) {
   const mine = jobs.filter(j => j.person_id === person.id), cy = new Date().getFullYear();
+  const totals = Object.fromEntries(yearPay.filter(t => t.person_id === person.id).map(t => [t.year, +t.amount]));
   const born = person.birth_date ? +person.birth_date.slice(0, 4) : null;
-  const firsts = mine.map(j => +j.start_date.slice(0, 4));
+  const firsts = [...mine.map(j => +j.start_date.slice(0, 4)), ...Object.keys(totals).map(Number)];
   if (!firsts.length) return [];
   const from = Math.min(born != null ? born + startAge : Infinity, ...firsts);
   const out = [];
@@ -133,10 +135,32 @@ function personYears(person, jobs, startAge) {
     // The pay rate on Dec 31 (today, this year), all jobs together.
     const at = y === cy ? dnum(today()) : yearStart(y + 1) - 1;
     const rate = mine.reduce((s, j) => s + (rateOn(j, at) || 0), 0);
-    out.push({ y, age: born != null ? y - born : null, parts, earned: parts.reduce((s, p) => s + p.earned, 0),
-      estimated: parts.some(p => p.estimated), rate, current: y === cy });
+    const w2 = totals[y] ?? null;
+    out.push({ y, age: born != null ? y - born : null, parts, w2, earned: w2 ?? parts.reduce((s, p) => s + p.earned, 0),
+      estimated: w2 == null && parts.some(p => p.estimated), rate, current: y === cy, has: w2 != null || parts.length > 0 });
   }
   return out;
+}
+
+// Both people's years side by side. A joint W-2 total (person_id null) replaces the household total that year.
+function householdYears(people, jobs, startAge, yearPay = []) {
+  const per = people.map(p => ({ p, years: personYears(p, jobs, startAge, yearPay) }));
+  const joint = Object.fromEntries(yearPay.filter(t => !t.person_id).map(t => [t.year, +t.amount]));
+  const ys = [...new Set([...per.flatMap(x => x.years.map(r => r.y)), ...Object.keys(joint).map(Number)])].sort((a, b) => b - a);
+  const rows = ys.map(y => {
+    const cells = per.map(x => x.years.find(r => r.y === y));
+    const j = joint[y] ?? null;
+    return { y, cells, joint: j, total: j ?? cells.reduce((s, r) => s + (r?.earned || 0), 0), estimated: j == null && cells.some(r => r?.estimated) };
+  });
+  return { per, rows, payByYear: Object.fromEntries(rows.map(r => [r.y, r.total])) };
+}
+
+// Growth of yearly pay from W-2 totals, for someone without pay rates: first to last finished year with pay.
+function earnedGrowth(years, inflation) {
+  const done = years.filter(r => !r.current && r.earned > 0);
+  if (done.length < 2) return null;
+  const a = done[0], b = done.at(-1), n = b.y - a.y, g = (b.earned / a.earned) ** (1 / n) - 1;
+  return { from: a, to: b, nominal: g, real: (1 + g) / (1 + inflation / 100) - 1, byEarned: true };
 }
 
 // Pay-rate growth a year: from the first year with a rate to this year's. Real = after inflation.
@@ -174,64 +198,62 @@ function savedByYear(accounts, jobsById = {}) {
 async function salaryPage() {
   const t = ++navToken;
   view(loading);
-  const [{ people, jobs }, settings, accounts] = await Promise.all([loadSalaryData(), loadSettings(), loadAccounts()]);
+  const [{ people, jobs, yearPay }, settings, accounts] = await Promise.all([loadSalaryData(), loadSettings(), loadAccounts()]);
   if (t !== navToken) return;
   const { inflation, start_age } = settings;
   const cy = new Date().getFullYear();
-  const per = people.map(p => ({ p, years: personYears(p, jobs, start_age) }));
+  const { per, rows: hhRows } = householdYears(people, jobs, start_age, yearPay);
   const saved = savedByYear(accounts, byId(jobs));
   const stat = (label, v, sub = '') => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<small class="muted">${sub}</small>` : ''}</div>`;
-  const estChip = '<span class="chip warn">Est.</span>';
+  const estChip = '<span class="chip warn">Est.</span>', w2Chip = '<span class="chip ok">W-2</span>';
 
-  // Household: both people's years side by side, with what you saved.
-  const allYears = [...new Set(per.flatMap(x => x.years.map(r => r.y)))].sort((a, b) => b - a);
-  const household = allYears.map(y => {
-    const cells = per.map(x => x.years.find(r => r.y === y));
-    const total = cells.reduce((s, r) => s + (r?.earned || 0), 0);
-    return { y, cells, total, estimated: cells.some(r => r?.estimated), saved: saved[y] || 0 };
-  });
+  // Household: both people's years side by side, with what you saved. Tap a row to set a joint W-2 total.
+  const household = hhRows.map(h => ({ ...h, saved: saved[h.y] || 0 }));
   const lifetime = household.reduce((s, h) => s + h.total, 0);
   const lifetimeReal = household.reduce((s, h) => s + todaysDollars(h.total, h.y, inflation), 0);
   const thisYear = household.find(h => h.y === cy);
 
   const personCard = ({ p, years }) => {
     const myJobs = jobs.filter(j => j.person_id === p.id).sort((a, b) => (a.end_date ? 1 : 0) - (b.end_date ? 1 : 0) || b.start_date.localeCompare(a.start_date));
-    const g = rateGrowth(years, inflation), now = years.at(-1);
+    const g = rateGrowth(years, inflation) || earnedGrowth(years, inflation), now = years.at(-1);
     const life = years.reduce((s, r) => s + r.earned, 0);
     const rows = [...years].reverse().map((r, i, arr) => {
       const prev = arr[i + 1], change = prev?.rate > 0 && r.rate > 0 ? r.rate / prev.rate - 1 : null;
-      return `<tr><td>${r.y}${r.age != null ? `<br><span class="muted">Age ${r.age}</span>` : ''}</td>
-        <td class="r">${r.parts.length ? money(r.earned) : '<span class="muted">—</span>'} ${r.estimated ? estChip : ''}
-          ${r.parts.length > 1 ? r.parts.map(x => `<br><span class="muted">${esc(x.job.employer)} ${money(x.earned)}</span>`).join('') : ''}</td>
+      return `<tr class="click" tabindex="0" data-w2-person="${p.id}" data-w2-year="${r.y}"><td>${r.y}${r.age != null ? `<br><span class="muted">Age ${r.age}</span>` : ''}</td>
+        <td class="r">${r.has ? money(r.earned) : '<span class="muted">—</span>'} ${r.w2 != null ? w2Chip : r.estimated ? estChip : ''}
+          ${r.w2 == null && r.parts.length > 1 ? r.parts.map(x => `<br><span class="muted">${esc(x.job.employer)} ${money(x.earned)}</span>`).join('') : ''}</td>
         <td class="r">${r.rate ? money(r.rate) : '<span class="muted">—</span>'}</td>
         <td class="r ${change > 0 ? 'up' : change < 0 ? 'down' : ''}">${change == null ? '' : (change > 0 ? '+' : '') + pct(change)}</td>
-        <td class="r">${r.parts.length ? money(todaysDollars(r.earned, r.y, inflation)) : ''}</td></tr>`;
+        <td class="r">${r.has ? money(todaysDollars(r.earned, r.y, inflation)) : ''}</td></tr>`;
     }).join('');
     return `<section class="card"><div class="row between wrap"><h2>${esc(p.name)}</h2>
-        <button type="button" class="small" data-add-job="${p.id}">+ Add Job</button></div>
-      ${myJobs.length ? `<div class="stats">
+        <div class="row wrap"><button type="button" class="small" data-w2-person="${p.id}">+ W-2 Total</button>
+        <button type="button" class="small" data-add-job="${p.id}">+ Add Job</button></div></div>
+      ${years.length ? `<div class="stats">
           ${stat('Pay Rate Now', now?.rate ? money(now.rate) : '—', 'all jobs, a year')}
-          ${stat('Raises a Year', g ? pct(g.nominal) : '—', g ? `${g.from.y}–${g.to.y}` : 'needs two years')}
+          ${stat('Raises a Year', g ? pct(g.nominal) : '—', g ? `${g.from.y}–${g.to.y}${g.byEarned ? ', from yearly pay' : ''}` : 'needs two years')}
           ${stat('After Inflation', g ? pct(g.real) : '—', `at ${inflation}% inflation`)}
           ${stat('Lifetime Pay', money(life), 'through this year')}
         </div>
-        <h3>Jobs</h3><div class="acct-list">${myJobs.map(j => {
+        ${myJobs.length ? `<h3>Jobs</h3><div class="acct-list">${myJobs.map(j => {
           const r = rateOn(j, dnum(today()));
           return `<a class="card acct${j.end_date ? ' closed' : ''}" href="#/job/${j.id}">
             <span class="acct-name">${esc(j.employer)}${j.title ? ` <span class="muted">· ${esc(j.title)}</span>` : ''}</span>
             <span class="acct-bal">${j.end_date ? '' : r != null ? money(r) : ''}</span>
             <span class="acct-meta">${fmtMonthYear(j.start_date)} – ${j.end_date ? fmtMonthYear(j.end_date) : 'now'}${!j.end_date && j.pays.at(-1) ? ' · ' + esc(payText(j.pays.at(-1))) : ''}${j.pays.length ? '' : ' · No pay entered'}</span></a>`;
-        }).join('')}</div>
+        }).join('')}</div>` : ''}
         <h3>By Year</h3>
         <div class="table-wrap"><table><thead><tr><th>Year</th><th class="r">Earned</th><th class="r">Pay Rate</th><th class="r">Change</th><th class="r">Today's $</th></tr></thead>
           <tbody>${rows}</tbody></table></div>
-        <p class="hint" style="margin-top:.6rem">Pay Rate is every job's yearly rate on Dec 31 (today, for this year), without bonuses. Est. means no W-2 total yet for a job that year; add one on the job.</p>`
-      : `<p class="muted">No jobs yet. Add each one, past and present.</p>`}
+        <p class="hint" style="margin-top:.6rem">Tap a year to set ${esc(p.name)}'s W-2 total for it, for years without job details (it replaces the jobs' numbers that year).
+          Pay Rate is every job's yearly rate on Dec 31 (today, for this year), without bonuses. Est. means no W-2 total yet.</p>`
+      : `<p class="muted">No pay yet. Add each job, or just a W-2 total for each year you have one.</p>`}
     </section>`;
   };
 
   view(`<div class="page-head"><div><h1 class="big">Salary</h1>
-      <p class="muted">Every job, every raise, every bonus.</p></div></div>
+      <p class="muted">Every job, every raise, every bonus, or just each year's W-2.</p></div>
+      <button type="button" class="button" data-w2-person="">+ Joint W-2 Total</button></div>
     ${household.length ? `<section class="card"><h2>Household</h2>
       <div class="stats">
         ${stat(`${cy} Pay`, thisYear ? money(thisYear.total) : '—', thisYear?.estimated ? 'estimated to Dec 31' : '')}
@@ -240,21 +262,49 @@ async function salaryPage() {
       </div>
       <div class="table-wrap"><table><thead><tr><th>Year</th>${per.map(x => `<th class="r">${esc(x.p.name)}</th>`).join('')}<th class="r">Total</th>
         <th class="r">You Saved</th><th class="r">Savings Rate</th></tr></thead>
-        <tbody>${household.map(h => `<tr><td>${h.y}${h.estimated ? ` ${estChip}` : ''}</td>
-          ${h.cells.map(r => `<td class="r">${r?.parts.length ? money(r.earned) : '<span class="muted">—</span>'}${r?.age != null ? `<br><span class="muted">Age ${r.age}</span>` : ''}</td>`).join('')}
-          <td class="r">${h.total ? `<b>${money(h.total)}</b>` : '<span class="muted">—</span>'}</td>
+        <tbody>${household.map(h => `<tr class="click" tabindex="0" data-w2-person="" data-w2-year="${h.y}"><td>${h.y}${h.joint != null ? '' : h.estimated ? ` ${estChip}` : ''}</td>
+          ${h.cells.map(r => `<td class="r">${r?.has ? money(r.earned) : '<span class="muted">—</span>'}${r?.age != null ? `<br><span class="muted">Age ${r.age}</span>` : ''}</td>`).join('')}
+          <td class="r">${h.total ? `<b>${money(h.total)}</b>` : '<span class="muted">—</span>'}${h.joint != null ? '<br><span class="chip ok">Joint W-2</span>' : ''}</td>
           <td class="r">${h.saved ? money(h.saved) : '<span class="muted">—</span>'}</td>
           <td class="r">${h.saved && h.total ? pct(h.saved / h.total) : ''}</td></tr>`).join('')}</tbody></table></div>
-      <p class="hint" style="margin-top:.6rem">You Saved is what you both put into your accounts that year (not the employer match or rollovers): from account updates, and from each account's contributions for the time its updates don't cover.
-        An update's money is spread over the months since the update before it.</p>
+      <p class="hint" style="margin-top:.6rem">Tap a year to set a joint W-2 total (both of you together, like the wages on a joint tax return); it replaces the Total that year.
+        You Saved is what you both put into your accounts that year (not the employer match or rollovers): from account updates, and from each account's contributions for the time its updates don't cover.</p>
     </section>` : ''}
     ${per.map(personCard).join('')}`);
-  app.onclick = async e => {
-    const b = e.target.closest('[data-add-job]');
-    if (!b) return;
-    const id = await jobDialog(null, people, b.dataset.addJob);
-    if (id) goTo('#/job/' + id);
+  const open = async el => {
+    if (!el) return;
+    if (el.dataset.addJob) { const id = await jobDialog(null, people, el.dataset.addJob); if (id) goTo('#/job/' + id); return; }
+    const pid = el.dataset.w2Person || null, y = el.dataset.w2Year ? +el.dataset.w2Year : null;
+    const row = y == null ? null : pid ? per.find(x => x.p.id === pid).years.find(r => r.y === y) : household.find(h => h.y === y);
+    yearPayDialog(pid ? people.find(p => p.id === pid) : null, y, yearPay, row);
   };
+  app.onclick = e => open(e.target.closest('[data-add-job], [data-w2-person]'));
+  app.onkeydown = e => { if (e.key === 'Enter') open(e.target.closest('tr[data-w2-person]')); };
+}
+
+// A person's (or the joint) W-2 total for a year. Empty removes it.
+async function yearPayDialog(person, year, yearPay, row) {
+  const cy = new Date().getFullYear(), who = person ? person.name : 'Both of You (Joint)';
+  const have = year != null ? yearPay.find(t => (t.person_id || null) === (person?.id || null) && t.year === year) : null;
+  const shown = row ? (person ? row.parts.reduce((s, p) => s + p.earned, 0) : row.cells.reduce((s, r) => s + (r?.earned || 0), 0)) : 0;
+  const f = await ask({ title: `${who}: W-2 Total`, ok: 'Save',
+    body: `<div class="two">
+        <label>Year<input type="number" name="year" min="1950" max="${cy}" value="${year ?? cy - 1}" ${year != null ? 'readonly' : ''} required data-need="Enter the year." data-range="Use a year up to ${cy}."></label>
+        ${moneyField('amount', 'W-2 Total', have ? +have.amount : '', { hint: '(blank = none)' })}
+      </div>
+      <p class="hint">${person ? `All of ${esc(person.name)}'s W-2s for the year added up (box 5 is usually closest to full pay). It replaces the numbers from ${esc(person.name)}'s jobs that year.`
+        : "Both of your W-2s added up, like the wages on a joint tax return. It replaces the household Total that year; each person's own column stays as it is."}
+        ${shown && !have ? ` Right now that year shows ${money(shown)}.` : ''}</p>` });
+  if (!f) return;
+  const y = +f.get('year'), v = num(f.get('amount'));
+  await busy(null, async () => {
+    let del = sb.from('fire_year_pay').delete().eq('year', y);
+    del = person ? del.eq('person_id', person.id) : del.is('person_id', null);
+    await del.then(must);
+    if (v != null) await sb.from('fire_year_pay').insert({ person_id: person?.id || null, year: y, amount: v }).then(must);
+    flash(v == null ? 'W-2 total removed.' : 'W-2 total saved.');
+    redraw();
+  });
 }
 
 async function jobPage(id) {

@@ -54,7 +54,7 @@ const yearsText = months => { const y = months / 12; return y < 1 ? `${months} m
 async function homePage() {
   const t = ++navToken;
   view(loading);
-  const [{ people, jobs }, accounts, settings, spending, projections] = await Promise.all([loadSalaryData(), loadAccounts(), loadSettings(), loadSpending(),
+  const [{ people, jobs, yearPay }, accounts, settings, spending, projections] = await Promise.all([loadSalaryData(), loadAccounts(), loadSettings(), loadSpending(),
     sb.from('fire_projections').select('*').order('made_on').then(must)]);
   if (t !== navToken) return;
   const s = settings, cy = new Date().getFullYear(), now = dnum(today()), me1 = people[0];
@@ -73,10 +73,12 @@ async function homePage() {
   const lastYear = Math.round(putInBetween(accounts, now - 365, now + 1));
   const planNow = Math.round(planYearlyNow(accounts.filter(a => !a.closed_on).flatMap(a => a.contributions), byId(jobs)));
   const yearly = planNow || lastYear;
-  // Pay now: every job's rate today, both people. Pay by year: what each year's salary table says.
+  // Pay now: every job's rate today, both people.
   const payNow = jobs.reduce((v, j) => v + (rateOn(j, now) || 0), 0);
-  const payByYear = {};
-  for (const p of people) for (const r of personYears(p, jobs, s.start_age)) payByYear[r.y] = (payByYear[r.y] || 0) + r.earned;
+  // Pay by year: the Salary page's household totals (W-2 totals included). Without job rates, "pay now" is the
+  // latest year's household total.
+  const { payByYear } = householdYears(people, jobs, s.start_age, yearPay);
+  const payRef = payNow || payByYear[cy] || payByYear[cy - 1] || 0;
   const ageNow = me1 ? ageOn(me1.birth_date, today()) : null;
 
   view(`<section class="hero"><p class="eyebrow">Invested</p>
@@ -84,7 +86,7 @@ async function homePage() {
       <p class="hero-sub">${accounts.length ? `${open.length} open account${open.length === 1 ? '' : 's'}${dates.length ? ` · latest update ${fmtDate(dates.at(-1))}` : ''}`
         : 'Add your accounts to get started.'}</p>
       ${accounts.length ? `<div class="split">${byOwner.map(([name, v]) => `<div><span>${esc(name)}</span><b>${money(v)}</b></div>`).join('')}
-        ${payNow ? `<div><span>Times Your Pay</span><b>${(total / payNow).toFixed(1)}×</b></div>` : ''}</div>` : ''}
+        ${payRef ? `<div><span>Times Your Pay</span><b>${(total / payRef).toFixed(1)}×</b></div>` : ''}</div>` : ''}
     </section>
     ${stale.length ? `<p class="alert">${stale.length === 1 ? `${esc(stale[0].name)} hasn't` : `${stale.length} accounts haven't`} been updated in over a year.
       <a href="#/accounts">Update ${stale.length === 1 ? 'it' : 'them'}</a></p>` : ''}
@@ -142,12 +144,12 @@ async function homePage() {
   // Projected: for an age still ahead, today's projection (saved to fire_projections, once a day, so it can be compared
   // later); for an age reached, the last projection saved before that birthday. Actual: what you had on the birthday.
   function milestonesHTML() {
-    if (!me1?.birth_date || !payNow && !Object.keys(payByYear).length) return `<section class="card"><h2>Milestones</h2>
+    if (!me1?.birth_date || !payRef && !Object.keys(payByYear).length) return `<section class="card"><h2>Milestones</h2>
       <p class="muted">Add ${me1?.birth_date ? 'your jobs on Salary' : 'your birth date in Settings'} to see savings milestones by age.</p></section>`;
     const born = me1.birth_date, save = [];
     const rows = MILESTONES.map(([age, x]) => {
       const date = `${+born.slice(0, 4) + age}${born.slice(4)}`, d = dnum(date), past = d <= now;
-      const pay = past ? payByYear[+date.slice(0, 4)] : payNow, target = pay ? x * pay : null;
+      const pay = past ? payByYear[+date.slice(0, 4)] : payRef, target = pay ? x * pay : null;
       const actual = past && accounts.some(a => a.updates.some(u => dnum(u.as_of) <= d)) ? totalOn(accounts, d) : null;
       const saved = projections.filter(p => p.age === age && p.made_on < date).at(-1);
       const proj = past ? (saved ? +saved.projected : null) : atMonths(total, yearly, s.real_return, (d - now) / 30.44);
@@ -203,11 +205,11 @@ function projectionChart(accounts, path, goal, fireDate) {
 async function spendingPage() {
   const t = ++navToken;
   view(loading);
-  const [rows, settings, { people, jobs }] = await Promise.all([loadSpending(), loadSettings(), loadSalaryData()]);
+  const [rows, settings, { people, jobs, yearPay }] = await Promise.all([loadSpending(), loadSettings(), loadSalaryData()]);
   if (t !== navToken) return;
   const cy = new Date().getFullYear(), inf = settings.inflation;
   const pay = {};
-  for (const p of people) for (const r of personYears(p, jobs, settings.start_age)) pay[r.y] = (pay[r.y] || 0) + r.earned;
+  Object.assign(pay, householdYears(people, jobs, settings.start_age, yearPay).payByYear);
   view(`<div class="page-head"><div><h1 class="big">Spending</h1>
       <p class="muted">What the household spends in a year. Your FIRE number is the latest year's ÷ the withdrawal rate.</p></div>
       <button type="button" id="addSpend" class="fill">+ Add Year</button></div>
