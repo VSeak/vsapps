@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&family=Outfit:wght@700&family=IBM+Plex+Sans:wght@400&display=swap" rel="stylesheet">
 <style>
 /* Home: midnight blue and crimson. Each card wears its own app's colors. */
 :root {
@@ -17,6 +17,8 @@
   --ss-card: #FFFDF9; --ss-ink: #2C2620; --ss-muted: #766B60; --ss-line: #E1DAD0; --ss-accent: #4F6441;
   /* Top Out: chalk, navy, rope orange */
   --to-card: #F7F5F0; --to-ink: #1B2340; --to-muted: #5E6680; --to-line: #E2DED3; --to-accent: #E8622C; --to-accent-text: #B8431A;
+  /* FIRE: ink and ember */
+  --fi-card: #171A21; --fi-ink: #F6F3EE; --fi-muted: #A6AAB4; --fi-line: #2A2E36; --fi-accent: #FF6B35; --fi-gold: #FFC857;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -63,6 +65,14 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
 .sitstart .sub { color: var(--ss-accent); }
 .topout .sub { color: var(--to-accent-text); }
 .sitstart { border-top: 4px solid var(--ss-accent); }
+/* FIRE: an ink card in both themes, an ember-to-gold line on top */
+.fire { --card: var(--fi-card); --ink: var(--fi-ink); --muted: var(--fi-muted); --line: var(--fi-line); --accent: var(--fi-accent);
+  font-family: "IBM Plex Sans", Inter, sans-serif; border-top: 0; position: relative; overflow: hidden; }
+.fire::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--fi-accent), var(--fi-gold)); }
+.fire .brand .flame { fill: var(--fi-accent); }
+.fire .brand .core { fill: var(--fi-gold); }
+.fire .brand h2 { font: 700 1.3rem/1 Outfit, sans-serif; letter-spacing: .04em; }
+.fire .sub { color: var(--fi-gold); }
 </style>
 </head>
 <body>
@@ -84,6 +94,13 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
         <div><h2>Top Out</h2><span class="sub">Adult Team</span></div>
       </div>
       <p>Adult Team coaches: roster, check-ins and the calendar.</p>
+    </a>
+    <a class="app fire" href="fire/">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path class="flame" d="M16 4.5c.8 4.6 7.5 7.6 7.5 15.2a7.5 7.5 0 0 1-15 0c0-4 2.2-6.7 4-8.4 0 2.6 1 4.2 2.4 4.9C14.6 12 14.3 8 16 4.5z"/><path class="core" d="M16 27.2a3.3 3.3 0 0 1-3.3-3.3c0-2.4 2.1-3.8 3.3-5.8 1.2 2 3.3 3.4 3.3 5.8a3.3 3.3 0 0 1-3.3 3.3z"/></svg>
+        <div><h2>FIRE</h2><span class="sub">Financial Independence</span></div>
+      </div>
+      <p>Private: salary history, accounts and the road to retiring early.</p>
     </a>
   </div>
 </main>
