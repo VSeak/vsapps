@@ -237,3 +237,22 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 #installBar p { margin: 0; font-size: .9rem; }
 .install-btns { grid-column: 2; display: flex; gap: .5rem; justify-content: flex-end; }
 .share-ic { width: 1.1em; height: 1.1em; vertical-align: -.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Overview: the FIRE card */
+.fi-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.fi-top p { margin: .1rem 0 0; font-size: .9rem; }
+.fi-num { font: 700 clamp(2rem, 7vw, 2.6rem)/1.05 Outfit, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fi-pct { text-align: right; }
+.fi-pct b { display: block; font: 700 1.8rem/1 Outfit, sans-serif; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.fi-pct span { color: var(--muted); font-size: .85rem; }
+.bar { height: 12px; border-radius: 999px; background: var(--sunk); margin-top: .8rem; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--gold)); }
+.chart .goal { stroke: var(--gold); stroke-width: 1.8; stroke-dasharray: 2 4; stroke-linecap: round; }
+.chart .proj { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-dasharray: 6 5; stroke-linecap: round; }
+.chart .fire-dot { fill: var(--gold); stroke: var(--card); stroke-width: 2.5; }
+.legend i.goal { border-top: 2px dotted var(--gold); }
+.slider { margin-top: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; }
+.slider b { font-variant-numeric: tabular-nums; color: var(--accent-text); }
+.slider input { flex-basis: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; margin: .2rem 0 0; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); }
+.fi-card .legend i.put { border-top: 2px dashed var(--accent); }

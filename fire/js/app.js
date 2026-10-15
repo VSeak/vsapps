@@ -94,6 +94,7 @@ function route() {
   if (!me.isOwner) return viewNoAccess();
   const go = page === 'accounts' ? accountsPage()
     : page === 'account' && id ? accountPage(id)
+    : page === 'spending' ? spendingPage()
     : page === 'salary' ? salaryPage()
     : page === 'job' && id ? jobPage(id)
     : page === 'settings' ? settingsPage()
@@ -191,36 +192,3 @@ function viewNoAccess() {
   authPage('Hmm,', 'no access here.', `<p>You're signed in as <strong>${esc(me.user.email)}</strong>. FIRE is private to its owner.</p>`);
 }
 
-// ---------- Home ----------
-
-const ICON_ARROW = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
-  stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
-const STALE_DAYS = 365;   // an open account not updated in this long gets a reminder
-
-async function homePage() {
-  const t = ++navToken;
-  view(loading);
-  const [people, accounts] = await Promise.all([loadPeople(), loadAccounts()]);
-  if (t !== navToken) return;
-  const open = accounts.filter(a => !a.closed_on);
-  const total = accounts.reduce((s, a) => s + (a.latest?.balance || 0), 0);
-  const byOwner = [...people.map(p => [p.name, p.id]), ['Joint', null]]
-    .map(([name, id]) => [name, accounts.filter(a => a.owner_id === id).reduce((s, a) => s + (a.latest?.balance || 0), 0)])
-    .filter(([, v], i) => v || i < people.length);   // Joint only once it has money
-  const dates = open.map(a => a.latest?.as_of).filter(Boolean).sort();
-  const stale = open.filter(a => !a.latest || (Date.now() - day(a.latest.as_of)) / 864e5 > STALE_DAYS);
-  view(`<h1 class="hey">Net worth,<span>one update at a time.</span></h1>
-    <section class="hero"><p class="eyebrow">Invested</p>
-      <div class="hero-num">${money(total)}</div>
-      <p class="hero-sub">${accounts.length ? `${open.length} open account${open.length === 1 ? '' : 's'}${dates.length ? ` · latest update ${fmtDate(dates.at(-1))}` : ''}`
-        : 'Add your accounts to get started.'}</p>
-      ${accounts.length ? `<div class="split">${byOwner.map(([name, v]) => `<div><span>${esc(name)}</span><b>${money(v)}</b></div>`).join('')}</div>` : ''}
-    </section>
-    ${stale.length ? `<p class="alert">${stale.length === 1 ? `${esc(stale[0].name)} hasn't` : `${stale.length} accounts haven't`} been updated in over a year.
-      <a href="#/accounts">Update ${stale.length === 1 ? 'it' : 'them'}</a></p>` : ''}
-    <div class="tiles" style="margin-top:1rem">
-      <a class="card tile" href="#/accounts"><div><h2>Accounts</h2><p class="muted">401(k)s, IRAs and the rest. Add a balance whenever you check one.</p></div>${ICON_ARROW}</a>
-      <a class="card tile" href="#/salary"><div><h2>Salary</h2><p class="muted">Every job, raise and bonus, and your pay by year and age.</p></div>${ICON_ARROW}</a>
-      <a class="card tile" href="#/settings"><div><h2>Settings</h2><p class="muted">Names, birth dates and the assumptions behind every projection.</p></div>${ICON_ARROW}</a>
-    </div>`);
-}
