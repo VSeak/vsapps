@@ -58,7 +58,9 @@ p { margin: 0 0 .75rem; }
 @media (max-width: 520px) {
   .top { flex-wrap: wrap; row-gap: .4rem; }
   .brand { margin-right: auto; }
-  .nav { order: 3; width: 100%; margin: 0; }
+  /* Five links share the row evenly under the logo */
+  .nav { order: 3; width: 100%; margin: 0; justify-content: space-between; gap: 0; }
+  .nav a { padding: .4rem .4rem; font-size: .86rem; }
 }
 
 main { max-width: 1000px; margin: 0 auto; padding: 1.5rem 16px 4rem; }
