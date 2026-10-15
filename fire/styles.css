@@ -156,6 +156,8 @@ h1.big { font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 700; margin: 0; let
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
 .tile { display: flex; align-items: center; justify-content: space-between; gap: 1rem; text-decoration: none; color: var(--ink); margin: 0; }
 .tile p { margin: 0; }
+/* Text starts at the top, so titles line up across a row of tiles whose text runs to different lengths (the arrow stays centered) */
+.tile > div { align-self: flex-start; }
 .tile svg { color: var(--accent-text); flex: none; }
 .tile:hover { border-color: var(--accent); }
 
