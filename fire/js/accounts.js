@@ -32,7 +32,7 @@ const ownerName = (a, people) => a.owner_id ? people.find(p => p.id === a.owner_
 async function accountsPage() {
   const t = ++navToken;
   view(loading);
-  const [people, accounts] = await Promise.all([loadPeople(), loadAccounts()]);
+  const [people, accounts, jobs] = await Promise.all([loadPeople(), loadAccounts(), loadJobs()]);
   if (t !== navToken) return;
   const byBalance = (x, y) => (y.latest?.balance || 0) - (x.latest?.balance || 0) || x.name.localeCompare(y.name);
   const open = accounts.filter(a => !a.closed_on);
@@ -55,13 +55,13 @@ async function accountsPage() {
       : `<section class="card empty"><h2>No Accounts Yet</h2><p class="muted">Add each 401(k), IRA, HSA and brokerage account, yours and your partner's.
         Old employer plans too.</p></section>`}`);
   $('#addAcct').onclick = async () => {
-    const id = await accountDialog(null, people);
+    const id = await accountDialog(null, people, jobs);
     if (id) goTo('#/account/' + id);
   };
 }
 
 // Add or edit an account. Returns its id once saved, 'deleted', or null.
-async function accountDialog(a, people) {
+async function accountDialog(a, people, jobs) {
   const f = await ask({ title: a ? 'Edit Account' : 'Add Account', ok: a ? 'Save' : 'Add Account',
     extra: a ? { value: 'delete', label: 'Delete Account' } : null,
     body: `<label>Name<input name="name" maxlength="80" value="${esc(a?.name)}" required data-need="Name the account." placeholder="E.g. Acme 401(k)" autocomplete="off"></label>
@@ -70,7 +70,11 @@ async function accountDialog(a, people) {
           <option value=""${a && !a.owner_id ? ' selected' : ''}>Joint</option></select></label>
         <label>Type<select name="kind">${Object.entries(KINDS).map(([k, v]) => `<option value="${k}"${a?.kind === k ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
       </div>
-      <label>Held At <span class="muted">(optional)</span><input name="institution" maxlength="80" value="${esc(a?.institution)}" placeholder="E.g. Fidelity" autocomplete="off"></label>
+      <div class="two">
+        <label>Held At <span class="muted">(optional)</span><input name="institution" maxlength="80" value="${esc(a?.institution)}" placeholder="E.g. Fidelity" autocomplete="off"></label>
+        <label>From Job <span class="muted">(optional)</span><select name="job"><option value="">None</option>
+          ${jobs.map(j => `<option value="${j.id}"${a?.job_id === j.id ? ' selected' : ''}>${esc(j.employer)} (${esc(people.find(p => p.id === j.person_id)?.name || '')})</option>`).join('')}</select></label>
+      </div>
       ${a ? `<label>Closed On <span class="muted">(optional)</span><input type="date" name="closed_on" value="${esc(a.closed_on || '')}"></label>
         <p class="hint">For an account you emptied or rolled over. It keeps its history and moves to Closed.</p>` : ''}
       <label>Notes <span class="muted">(optional)</span><textarea name="notes" maxlength="2000" rows="2">${esc(a?.notes)}</textarea></label>` });
@@ -85,7 +89,7 @@ async function accountDialog(a, people) {
     });
   }
   const row = { name: f.get('name').trim(), owner_id: f.get('owner') || null, kind: f.get('kind'), institution: f.get('institution').trim(),
-    notes: f.get('notes').trim(), ...(a && { closed_on: f.get('closed_on') || null }) };
+    job_id: f.get('job') || null, notes: f.get('notes').trim(), ...(a && { closed_on: f.get('closed_on') || null }) };
   return busy(null, async () => {
     if (a) { await sb.from('fire_accounts').update(row).eq('id', a.id).then(must); flash('Account saved.'); return a.id; }
     const made = await sb.from('fire_accounts').insert(row).select('id').single().then(must);
@@ -97,7 +101,7 @@ async function accountDialog(a, people) {
 async function accountPage(id) {
   const t = ++navToken;
   view(loading);
-  const [people, accounts] = await Promise.all([loadPeople(), loadAccounts()]);
+  const [people, accounts, jobs] = await Promise.all([loadPeople(), loadAccounts(), loadJobs()]);
   if (t !== navToken) return;
   const a = accounts.find(x => x.id === id);
   if (!a) return view(`${crumbs([['Accounts', '#/accounts'], ['Not Found']])}<section class="card empty"><h2>Account Not Found</h2>
@@ -110,7 +114,7 @@ async function accountPage(id) {
   }).reverse();
   view(`${crumbs([['Accounts', '#/accounts'], [a.name]])}
     <div class="page-head"><div><h1 class="big">${esc(a.name)}</h1>
-      <p class="muted">${[KINDS[a.kind], ownerName(a, people), a.institution].filter(Boolean).map(esc).join(' · ')}${a.closed_on ? ` · Closed ${fmtDate(a.closed_on)}` : ''}</p></div>
+      <p class="muted">${[KINDS[a.kind], ownerName(a, people), a.institution, jobs.find(j => j.id === a.job_id)?.employer].filter(Boolean).map(esc).join(' · ')}${a.closed_on ? ` · Closed ${fmtDate(a.closed_on)}` : ''}</p></div>
       <div class="row wrap"><button type="button" id="editAcct">Edit Account</button><button type="button" id="addUpd" class="fill">+ Add Update</button></div></div>
     ${tot ? `<div class="stats">
         ${stat('Balance', money(tot.balance))}
@@ -134,7 +138,7 @@ async function accountPage(id) {
     : `<section class="card empty"><h2>No Updates Yet</h2><p class="muted">Add today's balance to start this account's history.</p></section>`}
     ${a.notes ? `<section class="card"><h2>Notes</h2><p>${esc(a.notes).replace(/\n/g, '<br>')}</p></section>` : ''}`);
   $('#editAcct').onclick = async () => {
-    const r = await accountDialog(a, people);
+    const r = await accountDialog(a, people, jobs);
     if (r === 'deleted') goTo('#/accounts'); else if (r) redraw();
   };
   $('#addUpd').onclick = () => updateDialog(a, null);

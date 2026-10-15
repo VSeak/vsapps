@@ -86,7 +86,7 @@ function route() {
   const [, page, id] = location.hash.split('/');
   const nav = $('.nav');
   nav.hidden = !me?.isOwner || wantsPassword;
-  const section = page === 'account' ? 'accounts' : page || '';
+  const section = page === 'account' ? 'accounts' : page === 'job' ? 'salary' : page || '';
   nav.querySelectorAll('a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#/' + section));
   $('#signOut').hidden = !me;
   if (!me) return viewLogin();
@@ -94,6 +94,8 @@ function route() {
   if (!me.isOwner) return viewNoAccess();
   const go = page === 'accounts' ? accountsPage()
     : page === 'account' && id ? accountPage(id)
+    : page === 'salary' ? salaryPage()
+    : page === 'job' && id ? jobPage(id)
     : page === 'settings' ? settingsPage()
     : homePage();
   Promise.resolve(go).catch(showError);
@@ -218,6 +220,7 @@ async function homePage() {
       <a href="#/accounts">Update ${stale.length === 1 ? 'it' : 'them'}</a></p>` : ''}
     <div class="tiles" style="margin-top:1rem">
       <a class="card tile" href="#/accounts"><div><h2>Accounts</h2><p class="muted">401(k)s, IRAs and the rest. Add a balance whenever you check one.</p></div>${ICON_ARROW}</a>
+      <a class="card tile" href="#/salary"><div><h2>Salary</h2><p class="muted">Every job, raise and bonus, and your pay by year and age.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/settings"><div><h2>Settings</h2><p class="muted">Names, birth dates and the assumptions behind every projection.</p></div>${ICON_ARROW}</a>
     </div>`);
 }

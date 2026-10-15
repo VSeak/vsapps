@@ -179,6 +179,7 @@ h1.big { font-size: clamp(1.8rem, 5vw, 2.4rem); font-weight: 700; margin: 0; let
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: .75rem .9rem; }
 .stat span { display: block; color: var(--muted); font-size: .82rem; }
 .stat b { font: 600 1.25rem Outfit, sans-serif; font-variant-numeric: tabular-nums; }
+.stat small { display: block; font-size: .78rem; margin-top: .1rem; }
 .chart { width: 100%; height: auto; display: block; overflow: visible; }
 .chart .grid line { stroke: var(--line); }
 .chart .grid text, .chart .axis text { fill: var(--muted); font: 11px "IBM Plex Sans", sans-serif; font-variant-numeric: tabular-nums; }

@@ -113,7 +113,8 @@ function markRequired() {
     const star = Object.assign(document.createElement('span'), { className: 'req', textContent: '*' });
     star.setAttribute('aria-hidden', 'true');
     const text = [...label.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
-    if (!text) { label.prepend(star); continue; }
+    // A label whose words are in a span (one the page rewrites, like Yearly Salary / Hourly Rate): the star goes after it.
+    if (!text) { const lead = label.firstElementChild; if (lead?.matches('span:not(.unit)')) lead.after(star); else label.prepend(star); continue; }
     const end = text.textContent.trimEnd().length;
     if (end < text.textContent.length) text.splitText(end);
     text.after(star);
