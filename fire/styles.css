@@ -256,3 +256,6 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .slider input { flex-basis: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; margin: .2rem 0 0; }
 .chip.ok { background: var(--ok-soft); color: var(--ok); }
 .fi-card .legend i.put { border-top: 2px dashed var(--accent); }
+.chart .sp { fill: none; stroke: var(--gold); stroke-width: 2.2; stroke-linejoin: round; }
+.legend i.sp { border-top: 2.2px solid var(--gold); }
+code { font-size: .85em; background: var(--sunk); padding: .05rem .3rem; border-radius: 5px; }

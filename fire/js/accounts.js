@@ -48,7 +48,7 @@ async function accountsPage() {
   };
   view(`<div class="page-head"><div><h1 class="big">Accounts</h1>
       <p class="muted">${accounts.length ? `${money(open.reduce((s, a) => s + (a.latest?.balance || 0), 0))} across ${open.length} open account${open.length === 1 ? '' : 's'}` : ''}</p></div>
-      <button type="button" id="addAcct" class="fill">+ Add Account</button></div>
+      <div class="row wrap"><a class="button" href="#/sp500">Vs. S&amp;P 500</a><button type="button" id="addAcct" class="fill">+ Add Account</button></div></div>
     ${groups.length ? groups.map(([name, list]) => `<div class="group-head"><h2>${esc(name)}</h2>
         ${name === 'Closed' ? '' : `<b>${money(list.reduce((s, a) => s + (a.latest?.balance || 0), 0))}</b>`}</div>
       <div class="acct-list">${list.sort(byBalance).map(row).join('')}</div>`).join('')
@@ -134,8 +134,9 @@ async function accountPage(id) {
           <td class="r">${change == null ? '<span class="muted">Start</span>' : signed(change)}</td>
           <td class="r">${putIn(u) ? money(u.contributed + u.employer) + (u.moved ? `<br><span class="muted">${signed(u.moved)} moved</span>` : '') : '<span class="muted">—</span>'}</td>
           <td class="r ${growth > 0 ? 'up' : growth < 0 ? 'down' : ''}">${growth == null ? '' : signed(growth)}</td></tr>`).join('')}</tbody></table></div>
-      </section>`
-    : `<section class="card empty"><h2>No Updates Yet</h2><p class="muted">Add today's balance to start this account's history.</p></section>`}
+      </section>` : ''}
+    ${tot ? accountCompareHTML(a) : ''}
+    ${tot ? '' : `<section class="card empty"><h2>No Updates Yet</h2><p class="muted">Add today's balance to start this account's history.</p></section>`}
     ${a.notes ? `<section class="card"><h2>Notes</h2><p>${esc(a.notes).replace(/\n/g, '<br>')}</p></section>` : ''}`);
   $('#editAcct').onclick = async () => {
     const r = await accountDialog(a, people, jobs);

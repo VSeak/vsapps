@@ -90,6 +90,7 @@ async function homePage() {
     <div class="tiles" style="margin-top:1rem">
       <a class="card tile" href="#/spending"><div><h2>Spending</h2><p class="muted">${spend ? `${money(+spending[0].amount)} in ${spending[0].year}.` : 'What you spend in a year.'} Your FIRE number comes from it.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/accounts"><div><h2>Accounts</h2><p class="muted">401(k)s, IRAs and the rest. Add a balance whenever you check one.</p></div>${ICON_ARROW}</a>
+      <a class="card tile" href="#/sp500"><div><h2>Vs. the S&amp;P 500</h2><p class="muted">Your accounts against the same money in an S&amp;P 500 index fund.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/salary"><div><h2>Salary</h2><p class="muted">Every job, raise and bonus, and your pay by year and age.</p></div>${ICON_ARROW}</a>
     </div>`);
   if (!fiNumber) return;
