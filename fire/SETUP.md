@@ -19,6 +19,12 @@ Sign in with your usual email and password. Then:
 1. **Settings**: rename You and Partner, add both birth dates, and check the assumptions.
 2. **Accounts**: add each account, then add updates with the balance on a date and what went in since the update before.
 
+## Updates since
+
+Run each of these once in the SQL Editor if your `schema.sql` predates it (a fresh `schema.sql` already has them):
+
+- `fire/supabase/migrations/2026-10-15-contributions.sql`: contributions on accounts, and Paychecks on jobs.
+
 ## Good to know
 
 - **Forgot Password** on the sign-in page changes your password for Sit Start and Top Out too, since they share one sign-in.

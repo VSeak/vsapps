@@ -101,17 +101,22 @@ function rateGrowth(years, inflation) {
 }
 const todaysDollars = (amount, y, inflation) => amount * (1 + inflation / 100) ** (new Date().getFullYear() - y);
 
-// What you put in (not employer, not moved) per calendar year, from account updates: each update's money is spread
-// evenly over the days since the update before it (a first update's lands on its date).
-function savedByYear(accounts) {
+// What you put in (not employer, not moved) per calendar year. From account updates where they cover the days: each
+// update's money is spread evenly over the days since the update before it (a first update's lands on its date).
+// Days an account's updates don't cover (before its first, after its last, up to today) come from its contribution plan.
+function savedByYear(accounts, jobsById = {}) {
   const out = {};
   const add = (y, v) => { out[y] = (out[y] || 0) + v; };
-  for (const a of accounts) a.updates.forEach((u, i) => {
-    if (!u.contributed) return;
-    const prev = a.updates[i - 1], b = dnum(u.as_of) + 1, s = prev ? dnum(prev.as_of) + 1 : b - 1, span = b - s;
-    for (let y = new Date(s * 864e5).getUTCFullYear(); y <= new Date((b - 1) * 864e5).getUTCFullYear(); y++)
-      add(y, u.contributed * (Math.min(b, yearStart(y + 1)) - Math.max(s, yearStart(y))) / span);
-  });
+  for (const a of accounts) {
+    a.updates.forEach((u, i) => {
+      if (!u.contributed) return;
+      const prev = a.updates[i - 1], b = dnum(u.as_of) + 1, s = prev ? dnum(prev.as_of) + 1 : b - 1, span = b - s;
+      for (let y = new Date(s * 864e5).getUTCFullYear(); y <= new Date((b - 1) * 864e5).getUTCFullYear(); y++)
+        add(y, u.contributed * (Math.min(b, yearStart(y + 1)) - Math.max(s, yearStart(y))) / span);
+    });
+    const first = a.updates[0] ? dnum(a.updates[0].as_of) : Infinity, last = a.updates.at(-1) ? dnum(a.updates.at(-1).as_of) : -Infinity;
+    planBetween(a.contributions || [], jobsById, -Infinity, dnum(today()) + 1, 'you', d => d >= first && d <= last, out);
+  }
   return out;
 }
 
@@ -125,7 +130,7 @@ async function salaryPage() {
   const { inflation, start_age } = settings;
   const cy = new Date().getFullYear();
   const per = people.map(p => ({ p, years: personYears(p, jobs, start_age) }));
-  const saved = savedByYear(accounts);
+  const saved = savedByYear(accounts, byId(jobs));
   const stat = (label, v, sub = '') => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<small class="muted">${sub}</small>` : ''}</div>`;
   const estChip = '<span class="chip warn">Est.</span>';
 
@@ -191,7 +196,7 @@ async function salaryPage() {
           <td class="r">${h.total ? `<b>${money(h.total)}</b>` : '<span class="muted">—</span>'}</td>
           <td class="r">${h.saved ? money(h.saved) : '<span class="muted">—</span>'}</td>
           <td class="r">${h.saved && h.total ? pct(h.saved / h.total) : ''}</td></tr>`).join('')}</tbody></table></div>
-      <p class="hint" style="margin-top:.6rem">You Saved is what you both put into your accounts that year (not the employer match or rollovers), from Accounts.
+      <p class="hint" style="margin-top:.6rem">You Saved is what you both put into your accounts that year (not the employer match or rollovers): from account updates, and from each account's contributions for the time its updates don't cover.
         An update's money is spread over the months since the update before it.</p>
     </section>` : ''}
     ${per.map(personCard).join('')}`);
@@ -215,7 +220,7 @@ async function jobPage(id) {
   const yearlyNow = j.pays.length ? yearlyRate(j.pays.at(-1)) : null;
   view(`${crumbs([['Salary', '#/salary'], [j.employer]])}
     <div class="page-head"><div><h1 class="big">${esc(j.employer)}</h1>
-      <p class="muted">${[person?.name, j.title, `${fmtDate(j.start_date)} – ${j.end_date ? fmtDate(j.end_date) : 'now'}`].filter(Boolean).map(esc).join(' · ')}</p></div>
+      <p class="muted">${[person?.name, j.title, `${fmtDate(j.start_date)} – ${j.end_date ? fmtDate(j.end_date) : 'now'}`, `Paid ${(PAYCHECKS[j.paychecks] || '').toLowerCase()}`].filter(Boolean).map(esc).join(' · ')}</p></div>
       <button type="button" id="editJob">Edit Job</button></div>
     <section class="card"><div class="row between wrap"><h2>Pay Changes</h2><button type="button" class="small" id="addPay">+ Add Pay Change</button></div>
       <p class="hint">Each rate lasts until the next change. Add one for every raise, and for switching between hourly and salary.</p>
@@ -307,6 +312,7 @@ async function jobDialog(j, people, personId = null) {
         <label>Started<input type="date" name="start_date" value="${esc(j?.start_date || '')}" required data-need="Pick the day you started."></label>
         <label>Ended <span class="muted">(blank = still there)</span><input type="date" name="end_date" value="${esc(j?.end_date || '')}"></label>
       </div>
+      <label>Paychecks<select name="paychecks">${Object.entries(PAYCHECKS).map(([n, v]) => `<option value="${n}"${+(j?.paychecks || 24) === +n ? ' selected' : ''}>${v} (${n} a year)</option>`).join('')}</select></label>
       ${j ? '' : `<h3>Starting Pay</h3>${payFieldsHTML()}<p class="hint">Add raises on the job's page once it's saved.</p>`}
       <label>Notes <span class="muted">(optional)</span><textarea name="notes" maxlength="2000" rows="2">${esc(j?.notes)}</textarea></label>`,
     onOpen: form => { if (!j) wirePayFields(form); } });
@@ -320,7 +326,7 @@ async function jobDialog(j, people, personId = null) {
     });
   }
   const row = { employer: f.get('employer').trim(), title: f.get('title').trim(), person_id: f.get('person'), start_date: f.get('start_date'),
-    end_date: f.get('end_date') || null, notes: f.get('notes').trim() };
+    end_date: f.get('end_date') || null, paychecks: +f.get('paychecks'), notes: f.get('notes').trim() };
   if (row.end_date && row.end_date < row.start_date) { flash('The end date is before the start date.', 'error'); return null; }
   return busy(null, async () => {
     if (j) { await sb.from('fire_jobs').update(row).eq('id', j.id).then(must); flash('Job saved.'); return j.id; }

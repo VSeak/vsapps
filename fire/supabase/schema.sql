@@ -43,6 +43,7 @@ create table public.fire_jobs (
   title text not null default '' check (length(title) <= 80),
   start_date date not null,
   end_date date check (end_date is null or end_date >= start_date),   -- null = still there
+  paychecks int not null default 24 check (paychecks in (12, 24, 26, 52)),   -- a year: monthly, twice a month, every two weeks, weekly
   notes text not null default '' check (length(notes) <= 2000),
   created_at timestamptz not null default now()
 );
@@ -110,6 +111,25 @@ create table public.fire_updates (
 );
 create index on public.fire_updates (account_id, as_of);
 
+-- Contribution plans: from start_date to end_date (null = still going), you or your employer put in a percent of a
+-- job's pay, or dollars per year, month or paycheck (that job's paychecks). A line tied to a job stops when the job ends.
+create table public.fire_contributions (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null references public.fire_accounts (id) on delete cascade,
+  source text not null check (source in ('you', 'employer')),
+  kind text not null check (kind in ('percent', 'amount')),
+  percent numeric check (percent is null or percent between 0 and 100),
+  amount numeric check (amount is null or amount >= 0),
+  per text check (per is null or per in ('year', 'month', 'paycheck')),
+  job_id uuid references public.fire_jobs (id) on delete set null,
+  start_date date not null,
+  end_date date check (end_date is null or end_date >= start_date),
+  note text not null default '' check (length(note) <= 200),
+  created_at timestamptz not null default now(),
+  check ((kind = 'percent' and percent is not null) or (kind = 'amount' and amount is not null and per is not null))
+);
+create index on public.fire_contributions (account_id);
+
 -- Household spending, one number a year.
 create table public.fire_spending (
   year int primary key check (year between 1950 and 2200),
@@ -134,6 +154,7 @@ alter table public.fire_job_actuals enable row level security;
 alter table public.fire_accounts enable row level security;
 alter table public.fire_updates enable row level security;
 alter table public.fire_spending enable row level security;
+alter table public.fire_contributions enable row level security;
 
 -- The app reads fire_owner only to know whether you're in. Nobody changes it from the app.
 create policy "owner: read" on public.fire_owner for select to authenticated
@@ -154,6 +175,8 @@ create policy "owner" on public.fire_job_actuals for all to authenticated
 create policy "owner" on public.fire_accounts for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_updates for all to authenticated
+  using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
+create policy "owner" on public.fire_contributions for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_spending for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));

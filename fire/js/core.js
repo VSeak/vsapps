@@ -190,6 +190,7 @@ function crumbs(items) {
 const day = d => new Date(d + 'T00:00');
 const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 const today = () => iso(new Date());
+const Cap = w => w.charAt(0).toUpperCase() + w.slice(1);
 const fmtDate = d => day(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const fmtMonthYear = d => day(d).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
 // Whole years old on a date (null without a birth date).

@@ -67,7 +67,10 @@ async function homePage() {
   // Spending: the latest year's, in today's dollars.
   const spend = spending[0] ? { year: spending[0].year, amount: +spending[0].amount * (1 + s.inflation / 100) ** (cy - spending[0].year) } : null;
   const fiNumber = spend ? spend.amount / (s.withdrawal_rate / 100) : null;
-  const yearly = Math.round(putInBetween(accounts, now - 365, now + 1));
+  // Savings a year: the contribution plans at today's pay when there are any, else what went in over the last 12 months.
+  const lastYear = Math.round(putInBetween(accounts, now - 365, now + 1));
+  const planNow = Math.round(planYearlyNow(accounts.filter(a => !a.closed_on).flatMap(a => a.contributions), byId(jobs)));
+  const yearly = planNow || lastYear;
   // Pay now: every job's rate today, both people. Pay by year: what each year's salary table says.
   const payNow = jobs.reduce((v, j) => v + (rateOn(j, now) || 0), 0);
   const payByYear = {};
@@ -126,7 +129,8 @@ async function homePage() {
       ${projectionChart(accounts, pr.path, fiNumber, fireDate)}
       <div class="legend"><span><i></i>Invested</span><span><i class="put"></i>Projected</span><span><i class="goal"></i>FIRE number</span></div>`;
     $('#extraText').textContent = extra ? '+' + money(extra) : 'No change';
-    $('#fiHint').innerHTML = `Saving about ${money(save)} a year: ${extra ? `${money(yearly)} now plus ${money(extra)}` : 'what you and employers put in over the last 12 months'}.
+    const basis = planNow ? `your contributions (last 12 months: ${money(lastYear)})` : 'what you and employers put in over the last 12 months (add contributions on an account to use your plan)';
+    $('#fiHint').innerHTML = `Saving about ${money(save)} a year: ${extra ? `${money(yearly)} from ${basis}, plus ${money(extra)}` : basis}.
       Growth is ${s.real_return}% a year after inflation (<a href="#/settings">Settings</a>). A projection, not a promise or advice.`;
   };
   drawFI();

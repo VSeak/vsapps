@@ -7,7 +7,7 @@ const KINDS = { '401k': '401(k)', roth_401k: 'Roth 401(k)', '403b': '403(b)', ir
   hsa: 'HSA', brokerage: 'Brokerage', cash: 'Cash', other: 'Other' };
 
 async function loadAccounts() {
-  const rows = await sb.from('fire_accounts').select('*, updates:fire_updates(*)').then(must);
+  const rows = await sb.from('fire_accounts').select('*, updates:fire_updates(*), contributions:fire_contributions(*)').then(must);
   for (const a of rows) {
     a.updates.sort((x, y) => x.as_of.localeCompare(y.as_of));
     for (const u of a.updates) for (const k of ['balance', 'contributed', 'employer', 'moved']) u[k] = +u[k];
@@ -101,7 +101,8 @@ async function accountDialog(a, people, jobs) {
 async function accountPage(id) {
   const t = ++navToken;
   view(loading);
-  const [people, accounts, jobs] = await Promise.all([loadPeople(), loadAccounts(), loadJobs()]);
+  const [{ people, jobs }, accounts] = await Promise.all([loadSalaryData(), loadAccounts()]);
+  const jobsById = byId(jobs);
   if (t !== navToken) return;
   const a = accounts.find(x => x.id === id);
   if (!a) return view(`${crumbs([['Accounts', '#/accounts'], ['Not Found']])}<section class="card empty"><h2>Account Not Found</h2>
@@ -137,29 +138,51 @@ async function accountPage(id) {
       </section>` : ''}
     ${tot ? accountCompareHTML(a) : ''}
     ${tot ? '' : `<section class="card empty"><h2>No Updates Yet</h2><p class="muted">Add today's balance to start this account's history.</p></section>`}
+    ${contribCardHTML(a, jobsById)}
     ${a.notes ? `<section class="card"><h2>Notes</h2><p>${esc(a.notes).replace(/\n/g, '<br>')}</p></section>` : ''}`);
   $('#editAcct').onclick = async () => {
     const r = await accountDialog(a, people, jobs);
     if (r === 'deleted') goTo('#/accounts'); else if (r) redraw();
   };
-  $('#addUpd').onclick = () => updateDialog(a, null);
-  const open = el => { const u = a.updates.find(x => x.id === el?.dataset.upd); if (u) updateDialog(a, u); };
-  app.onclick = e => open(e.target.closest('tr[data-upd]'));
-  app.onkeydown = e => { if (e.key === 'Enter') open(e.target.closest('tr[data-upd]')); };
+  $('#addUpd').onclick = () => updateDialog(a, null, jobsById);
+  $('#addContrib').onclick = () => contribDialog(a, null, jobs, people);
+  const open = el => {
+    if (!el) return;
+    if (el.dataset.contrib) return contribDialog(a, a.contributions.find(c => c.id === el.dataset.contrib), jobs, people);
+    const u = a.updates.find(x => x.id === el.dataset.upd); if (u) updateDialog(a, u, jobsById);
+  };
+  app.onclick = e => open(e.target.closest('tr[data-upd], tr[data-contrib]'));
+  app.onkeydown = e => { if (e.key === 'Enter') open(e.target.closest('tr[data-upd], tr[data-contrib]')); };
 }
 
-// Add or change an update. The money fields are what went in since the update before this one.
-async function updateDialog(a, u) {
+// Add or change an update. The money fields are what went in since the update before this one. A new update with a
+// contribution plan starts with what the plan says went in since then, and follows the date until those boxes are typed in.
+async function updateDialog(a, u, jobsById = {}) {
   const before = a.updates.filter(x => x.as_of < (u?.as_of || '9999') && x.id !== u?.id).at(-1);
   const first = !before;
-  const f = await ask({ title: u ? 'Change Update' : 'Add Update', ok: u ? 'Save' : 'Add Update', wide: true,
-    extra: u ? { value: 'delete', label: 'Delete Update' } : null,
+  const plan = (date, source) => Math.round(planBetween(a.contributions, jobsById, dnum(before.as_of) + 1, dnum(date) + 1, source));
+  const prefill = !u && !first && a.contributions.length;
+  if (prefill) u = { as_of: today(), contributed: plan(today(), 'you'), employer: plan(today(), 'employer'), fromPlan: true };
+  if (u?.fromPlan) u.isNew = true;
+  const isNew = !u || u.isNew;
+  const f = await ask({ title: isNew ? 'Add Update' : 'Change Update', ok: isNew ? 'Add Update' : 'Save', wide: true,
+    extra: isNew ? null : { value: 'delete', label: 'Delete Update' },
+    onOpen: form => {
+      if (!prefill) return;
+      const typed = new Set();
+      form.addEventListener('input', e => { if (e.target.name === 'contributed' || e.target.name === 'employer') typed.add(e.target.name); });
+      form.elements.as_of.addEventListener('change', e => {
+        if (!e.target.value || e.target.value <= before.as_of) return;
+        for (const [name, source] of [['contributed', 'you'], ['employer', 'employer']])
+          if (!typed.has(name)) form.elements[name].value = plan(e.target.value, source) || '';
+      });
+    },
     body: `<div class="two">
         <label>Date<input type="date" name="as_of" value="${esc(u?.as_of || today())}" max="${today()}" required data-need="Pick the date of this balance."></label>
         ${moneyField('balance', 'Balance', u?.balance ?? '', { required: true, need: 'Enter the balance on that date.' })}
       </div>
       <p class="hint">${first ? 'This is the first update, so it sets where the account started. If the account is new, put the money you put in below; whatever else is in the balance counts as what it started with.'
-        : `What went in since the update before (${fmtDate(before.as_of)}). Leave a box empty for none.`}</p>
+        : `What went in since the update before (${fmtDate(before.as_of)}). Leave a box empty for none.${prefill ? ' Filled in from your contributions; change them to match your statement.' : ''}`}</p>
       <div class="three">
         ${moneyField('contributed', 'You Put In', u?.contributed || '')}
         ${moneyField('employer', 'Employer Put In', u?.employer || '', { hint: '(match)' })}
@@ -179,9 +202,9 @@ async function updateDialog(a, u) {
   const row = { account_id: a.id, as_of: f.get('as_of'), balance: num(f.get('balance')), contributed: num(f.get('contributed')) || 0,
     employer: num(f.get('employer')) || 0, moved: num(f.get('moved')) || 0, note: f.get('note').trim() };
   await busy(null, async () => {
-    if (u) await sb.from('fire_updates').update(row).eq('id', u.id).then(must);
+    if (!isNew) await sb.from('fire_updates').update(row).eq('id', u.id).then(must);
     else await sb.from('fire_updates').insert(row).then(must);
-    flash(u ? 'Update saved.' : 'Update added.');
+    flash(isNew ? 'Update added.' : 'Update saved.');
     redraw();
   });
 }
