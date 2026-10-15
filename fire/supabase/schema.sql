@@ -134,6 +134,15 @@ create table public.fire_contributions (
 );
 create index on public.fire_contributions (account_id);
 
+-- What the Overview projected for each milestone age, saved at most once a day, so a reached milestone can show what
+-- was projected beside what you had.
+create table public.fire_projections (
+  age int not null check (age between 1 and 120),
+  made_on date not null default current_date,
+  projected numeric not null,
+  primary key (age, made_on)
+);
+
 -- Household spending, one number a year.
 create table public.fire_spending (
   year int primary key check (year between 1950 and 2200),
@@ -159,6 +168,7 @@ alter table public.fire_accounts enable row level security;
 alter table public.fire_updates enable row level security;
 alter table public.fire_spending enable row level security;
 alter table public.fire_contributions enable row level security;
+alter table public.fire_projections enable row level security;
 
 -- The app reads fire_owner only to know whether you're in. Nobody changes it from the app.
 create policy "owner: read" on public.fire_owner for select to authenticated
@@ -179,6 +189,8 @@ create policy "owner" on public.fire_job_actuals for all to authenticated
 create policy "owner" on public.fire_accounts for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_updates for all to authenticated
+  using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
+create policy "owner" on public.fire_projections for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));
 create policy "owner" on public.fire_contributions for all to authenticated
   using ((select public.fire_is_owner())) with check ((select public.fire_is_owner()));

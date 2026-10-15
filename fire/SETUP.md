@@ -25,6 +25,7 @@ Run each of these once in the SQL Editor if your `schema.sql` predates it (a fre
 
 - `fire/supabase/migrations/2026-10-15-contributions.sql`: contributions on accounts, and Paychecks on jobs.
 - `fire/supabase/migrations/2026-10-15-pay-days.sql`: Pay Days on jobs.
+- `fire/supabase/migrations/2026-10-15-projections.sql`: saved milestone projections.
 
 ## Good to know
 

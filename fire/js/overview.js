@@ -6,7 +6,8 @@ const ICON_ARROW = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" 
   stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 const STALE_DAYS = 365;   // an open account not updated in this long gets a reminder
 // Rule-of-thumb savings by age, as a multiple of yearly pay.
-const MILESTONES = [[30, 1], [40, 3], [50, 6], [60, 8], [67, 10]];
+// Every 5 years (the user asked); 65 is halfway between 60 and 67.
+const MILESTONES = [[30, 1], [35, 2], [40, 3], [45, 4], [50, 6], [55, 7], [60, 8], [65, 9], [67, 10]];
 const MAX_YEARS = 70;     // how far a projection looks
 
 const loadSpending = () => sb.from('fire_spending').select('*').order('year', { ascending: false }).then(must);
@@ -53,7 +54,8 @@ const yearsText = months => { const y = months / 12; return y < 1 ? `${months} m
 async function homePage() {
   const t = ++navToken;
   view(loading);
-  const [{ people, jobs }, accounts, settings, spending] = await Promise.all([loadSalaryData(), loadAccounts(), loadSettings(), loadSpending()]);
+  const [{ people, jobs }, accounts, settings, spending, projections] = await Promise.all([loadSalaryData(), loadAccounts(), loadSettings(), loadSpending(),
+    sb.from('fire_projections').select('*').order('made_on').then(must)]);
   if (t !== navToken) return;
   const s = settings, cy = new Date().getFullYear(), now = dnum(today()), me1 = people[0];
   const open = accounts.filter(a => !a.closed_on);
@@ -137,22 +139,33 @@ async function homePage() {
 
   // Milestones: savings at each age as a multiple of yearly pay. Past ages use the balance and pay then; ages still
   // ahead use the projection (today's dollars) and today's pay.
+  // Projected: for an age still ahead, today's projection (saved to fire_projections, once a day, so it can be compared
+  // later); for an age reached, the last projection saved before that birthday. Actual: what you had on the birthday.
   function milestonesHTML() {
     if (!me1?.birth_date || !payNow && !Object.keys(payByYear).length) return `<section class="card"><h2>Milestones</h2>
       <p class="muted">Add ${me1?.birth_date ? 'your jobs on Salary' : 'your birth date in Settings'} to see savings milestones by age.</p></section>`;
-    const born = me1.birth_date, rows = MILESTONES.map(([age, x]) => {
+    const born = me1.birth_date, save = [];
+    const rows = MILESTONES.map(([age, x]) => {
       const date = `${+born.slice(0, 4) + age}${born.slice(4)}`, d = dnum(date), past = d <= now;
       const pay = past ? payByYear[+date.slice(0, 4)] : payNow, target = pay ? x * pay : null;
-      const have = past ? (accounts.some(a => a.updates.some(u => dnum(u.as_of) <= d)) ? totalOn(accounts, d) : null)
-        : atMonths(total, yearly, s.real_return, (d - now) / 30.44);
-      const ok = have != null && target != null ? have >= target : null;
-      return `<tr><td>${age}<br><span class="muted">${date.slice(0, 4)}</span></td><td class="r">${x}× pay${target != null ? `<br><span class="muted">${money(target)}</span>` : ''}</td>
-        <td class="r">${have != null ? money(have) : '<span class="muted">—</span>'}${past ? '' : '<br><span class="muted">projected</span>'}</td>
+      const actual = past && accounts.some(a => a.updates.some(u => dnum(u.as_of) <= d)) ? totalOn(accounts, d) : null;
+      const saved = projections.filter(p => p.age === age && p.made_on < date).at(-1);
+      const proj = past ? (saved ? +saved.projected : null) : atMonths(total, yearly, s.real_return, (d - now) / 30.44);
+      if (!past && total) save.push({ age, made_on: today(), projected: Math.round(proj) });
+      const check = past ? actual : proj, ok = check != null && target != null ? check >= target : null;
+      return `<tr${past ? ' class="reached"' : ''}><td>${age}<br><span class="muted">${date.slice(0, 4)}</span></td>
+        <td class="r">${x}× pay${target != null ? `<br><span class="muted">${money(target)}</span>` : ''}</td>
+        <td class="r">${proj != null ? money(proj) : '<span class="muted">—</span>'}${past && saved ? `<br><span class="muted">as of ${fmtMonthYear(saved.made_on)}</span>` : ''}</td>
+        <td class="r">${actual != null ? `<b>${money(actual)}</b>${proj ? `<br><span class="muted ${actual >= proj ? 'up' : 'down'}">${signed(actual - proj)}</span>` : ''}`
+          : `<span class="muted">${past ? '—' : 'not yet'}</span>`}</td>
         <td class="r">${ok == null ? '' : ok ? '<span class="chip ok">On Track</span>' : '<span class="chip warn">Behind</span>'}</td></tr>`;
     });
+    if (save.length) sb.from('fire_projections').upsert(save).then(r => { if (r.error) logError('error', r.error.message); });
     return `<section class="card"><h2>Milestones</h2>
-      <p class="hint">A common rule of thumb for retiring around 67: savings of 1× your pay by 30, 3× by 40, 6× by 50, 8× by 60 and 10× by 67. Pay here is household pay${ageNow != null ? `; ages are ${esc(me1.name)}'s (${ageNow} now)` : ''}.</p>
-      <div class="table-wrap"><table><thead><tr><th>Age</th><th class="r">Goal</th><th class="r">Invested</th><th class="r"></th></tr></thead>
+      <p class="hint">A common rule of thumb for retiring around 67: savings of 1× your pay by 30, 2× by 35, 3× by 40, 4× by 45, 6× by 50, 7× by 55,
+        8× by 60 and 10× by 67 (9× at 65 is halfway between). Pay here is household pay${ageNow != null ? `; ages are ${esc(me1.name)}'s (${ageNow} now)` : ''}.
+        Projected is saved each day you open this page, so when you reach an age it shows what was projected beside what you had.</p>
+      <div class="table-wrap"><table><thead><tr><th>Age</th><th class="r">Goal</th><th class="r">Projected</th><th class="r">Actual</th><th class="r"></th></tr></thead>
       <tbody>${rows.join('')}</tbody></table></div></section>`;
   }
 }
