@@ -24,6 +24,7 @@ Sign in with your usual email and password. Then:
 Run each of these once in the SQL Editor if your `schema.sql` predates it (a fresh `schema.sql` already has them):
 
 - `fire/supabase/migrations/2026-10-15-contributions.sql`: contributions on accounts, and Paychecks on jobs.
+- `fire/supabase/migrations/2026-10-15-pay-days.sql`: Pay Days on jobs.
 
 ## Good to know
 

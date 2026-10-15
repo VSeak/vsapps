@@ -22,15 +22,24 @@ function contribYearly(c, jobsById, d) {
 // skip(d) leaves a day out (days an account's updates already cover).
 function planBetween(lines, jobsById, from, to, source = null, skip = null, perYear = null) {
   let sum = 0;
+  const add = (d, v) => {
+    sum += v;
+    if (perYear) { const y = new Date(d * 864e5).getUTCFullYear(); perYear[y] = (perYear[y] || 0) + v; }
+  };
   for (const c of lines) {
     if (source && c.source !== source) continue;
     const a = Math.max(from, dnum(c.start_date)), b = Math.min(to, c.end_date ? dnum(c.end_date) + 1 : Infinity);
+    // A percent of pay or dollars a paycheck, from a job with pay days: it goes in on each payday (a percent of that
+    // paycheck). The job's last paycheck, after its last day, still counts.
+    const job = jobsById[c.job_id];
+    if (job && hasPayDays(job) && (c.kind === 'percent' || c.per === 'paycheck')) {
+      for (const pc of paychecks(job, a, b) || []) if (!skip?.(pc.day)) add(pc.day, c.kind === 'percent' ? +c.percent / 100 * pc.amount : +c.amount);
+      continue;
+    }
     for (let d = a; d < b; d++) {
       if (skip?.(d)) continue;
       const v = contribYearly(c, jobsById, d) / 365.25;
-      if (!v) continue;
-      sum += v;
-      if (perYear) { const y = new Date(d * 864e5).getUTCFullYear(); perYear[y] = (perYear[y] || 0) + v; }
+      if (v) add(d, v);
     }
   }
   return sum;

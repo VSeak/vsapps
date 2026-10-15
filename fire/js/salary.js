@@ -1,6 +1,7 @@
 // ---------- Salary: jobs, pay changes, bonuses, W-2 totals ----------
 // A job's pay is a list of changes, each starting on a date and lasting until the next one (or the job's end date).
-// A year's estimate is each rate prorated by the days it was in effect, plus that year's bonuses. A W-2 total for the
+// A year's estimate is the paychecks paid that year (by pay days, below; without them each rate prorated by the days
+// it was in effect), plus that year's bonuses. A W-2 total for the
 // job and year replaces the estimate (it already has the bonuses in it). The current year is estimated to Dec 31.
 
 const PAY_KINDS = { salary: 'Salary', hourly: 'Hourly', none: 'No Pay' };
@@ -42,6 +43,52 @@ function rateOn(job, d) {
   return p ? p.rate : null;
 }
 
+// ---------- Pay days ----------
+// A job with pay days is paid on them, so a year's pay is the paychecks dated that year (as a W-2 counts it: late
+// December's work paid in January counts in January's year). Each paycheck pays the days since the payday before,
+// as 1/paychecks of the yearly rate when the job ran the whole time, less for a first or last partial one, mixed when
+// the rate changed in between. A payday on a weekend is paid the Friday before. Without pay days, pay is spread by day.
+const hasPayDays = job => (job.paychecks === 24 && job.pay_days?.length === 2) || (job.paychecks === 12 && job.pay_days?.length === 1)
+  || ((job.paychecks === 26 || job.paychecks === 52) && !!job.pay_anchor);
+// The job's paydays (as scheduled, before the weekend move) from day a to day b, both included.
+function payDays(job, a, b) {
+  const out = [];
+  if (job.paychecks === 26 || job.paychecks === 52) {
+    const step = job.paychecks === 26 ? 14 : 7, an = dnum(job.pay_anchor);
+    for (let d = an + Math.ceil((a - an) / step) * step; d <= b; d += step) out.push(d);
+    return out;
+  }
+  const days = [...job.pay_days].sort((x, y) => x - y), s = new Date(a * 864e5), e = new Date(b * 864e5);
+  for (let y = s.getUTCFullYear(), m = s.getUTCMonth(); y * 12 + m <= e.getUTCFullYear() * 12 + e.getUTCMonth(); m === 11 ? (y++, m = 0) : m++) {
+    const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    for (const pd of days) { const d = Date.UTC(y, m, Math.min(pd, last)) / 864e5; if (d >= a && d <= b) out.push(d); }
+  }
+  return out;
+}
+const paidOn = d => { const w = new Date(d * 864e5).getUTCDay(); return w === 6 ? d - 1 : w === 0 ? d - 2 : d; };
+// Yearly rate × days, added up over the days from a up to (not including) b.
+function rateDaysBetween(job, a, b) {
+  return payPeriods(job).reduce((s, p) => s + p.rate * Math.max(0, Math.min(p.to, b) - Math.max(p.from, a)), 0);
+}
+// The paychecks paid from day `from` up to (not including) day `to`: [{day (paid), amount}]. null without pay days.
+function paychecks(job, from, to) {
+  if (!hasPayDays(job)) return null;
+  from = Math.max(from, dnum(job.start_date));
+  const end = job.end_date ? dnum(job.end_date) + 45 : Infinity;   // the last paycheck comes after the last day
+  to = Math.min(to, end);
+  if (to <= from) return [];
+  const days = payDays(job, from - 45, to + 3), out = [];
+  for (let i = 1; i < days.length; i++) {
+    const paid = paidOn(days[i]);
+    if (paid < from || paid >= to) continue;
+    const len = days[i] - days[i - 1], amount = rateDaysBetween(job, days[i - 1] + 1, days[i] + 1) / len / job.paychecks;
+    if (amount > 0) out.push({ day: paid, amount });
+  }
+  return out;
+}
+const payDaysText = job => !hasPayDays(job) ? '' : job.pay_anchor ? `${PAYCHECKS[job.paychecks].toLowerCase()} from ${fmtDate(job.pay_anchor)}`
+  : `on the ${job.pay_days.map(n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th')).join(' and ')}`;
+
 // One job in one year. null for a year it has nothing in (or a year that hasn't started).
 function jobYear(job, y) {
   const ys = yearStart(y), ye = yearStart(y + 1), now = dnum(today());
@@ -54,15 +101,17 @@ function jobYear(job, y) {
     days += b - a;
     rateDays += p.rate * (b - a);
   }
+  const checks = paychecks(job, ys, ye);
+  if (checks) base = checks.reduce((s, c) => s + c.amount, 0);
+  if (!days && !base && !job.bonuses.some(b => +b.paid_on.slice(0, 4) === y) && job.actuals[y] == null) return null;
   const bonuses = job.bonuses.filter(b => +b.paid_on.slice(0, 4) === y);
   const bonus = bonuses.reduce((s, b) => s + (b.amount != null ? +b.amount : +b.percent / 100 * (rateOn(job, dnum(b.paid_on)) || 0)), 0);
   const actual = job.actuals[y] ?? null;
-  if (!days && !bonuses.length && actual == null) return null;
   // The rate at the end of the year, or on the job's last day if it ended that year.
   const end = job.end_date ? Math.min(ye - 1, dnum(job.end_date)) : ye - 1;
   const estimate = base + bonus;
-  return { y, job, base, bonus, estimate, actual, earned: actual ?? estimate, estimated: actual == null,
-    avgRate: days ? rateDays / days : null, endRate: end >= ys ? rateOn(job, end) : null, current: ye > now };
+  return { y, job, base, bonus, estimate, actual, earned: actual ?? estimate, estimated: actual == null, checks: checks?.length ?? null,
+    avgRate: days ? rateDays / days : null, endRate: end >= ys ? rateOn(job, end) : null, current: ye > now && !(job.end_date && dnum(job.end_date) < now) };
 }
 
 const fullYears = (job, upTo) => {
@@ -220,7 +269,7 @@ async function jobPage(id) {
   const yearlyNow = j.pays.length ? yearlyRate(j.pays.at(-1)) : null;
   view(`${crumbs([['Salary', '#/salary'], [j.employer]])}
     <div class="page-head"><div><h1 class="big">${esc(j.employer)}</h1>
-      <p class="muted">${[person?.name, j.title, `${fmtDate(j.start_date)} – ${j.end_date ? fmtDate(j.end_date) : 'now'}`, `Paid ${(PAYCHECKS[j.paychecks] || '').toLowerCase()}`].filter(Boolean).map(esc).join(' · ')}</p></div>
+      <p class="muted">${[person?.name, j.title, `${fmtDate(j.start_date)} – ${j.end_date ? fmtDate(j.end_date) : 'now'}`, `Paid ${(PAYCHECKS[j.paychecks] || '').toLowerCase()}${hasPayDays(j) ? ' ' + payDaysText(j).replace(/^[a-z ]+ from/, 'from') : ''}`].filter(Boolean).map(esc).join(' · ')}</p></div>
       <button type="button" id="editJob">Edit Job</button></div>
     <section class="card"><div class="row between wrap"><h2>Pay Changes</h2><button type="button" class="small" id="addPay">+ Add Pay Change</button></div>
       <p class="hint">Each rate lasts until the next change. Add one for every raise, and for switching between hourly and salary.</p>
@@ -243,7 +292,7 @@ async function jobPage(id) {
       <p class="hint">Tap a year to add its W-2 total (box 1 is after pre-tax 401(k) money comes out, so box 5 is usually closer to your full pay). It replaces the estimate.</p>
       ${years.length ? `<div class="table-wrap"><table><thead><tr><th>Year</th><th class="r">Estimate</th><th class="r">W-2</th><th class="r">Avg Rate</th></tr></thead>
         <tbody>${years.map(r => `<tr class="click" tabindex="0" data-year="${r.y}"><td>${r.y}${r.current ? '<br><span class="muted">to Dec 31</span>' : ''}</td>
-          <td class="r${r.actual != null ? ' muted' : ''}">${money(r.estimate)}${r.bonus ? `<br><span class="muted">incl. ${money(r.bonus)} bonus</span>` : ''}</td>
+          <td class="r${r.actual != null ? ' muted' : ''}">${money(r.estimate)}${r.checks != null ? `<br><span class="muted">${r.checks} paycheck${r.checks === 1 ? '' : 's'}</span>` : ''}${r.bonus ? `<br><span class="muted">incl. ${money(r.bonus)} bonus</span>` : ''}</td>
           <td class="r">${r.actual != null ? `<b>${money(r.actual)}</b>` : '<span class="link">Add</span>'}</td>
           <td class="r">${r.avgRate != null ? money(r.avgRate) : ''}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="muted">Years show here once the job has pay.</p>'}
@@ -312,10 +361,28 @@ async function jobDialog(j, people, personId = null) {
         <label>Started<input type="date" name="start_date" value="${esc(j?.start_date || '')}" required data-need="Pick the day you started."></label>
         <label>Ended <span class="muted">(blank = still there)</span><input type="date" name="end_date" value="${esc(j?.end_date || '')}"></label>
       </div>
-      <label>Paychecks<select name="paychecks">${Object.entries(PAYCHECKS).map(([n, v]) => `<option value="${n}"${+(j?.paychecks || 24) === +n ? ' selected' : ''}>${v} (${n} a year)</option>`).join('')}</select></label>
+      <div class="two">
+        <label>Paychecks<select name="paychecks">${Object.entries(PAYCHECKS).map(([n, v]) => `<option value="${n}"${+(j?.paychecks || 24) === +n ? ' selected' : ''}>${v} (${n} a year)</option>`).join('')}</select></label>
+        <label data-pdm>Pay Days <span class="muted">(day of the month)</span><span class="row" style="margin-top:.3rem">
+          <input type="number" name="pd1" min="1" max="31" inputmode="numeric" value="${esc(j?.pay_days?.[0] ?? '')}" aria-label="First pay day" data-range="Use a day from 1 to 31." style="margin:0">
+          <input type="number" name="pd2" min="1" max="31" inputmode="numeric" value="${esc(j?.pay_days?.[1] ?? '')}" aria-label="Second pay day" data-range="Use a day from 1 to 31." style="margin:0"></span></label>
+        <label data-pda>A Payday<input type="date" name="pay_anchor" value="${esc(j?.pay_anchor || '')}"></label>
+      </div>
+      <p class="hint">Pay and paycheck contributions count on these days (a weekend payday counts the Friday before), so a year's pay matches your W-2. Leave them blank to spread pay evenly over the days.</p>
       ${j ? '' : `<h3>Starting Pay</h3>${payFieldsHTML()}<p class="hint">Add raises on the job's page once it's saved.</p>`}
       <label>Notes <span class="muted">(optional)</span><textarea name="notes" maxlength="2000" rows="2">${esc(j?.notes)}</textarea></label>`,
-    onOpen: form => { if (!j) wirePayFields(form); } });
+    onOpen: form => {
+      if (!j) wirePayFields(form);
+      // Twice a month: two days of the month; monthly: one; every two weeks or weekly: one payday date.
+      const set = () => {
+        const n = +form.elements.paychecks.value;
+        form.querySelector('[data-pdm]').hidden = n > 24;
+        form.elements.pd2.hidden = n !== 24;
+        form.querySelector('[data-pda]').hidden = n <= 24;
+      };
+      form.elements.paychecks.addEventListener('change', set);
+      set();
+    } });
   if (!f) return null;
   if (f.get('button') === 'delete') {
     if (!await confirmDelete('Delete Job?', `This deletes ${esc(j.employer)} with its pay changes, bonuses and W-2 totals. Accounts linked to it stay.`)) return null;
@@ -327,6 +394,11 @@ async function jobDialog(j, people, personId = null) {
   }
   const row = { employer: f.get('employer').trim(), title: f.get('title').trim(), person_id: f.get('person'), start_date: f.get('start_date'),
     end_date: f.get('end_date') || null, paychecks: +f.get('paychecks'), notes: f.get('notes').trim() };
+  const n = row.paychecks, days = [f.get('pd1'), n === 24 ? f.get('pd2') : ''].filter(Boolean).map(Number);
+  if (n === 24 && days.length === 1) { flash('Twice a month needs both pay days (or neither).', 'error'); return null; }
+  row.pay_days = n <= 24 && days.length ? [...new Set(days)].sort((a, b) => a - b) : null;
+  if (row.pay_days?.length === 1 && n === 24) { flash('Pick two different pay days.', 'error'); return null; }
+  row.pay_anchor = n > 24 ? f.get('pay_anchor') || null : null;
   if (row.end_date && row.end_date < row.start_date) { flash('The end date is before the start date.', 'error'); return null; }
   return busy(null, async () => {
     if (j) { await sb.from('fire_jobs').update(row).eq('id', j.id).then(must); flash('Job saved.'); return j.id; }

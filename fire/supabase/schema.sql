@@ -44,6 +44,10 @@ create table public.fire_jobs (
   start_date date not null,
   end_date date check (end_date is null or end_date >= start_date),   -- null = still there
   paychecks int not null default 24 check (paychecks in (12, 24, 26, 52)),   -- a year: monthly, twice a month, every two weeks, weekly
+  -- Pay days: monthly or twice a month, the day(s) of the month; every two weeks or weekly, any one payday. Neither =
+  -- pay is spread evenly over the days.
+  pay_days int[] check (pay_days is null or (cardinality(pay_days) between 1 and 2 and 1 <= all (pay_days) and 31 >= all (pay_days))),
+  pay_anchor date,
   notes text not null default '' check (length(notes) <= 2000),
   created_at timestamptz not null default now()
 );
