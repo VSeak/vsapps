@@ -49,6 +49,9 @@ function contribText(c, jobsById) {
 function contribCardHTML(a, jobsById) {
   const lines = [...a.contributions].sort((x, y) => y.source.localeCompare(x.source) || y.start_date.localeCompare(x.start_date));
   const now = dnum(today()), you = planYearlyNow(a.contributions, jobsById, 'you'), emp = planYearlyNow(a.contributions, jobsById, 'employer');
+  // This calendar year: only the days a line runs (a mid-year start counts from then; the rest of the year at today's pay).
+  const cy = new Date().getFullYear(), thisYear = c => Math.round(planBetween([c], jobsById, yearStart(cy), yearStart(cy + 1)));
+  const yearTotal = lines.reduce((s, c) => s + thisYear(c), 0);
   return `<section class="card"><div class="row between wrap"><h2>Contributions</h2><button type="button" class="small" id="addContrib">+ Add Contribution</button></div>
     <p class="hint">What goes in each paycheck or year. It fills in new updates and the FIRE projection. A line tied to a job stops when the job ends.</p>
     ${lines.length ? `<div class="table-wrap"><table><tbody>${lines.map(c => {
@@ -57,9 +60,11 @@ function contribCardHTML(a, jobsById) {
         : dnum(c.start_date) > now ? 'Not started' : 'Nothing now';
       return `<tr class="click" tabindex="0" data-contrib="${c.id}"><td><b>${SOURCES[c.source]}</b> · ${contribText(c, jobsById)}
           <br><span class="muted">${fmtDate(c.start_date)} – ${c.end_date ? fmtDate(c.end_date) : 'now'}${c.note ? ' · ' + esc(c.note) : ''}</span></td>
-        <td class="r">${yr ? `${money(yr)}<br><span class="muted">a year</span>` : `<span class="chip">${why}</span>`}</td></tr>`;
+        <td class="r">${yr ? `${money(yr)} a year` : `<span class="chip">${why}</span>`}${thisYear(c) && Math.abs(thisYear(c) - yr) >= 1
+          ? `<br><span class="muted">${money(thisYear(c))} in ${cy}</span>` : ""}</td></tr>`;
     }).join('')}</tbody></table></div>
-    ${you + emp ? `<p style="margin:.7rem 0 0"><b>${money(you + emp)} a year now</b> <span class="muted">· you ${money(you)} · employer ${money(emp)}</span></p>` : ''}`
+    ${you + emp ? `<p style="margin:.7rem 0 0"><b>${money(you + emp)} a year</b> <span class="muted">at today's pay · you ${money(you)} · employer ${money(emp)}</span>
+      ${Math.abs(yearTotal - you - emp) >= 1 ? `<br><b>${money(yearTotal)} in ${cy}</b> <span class="muted">counting only the days each line runs this year</span>` : ""}</p>` : ''}`
     : '<p class="muted">No contributions yet. Add yours and your employer\'s, like 4% of pay or $100 a paycheck.</p>'}
   </section>`;
 }
