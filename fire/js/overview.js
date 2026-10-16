@@ -132,6 +132,7 @@ async function homePage() {
       </div>
       ${projectionChart(accounts, pr.path, fiNumber, fireDate)}
       <div class="legend"><span><i></i>Invested</span><span><i class="put"></i>Projected</span><span><i class="goal"></i>FIRE number</span></div>`;
+    chartHover($('#fiBody .chart'));
     $('#extraText').textContent = extra ? '+' + money(extra) : 'No change';
     const basis = planNow ? `your contributions (last 12 months: ${money(lastYear)})` : 'what you and employers put in over the last 12 months (add contributions on an account to use your plan)';
     $('#fiHint').innerHTML = `Saving about ${money(save)} a year: ${extra ? `${money(yearly)} from ${basis}, plus ${money(extra)}` : basis}.
@@ -191,13 +192,48 @@ function projectionChart(accounts, path, goal, fireDate) {
   const xs = [];
   for (let yy = y0 + 1; yy <= y1; yy++) if ((yy - y0) % every === 0) xs.push(`<text x="${x(new Date(yy, 0, 1).getTime())}" y="${H - 6}" text-anchor="middle">${yy}</text>`);
   const histLine = hist.length ? line([...hist, [nowT, proj[0][1]]]) : '';
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Invested so far and projected">
+  // Every point on the line, for the hover readout (chartHover): time, value, and whether it's still a projection.
+  const pts = [...hist.filter(p => p[0] < nowT), ...proj].map(([tm, v]) => [Math.round(tm), Math.round(v), tm >= nowT ? 1 : 0]);
+  const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts }));
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Invested so far and projected" data-hover="${hover}">
     <g class="grid">${grid.join('')}</g><g class="axis">${xs.join('')}</g>
     <line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>
     ${histLine ? `<path class="area" d="${histLine}L${x(nowT)},${y(0)}L${x(t0)},${y(0)}Z"/><path class="bal" d="${histLine}"/>` : ''}
     <path class="proj" d="${line(proj)}"/>
     ${fireDate && fireDate.getTime() <= t1 ? `<circle class="fire-dot" cx="${x(fireDate.getTime())}" cy="${y(goal)}" r="5"><title>FIRE ${fireDate.getFullYear()}</title></circle>` : ''}
+    <g class="hover" visibility="hidden"><line/><circle r="4.5"/><rect rx="6"/><text><tspan class="yr"/><tspan class="amt"/></text></g>
   </svg>`;
+}
+
+// Hover (or touch and drag) the projection chart: a vertical line with the year and the amount invested then.
+function chartHover(svg) {
+  if (!svg?.dataset.hover) return;
+  const { W, H, L, R, T, B, t0, t1, top, pts } = JSON.parse(svg.dataset.hover);
+  const g = svg.querySelector('.hover'), [ln, dot, box, txt] = g.children, [yr, amt] = txt.children;
+  const y = v => T + (1 - Math.min(v, top) / top) * (H - T - B);
+  const show = e => {
+    const r = svg.getBoundingClientRect();
+    const sx = Math.min(W - R, Math.max(L, (e.clientX - r.left) / r.width * W)), tm = t0 + (sx - L) / (W - L - R) * (t1 - t0);
+    let i = pts.findIndex(p => p[0] >= tm);
+    if (i < 0) i = pts.length - 1;
+    const a = pts[Math.max(0, i - 1)], b = pts[i], f = b[0] > a[0] ? Math.min(1, Math.max(0, (tm - a[0]) / (b[0] - a[0]))) : 1;
+    const v = a[1] + (b[1] - a[1]) * f, cy = y(v);
+    ln.setAttribute('x1', sx); ln.setAttribute('x2', sx); ln.setAttribute('y1', T); ln.setAttribute('y2', H - B);
+    dot.setAttribute('cx', sx); dot.setAttribute('cy', cy);
+    yr.textContent = new Date(tm).getFullYear() + (b[2] ? ' · Projected' : '');
+    amt.textContent = money(v);
+    g.setAttribute('visibility', 'visible');
+    // The label sits beside the line, flipping to the left near the right edge, above the dot unless that's off the top.
+    const right = sx > W * .62, tx = right ? sx - 10 : sx + 10;
+    txt.setAttribute('text-anchor', right ? 'end' : 'start');
+    yr.setAttribute('x', tx); amt.setAttribute('x', tx);
+    const ty = Math.max(T + 16, cy - 34);
+    yr.setAttribute('y', ty); amt.setAttribute('y', ty + 17);
+    const bb = txt.getBBox();
+    box.setAttribute('x', bb.x - 7); box.setAttribute('y', bb.y - 4); box.setAttribute('width', bb.width + 14); box.setAttribute('height', bb.height + 8);
+  };
+  svg.onpointerdown = svg.onpointermove = show;
+  svg.onpointerleave = e => { if (e.pointerType === 'mouse') g.setAttribute('visibility', 'hidden'); };
 }
 
 // ---------- Spending: one number a year ----------

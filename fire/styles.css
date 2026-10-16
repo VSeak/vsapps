@@ -254,6 +254,13 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .chart .goal { stroke: var(--gold); stroke-width: 1.8; stroke-dasharray: 2 4; stroke-linecap: round; }
 .chart .proj { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-dasharray: 6 5; stroke-linecap: round; }
 .chart .fire-dot { fill: var(--gold); stroke: var(--card); stroke-width: 2.5; }
+.chart[data-hover] { touch-action: pan-y; cursor: crosshair; }
+.chart .hover { pointer-events: none; }
+.chart .hover line { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.chart .hover circle { fill: var(--card); stroke: var(--accent); stroke-width: 2.4; }
+.chart .hover rect { fill: var(--card); stroke: var(--line); }
+.chart .hover text { font: 12px "IBM Plex Sans", sans-serif; font-variant-numeric: tabular-nums; fill: var(--muted); }
+.chart .hover .amt { font: 600 14px Outfit, sans-serif; fill: var(--ink, currentColor); }
 .legend i.goal { border-top: 2px dotted var(--gold); }
 .slider { margin-top: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .6rem; }
 .slider b { font-variant-numeric: tabular-nums; color: var(--accent-text); }
