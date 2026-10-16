@@ -48,6 +48,13 @@ const atMonths = (balance, yearly, realReturn, months) => {
   const m = (1 + realReturn / 100) ** (1 / 12) - 1;
   return m ? balance * (1 + m) ** months + yearly / 12 * ((1 + m) ** months - 1) / m : balance + yearly / 12 * months;
 };
+// Coast FIRE: what's needed `i` months from now to grow to the FIRE number by retirement with no more saving. It rises
+// toward the FIRE number as retirement gets closer. coastHit is the first month the projection reaches it (null: never).
+const coastNeed = (goal, realReturn, retireMonths, i) => goal / (1 + realReturn / 100) ** (Math.max(0, retireMonths - i) / 12);
+function coastHit(balance, yearly, realReturn, goal, retireMonths) {
+  for (let i = 0; i <= retireMonths; i++) if (atMonths(balance, yearly, realReturn, i) >= coastNeed(goal, realReturn, retireMonths, i)) return i;
+  return null;
+}
 const addMonths = (date, n) => { const d = new Date(date); d.setMonth(d.getMonth() + n); return d; };
 const yearsText = months => { const y = months / 12; return y < 1 ? `${months} month${months === 1 ? '' : 's'}` : `${+y.toFixed(1)} years`; };
 
@@ -115,7 +122,9 @@ async function homePage() {
     const ageAt = p => p.birth_date && fireDate ? ageOn(p.birth_date, iso(fireDate)) : null;
     const retireMonths = me1?.birth_date ? Math.max(0, (dnum(me1.birth_date) + s.retire_age * 365.25 - now) / 30.44) : null;
     const atRetire = retireMonths != null ? atMonths(total, save, s.real_return, retireMonths) : null;
-    const coast = retireMonths != null ? fiNumber / (1 + s.real_return / 100) ** (retireMonths / 12) : null;
+    const coast = retireMonths != null ? coastNeed(fiNumber, s.real_return, retireMonths, 0) : null;
+    const coastMonths = retireMonths != null ? coastHit(total, save, s.real_return, fiNumber, retireMonths) : null;
+    const coastDate = coastMonths != null ? addMonths(new Date(), coastMonths) : null;
     const share = Math.min(1, total / fiNumber);
     $('#fiBody').innerHTML = `<div class="fi-top"><div><span class="fi-num">${money(fiNumber)}</span>
         <p class="muted">${money(spend.amount)} a year${spend.year !== cy ? ` (${spend.year}'s spending in today's dollars)` : ''} ÷ ${s.withdrawal_rate}%</p></div>
@@ -128,10 +137,11 @@ async function homePage() {
         ${atRetire != null ? `<div class="stat"><span>At ${esc(me1.name)}'s ${s.retire_age}</span><b class="${atRetire >= fiNumber ? 'up' : 'down'}">${moneyShort(atRetire)}</b>
           <small class="muted">${atRetire >= fiNumber ? 'on track to retire' : `${moneyShort(fiNumber - atRetire)} short`}</small></div>` : ''}
         ${coast != null ? `<div class="stat"><span>Coast FIRE</span><b>${moneyShort(coast)}</b>
-          <small class="muted">${total >= coast ? "there: it grows to FI by " + s.retire_age : `${moneyShort(coast - total)} to go`}</small></div>` : ''}
+          <small class="muted">${total >= coast ? "there: it grows to FI by " + s.retire_age
+            : `${moneyShort(coast - total)} to go${coastDate ? `, there in ${coastDate.getFullYear()}` : ''}`}</small></div>` : ''}
       </div>
-      ${projectionChart(accounts, pr.path, fiNumber, fireDate)}
-      <div class="legend"><span><i></i>Invested</span><span><i class="put"></i>Projected</span><span><i class="goal"></i>FIRE number</span></div>`;
+      ${projectionChart(accounts, pr.path, fiNumber, fireDate, retireMonths != null ? { retireMonths, realReturn: s.real_return, date: coastDate } : null)}
+      <div class="legend"><span><i></i>Invested</span><span><i class="put"></i>Projected</span><span><i class="goal"></i>FIRE number</span>${retireMonths != null ? '<span><i class="coast"></i>Coast FIRE</span>' : ''}</div>`;
     chartHover($('#fiBody .chart'));
     $('#extraText').textContent = extra ? '+' + money(extra) : 'No change';
     const basis = planNow ? `your contributions (last 12 months: ${money(lastYear)})` : 'what you and employers put in over the last 12 months (add contributions on an account to use your plan)';
@@ -174,7 +184,7 @@ async function homePage() {
 }
 
 // Invested so far (at each update date), then the projection from today, with the FIRE number as a line.
-function projectionChart(accounts, path, goal, fireDate) {
+function projectionChart(accounts, path, goal, fireDate, coast) {
   const W = 640, H = 240, L = 52, R = 12, T = 12, B = 26;
   const dates = [...new Set(accounts.flatMap(a => a.updates.map(u => u.as_of)))].sort();
   const hist = dates.map(d => [day(d).getTime(), totalOn(accounts, dnum(d))]);
@@ -195,11 +205,25 @@ function projectionChart(accounts, path, goal, fireDate) {
   // Every point on the line, for the hover readout (chartHover): time, value, and whether it's still a projection.
   const pts = [...hist.filter(p => p[0] < nowT), ...proj].map(([tm, v]) => [Math.round(tm), Math.round(v), tm >= nowT ? 1 : 0]);
   const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts }));
+  // Coast FIRE: the amount needed, from today to retirement (or the chart's end), and a dot where the projection meets it.
+  let coastSvg = '';
+  if (coast) {
+    const mo = 30.44 * 864e5, end = Math.min(coast.retireMonths, (t1 - nowT) / mo), need = [];
+    for (let i = 0; i < end; i += 3) need.push([nowT + i * mo, coastNeed(goal, coast.realReturn, coast.retireMonths, i)]);
+    need.push([nowT + end * mo, coastNeed(goal, coast.realReturn, coast.retireMonths, end)]);
+    coastSvg = `<path class="coast" d="${line(need)}"/>`;
+    const ct = coast.date?.getTime();
+    if (ct != null && ct <= t1) {
+      const cx = x(ct), cy = y(coastNeed(goal, coast.realReturn, coast.retireMonths, (ct - nowT) / mo)), right = cx > W * .7;
+      coastSvg += `<circle class="coast-dot" cx="${cx}" cy="${cy}" r="5"><title>Coast FIRE ${coast.date.getFullYear()}</title></circle>
+        <text class="coast-label" x="${right ? cx - 9 : cx + 9}" y="${cy + 16}" text-anchor="${right ? 'end' : 'start'}">Coast ${coast.date.getFullYear()}</text>`;
+    }
+  }
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Invested so far and projected" data-hover="${hover}">
     <g class="grid">${grid.join('')}</g><g class="axis">${xs.join('')}</g>
     <line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>
     ${histLine ? `<path class="area" d="${histLine}L${x(nowT)},${y(0)}L${x(t0)},${y(0)}Z"/><path class="bal" d="${histLine}"/>` : ''}
-    <path class="proj" d="${line(proj)}"/>
+    <path class="proj" d="${line(proj)}"/>${coastSvg}
     ${fireDate && fireDate.getTime() <= t1 ? `<circle class="fire-dot" cx="${x(fireDate.getTime())}" cy="${y(goal)}" r="5"><title>FIRE ${fireDate.getFullYear()}</title></circle>` : ''}
     <g class="hover" visibility="hidden"><line/><circle r="4.5"/><rect rx="6"/><text><tspan class="yr"/><tspan class="amt"/></text></g>
   </svg>`;
