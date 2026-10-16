@@ -189,8 +189,10 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
   const dates = [...new Set(accounts.flatMap(a => a.updates.map(u => u.as_of)))].sort();
   const hist = dates.map(d => [day(d).getTime(), totalOn(accounts, dnum(d))]);
   const nowT = Date.now(), yr = 365.25 * 864e5;
-  // Project as far as the FIRE date plus a few years (at least 10 years out), never past the path.
-  const yearsOut = Math.min(path.length - 1, Math.max(10, fireDate ? Math.ceil((fireDate - nowT) / yr) + 3 : 25));
+  // Project as far as the FIRE date plus a few years (at least 10 years out), and through retirement age when there's a
+  // Coast FIRE curve (it meets the FIRE number there), never past the path.
+  const yearsOut = Math.min(path.length - 1, Math.max(10, fireDate ? Math.ceil((fireDate - nowT) / yr) + 3 : 25,
+    coast ? Math.ceil(coast.retireMonths / 12) + 1 : 0));
   const proj = path.slice(0, yearsOut + 1).map((v, i) => [nowT + i * yr, v]);
   const t0 = hist[0]?.[0] ?? nowT, t1 = proj.at(-1)[0];
   const hi = Math.max(goal * 1.1, ...proj.map(p => p[1]), ...hist.map(p => p[1])), step = niceStep(hi), top = Math.ceil(hi / step) * step;
