@@ -204,7 +204,8 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
   const histLine = hist.length ? line([...hist, [nowT, proj[0][1]]]) : '';
   // Every point on the line, for the hover readout (chartHover): time, value, and whether it's still a projection.
   const pts = [...hist.filter(p => p[0] < nowT), ...proj].map(([tm, v]) => [Math.round(tm), Math.round(v), tm >= nowT ? 1 : 0]);
-  const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts }));
+  const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts,
+    coast: coast && { goal, nowT, retireMonths: coast.retireMonths, realReturn: coast.realReturn } }));
   // Coast FIRE: the amount needed, from today to retirement (or the chart's end), and a dot where the projection meets it.
   let coastSvg = '';
   if (coast) {
@@ -225,15 +226,15 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
     ${histLine ? `<path class="area" d="${histLine}L${x(nowT)},${y(0)}L${x(t0)},${y(0)}Z"/><path class="bal" d="${histLine}"/>` : ''}
     <path class="proj" d="${line(proj)}"/>${coastSvg}
     ${fireDate && fireDate.getTime() <= t1 ? `<circle class="fire-dot" cx="${x(fireDate.getTime())}" cy="${y(goal)}" r="5"><title>FIRE ${fireDate.getFullYear()}</title></circle>` : ''}
-    <g class="hover" visibility="hidden"><line/><circle r="4.5"/><rect rx="6"/><text><tspan class="yr"/><tspan class="amt"/></text></g>
+    <g class="hover" visibility="hidden"><line/><circle class="cdot" r="4"/><circle r="4.5"/><rect rx="6"/><text><tspan class="yr"/><tspan class="amt"/><tspan class="cst"/></text></g>
   </svg>`;
 }
 
 // Hover (or touch and drag) the projection chart: a vertical line with the year and the amount invested then.
 function chartHover(svg) {
   if (!svg?.dataset.hover) return;
-  const { W, H, L, R, T, B, t0, t1, top, pts } = JSON.parse(svg.dataset.hover);
-  const g = svg.querySelector('.hover'), [ln, dot, box, txt] = g.children, [yr, amt] = txt.children;
+  const { W, H, L, R, T, B, t0, t1, top, pts, coast } = JSON.parse(svg.dataset.hover);
+  const g = svg.querySelector('.hover'), [ln, cdot, dot, box, txt] = g.children, [yr, amt, cst] = txt.children;
   const y = v => T + (1 - Math.min(v, top) / top) * (H - T - B);
   const show = e => {
     const r = svg.getBoundingClientRect();
@@ -246,13 +247,18 @@ function chartHover(svg) {
     dot.setAttribute('cx', sx); dot.setAttribute('cy', cy);
     yr.textContent = new Date(tm).getFullYear() + (b[2] ? ' · Projected' : '');
     amt.textContent = money(v);
+    // From today to retirement, also the Coast FIRE amount needed then (a second dot on its curve).
+    const ci = coast ? (tm - coast.nowT) / (30.44 * 864e5) : -1, cv = ci >= 0 && ci <= coast.retireMonths ? coastNeed(coast.goal, coast.realReturn, coast.retireMonths, ci) : null;
+    cst.textContent = cv != null ? 'Coast FIRE ' + money(cv) : '';
+    cdot.setAttribute('visibility', cv != null ? 'inherit' : 'hidden');
+    if (cv != null) { cdot.setAttribute('cx', sx); cdot.setAttribute('cy', y(cv)); }
     g.setAttribute('visibility', 'visible');
     // The label sits beside the line, flipping to the left near the right edge, above the dot unless that's off the top.
     const right = sx > W * .62, tx = right ? sx - 10 : sx + 10;
     txt.setAttribute('text-anchor', right ? 'end' : 'start');
-    yr.setAttribute('x', tx); amt.setAttribute('x', tx);
-    const ty = Math.max(T + 16, cy - 34);
-    yr.setAttribute('y', ty); amt.setAttribute('y', ty + 17);
+    yr.setAttribute('x', tx); amt.setAttribute('x', tx); cst.setAttribute('x', tx);
+    const ty = Math.max(T + 16, cy - (cv != null ? 52 : 34));
+    yr.setAttribute('y', ty); amt.setAttribute('y', ty + 17); cst.setAttribute('y', ty + 34);
     const bb = txt.getBBox();
     box.setAttribute('x', bb.x - 7); box.setAttribute('y', bb.y - 4); box.setAttribute('width', bb.width + 14); box.setAttribute('height', bb.height + 8);
   };
