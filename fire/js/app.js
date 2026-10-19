@@ -46,6 +46,8 @@ function slowCheck(url, opts, ms) {
 async function loadMe(user) {
   const row = await sb.from('fire_owner').select('email').maybeSingle().then(must);
   me = { user, isOwner: !!row };
+  // The home page shows its FIRE card only on a device where the owner has signed in here (looks only; the tables are what keep it private).
+  try { me.isOwner ? localStorage.setItem('vsapps.fireOwner', '1') : localStorage.removeItem('vsapps.fireOwner'); } catch {}
 }
 
 // Unsaved edits: a form field on the page that differs from how the page drew it.
@@ -114,6 +116,7 @@ function showError(e) {
 $('#signOut').onclick = async () => {
   if (!await okToLeave(true)) return;
   await sb.auth.signOut({ scope: 'local' });   // this device only: the same login may be signed in to the other apps elsewhere
+  try { localStorage.removeItem('vsapps.fireOwner'); } catch {}
   me = null;
   history.replaceState(null, '', BASE + '#/');
   currentHash = location.hash;
