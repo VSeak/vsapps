@@ -189,6 +189,8 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
   const dates = [...new Set(accounts.flatMap(a => a.updates.map(u => u.as_of)))].sort();
   const hist = dates.map(d => [day(d).getTime(), totalOn(accounts, dnum(d))]);
   const nowT = Date.now(), yr = 365.25 * 864e5;
+  // The FIRE and Coast FIRE dots sit on January 1 of their year (not today, if that's later), where the hover snaps.
+  const janOf = d => Math.max(nowT, new Date(d.getFullYear(), 0, 1).getTime());
   // Project as far as the FIRE date plus a few years (at least 10 years out), and through retirement age when there's a
   // Coast FIRE curve (it meets the FIRE number there), never past the path.
   const yearsOut = Math.min(path.length - 1, Math.max(10, fireDate ? Math.ceil((fireDate - nowT) / yr) + 3 : 25,
@@ -215,7 +217,7 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
     for (let i = 0; i < end; i += 3) need.push([nowT + i * mo, coastNeed(goal, coast.realReturn, coast.retireMonths, i)]);
     need.push([nowT + end * mo, coastNeed(goal, coast.realReturn, coast.retireMonths, end)]);
     coastSvg = `<path class="coast" d="${line(need)}"/>`;
-    const ct = coast.date?.getTime();
+    const ct = coast.date && janOf(coast.date);
     if (ct != null && ct <= t1) {
       const cx = x(ct), cy = y(coastNeed(goal, coast.realReturn, coast.retireMonths, (ct - nowT) / mo)), right = cx > W * .7;
       coastSvg += `<circle class="coast-dot" cx="${cx}" cy="${cy}" r="5"><title>Coast FIRE ${coast.date.getFullYear()}</title></circle>
@@ -227,7 +229,7 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
     <line class="goal" x1="${L}" x2="${W - R}" y1="${y(goal)}" y2="${y(goal)}"/>
     ${histLine ? `<path class="area" d="${histLine}L${x(nowT)},${y(0)}L${x(t0)},${y(0)}Z"/><path class="bal" d="${histLine}"/>` : ''}
     <path class="proj" d="${line(proj)}"/>${coastSvg}
-    ${fireDate && fireDate.getTime() <= t1 ? `<circle class="fire-dot" cx="${x(fireDate.getTime())}" cy="${y(goal)}" r="5"><title>FIRE ${fireDate.getFullYear()}</title></circle>` : ''}
+    ${fireDate && janOf(fireDate) <= t1 ? `<circle class="fire-dot" cx="${x(janOf(fireDate))}" cy="${y(goal)}" r="5"><title>FIRE ${fireDate.getFullYear()}</title></circle>` : ''}
     <g class="hover" visibility="hidden"><line/><circle class="cdot" r="4"/><circle r="4.5"/><rect rx="6"/><text><tspan class="yr"/><tspan class="amt"/><tspan class="cst"/></text></g>
   </svg>`;
 }
