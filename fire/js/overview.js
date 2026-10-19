@@ -4,7 +4,8 @@
 
 const ICON_ARROW = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
   stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
-const STALE_DAYS = 365;   // an open account not updated in this long gets a reminder
+const STALE_DAYS = 91;    // an open account not updated in about 3 months gets a reminder (the user asked)
+const isStale = (a, now = dnum(today())) => !a.closed_on && (!a.latest || now - dnum(a.latest.as_of) > STALE_DAYS);
 // Rule-of-thumb savings by age, as a multiple of yearly pay.
 // Every 5 years (the user asked); 65 is halfway between 60 and 67.
 const MILESTONES = [[30, 1], [35, 2], [40, 3], [45, 4], [50, 6], [55, 7], [60, 8], [65, 9], [67, 10]];
@@ -71,7 +72,7 @@ async function homePage() {
     .map(([name, id]) => [name, accounts.filter(a => a.owner_id === id).reduce((v, a) => v + (a.latest?.balance || 0), 0)])
     .filter(([, v], i) => v || i < people.length);   // Joint only once it has money
   const dates = open.map(a => a.latest?.as_of).filter(Boolean).sort();
-  const stale = open.filter(a => !a.latest || now - dnum(a.latest.as_of) > STALE_DAYS);
+  const stale = open.filter(a => isStale(a, now));
 
   // Spending: the latest year's, in today's dollars.
   const spend = spending[0] ? { year: spending[0].year, amount: +spending[0].amount * (1 + s.inflation / 100) ** (cy - spending[0].year) } : null;
@@ -95,8 +96,10 @@ async function homePage() {
       ${accounts.length ? `<div class="split">${byOwner.map(([name, v]) => `<div><span>${esc(name)}</span><b>${money(v)}</b></div>`).join('')}
         ${payRef ? `<div><span>Times Your Pay</span><b>${(total / payRef).toFixed(1)}×</b></div>` : ''}</div>` : ''}
     </section>
-    ${stale.length ? `<p class="alert">${stale.length === 1 ? `${esc(stale[0].name)} hasn't` : `${stale.length} accounts haven't`} been updated in over a year.
-      <a href="#/accounts">Update ${stale.length === 1 ? 'it' : 'them'}</a></p>` : ''}
+    ${stale.length ? `<p class="alert">${stale.length === 1 ? `${esc(stale[0].name)} hasn't` : stale.length <= 3
+        ? `${stale.slice(0, -1).map(a => esc(a.name)).join(', ')} and ${esc(stale.at(-1).name)} haven't` : `${stale.length} accounts haven't`} been updated in over 3 months.
+      ${stale.length === 1 ? `<a href="#/account/${stale[0].id}">Update it</a>` : '<a href="#/accounts">Update them</a>'}</p>` : ''}
+    ${limitsAlertHTML(accounts, people, jobs, settings)}
     <div id="fi">${fiNumber ? '' : `<section class="card"><h2>Your FIRE Number</h2>
       <p>It comes from what you spend: at a ${s.withdrawal_rate}% withdrawal rate you need ${+(100 / s.withdrawal_rate).toFixed(1)}× a year's spending.</p>
       <a class="button fill" href="#/spending">Add Your Spending</a></section>`}</div>
@@ -104,6 +107,7 @@ async function homePage() {
     <div class="tiles" style="margin-top:1rem">
       <a class="card tile" href="#/spending"><div><h2>Spending</h2><p class="muted">${spend ? `${money(+spending[0].amount)} in ${spending[0].year}.` : 'What you spend in a year.'} Your FIRE number comes from it.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/accounts"><div><h2>Accounts</h2><p class="muted">401(k)s, IRAs and the rest. Add a balance whenever you check one.</p></div>${ICON_ARROW}</a>
+      <a class="card tile" href="#/review"><div><h2>Year in Review</h2><p class="muted">Each year: what you saved, what employers added and what the market did.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/sp500"><div><h2>Vs. the S&amp;P 500</h2><p class="muted">Your accounts against the same money in an S&amp;P 500 index fund.</p></div>${ICON_ARROW}</a>
       <a class="card tile" href="#/salary"><div><h2>Salary</h2><p class="muted">Every job, raise and bonus, and your pay by year and age.</p></div>${ICON_ARROW}</a>
     </div>`);

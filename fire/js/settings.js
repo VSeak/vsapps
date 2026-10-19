@@ -17,7 +17,7 @@ const ASSUMPTIONS = [
 
 async function loadSettings() {
   const row = await sb.from('fire_settings').select('*').maybeSingle().then(must) || {};
-  return Object.fromEntries(Object.keys(DEFAULTS).map(k => [k, row[k] == null ? DEFAULTS[k] : +row[k]]));
+  return { ...Object.fromEntries(Object.keys(DEFAULTS).map(k => [k, row[k] == null ? DEFAULTS[k] : +row[k]])), hsa_family: !!row.hsa_family };
 }
 
 async function settingsPage() {

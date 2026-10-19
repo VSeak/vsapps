@@ -32,7 +32,7 @@ const ownerName = (a, people) => a.owner_id ? people.find(p => p.id === a.owner_
 async function accountsPage() {
   const t = ++navToken;
   view(loading);
-  const [people, accounts, jobs] = await Promise.all([loadPeople(), loadAccounts(), loadJobs()]);
+  const [{ people, jobs }, accounts, settings] = await Promise.all([loadSalaryData(), loadAccounts(), loadSettings()]);
   if (t !== navToken) return;
   const byBalance = (x, y) => (y.latest?.balance || 0) - (x.latest?.balance || 0) || x.name.localeCompare(y.name);
   const open = accounts.filter(a => !a.closed_on);
@@ -41,19 +41,21 @@ async function accountsPage() {
   const row = a => {
     const meta = [KINDS[a.kind], a.institution, a.latest ? `Updated ${fmtDate(a.latest.as_of)}` : 'No updates yet'].filter(Boolean);
     return `<a class="card acct${a.closed_on ? ' closed' : ''}" href="#/account/${a.id}">
-      <span class="acct-name">${esc(a.name)}${a.closed_on ? ` <span class="chip">Closed</span>` : ''}</span>
+      <span class="acct-name">${esc(a.name)}${a.closed_on ? ` <span class="chip">Closed</span>` : isStale(a) ? ` <span class="chip warn">Needs Update</span>` : ''}</span>
       <span class="acct-bal">${a.latest ? money(a.latest.balance) : '<span class="muted">—</span>'}</span>
       <span class="acct-meta">${meta.map(esc).join(' · ')}</span>
       ${sparkline(a.updates.map(u => u.balance))}</a>`;
   };
   view(`<div class="page-head"><div><h1 class="big">Accounts</h1>
       <p class="muted">${accounts.length ? `${money(open.reduce((s, a) => s + (a.latest?.balance || 0), 0))} across ${open.length} open account${open.length === 1 ? '' : 's'}` : ''}</p></div>
-      <div class="row wrap"><a class="button" href="#/sp500">Vs. S&amp;P 500</a><button type="button" id="addAcct" class="fill">+ Add Account</button></div></div>
+      <div class="row wrap"><a class="button" href="#/review">Year in Review</a><a class="button" href="#/sp500">Vs. S&amp;P 500</a><button type="button" id="addAcct" class="fill">+ Add Account</button></div></div>
     ${groups.length ? groups.map(([name, list]) => `<div class="group-head"><h2>${esc(name)}</h2>
         ${name === 'Closed' ? '' : `<b>${money(list.reduce((s, a) => s + (a.latest?.balance || 0), 0))}</b>`}</div>
       <div class="acct-list">${list.sort(byBalance).map(row).join('')}</div>`).join('')
       : `<section class="card empty"><h2>No Accounts Yet</h2><p class="muted">Add each 401(k), IRA, HSA and brokerage account, yours and your partner's.
-        Old employer plans too.</p></section>`}`);
+        Old employer plans too.</p></section>`}
+    <div style="margin-top:1.4rem">${limitsCardHTML(accounts, people, jobs, settings)}</div>`);
+  wireLimitsCard();
   $('#addAcct').onclick = async () => {
     const id = await accountDialog(null, people, jobs);
     if (id) goTo('#/account/' + id);

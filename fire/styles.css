@@ -276,3 +276,42 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .chart .sp { fill: none; stroke: var(--gold); stroke-width: 2.2; stroke-linejoin: round; }
 .legend i.sp { border-top: 2.2px solid var(--gold); }
 code { font-size: .85em; background: var(--sunk); padding: .05rem .3rem; border-radius: 5px; }
+
+/* Contribution limits */
+.lim { padding: .7rem 0; border-top: 1px solid var(--line); }
+.card h3 + .lim { border-top: 0; padding-top: .2rem; }
+.lim p { margin: .3rem 0 0; font-size: .86rem; }
+.lim-bar { position: relative; display: flex; height: 10px; border-radius: 999px; background: var(--sunk); margin-top: .45rem; overflow: hidden; }
+.lim-bar i { display: block; height: 100%; background: var(--accent); }
+.lim-bar i.ahead { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+.lim-bar s { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
+.lim-cov { display: flex; align-items: center; gap: .6rem; margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--line); }
+.lim-cov select { width: auto; margin: 0; }
+
+/* Year in Review */
+.year-chips { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; margin: -.4rem 0 1rem; }
+.year-chips a { flex: none; padding: .35rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  font-weight: 600; font-size: .9rem; text-decoration: none; font-variant-numeric: tabular-nums; }
+.year-chips a.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.notes { margin: 0; padding-left: 1.2rem; display: grid; gap: .4rem; }
+.wf { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) 6.5rem; align-items: center; gap: .7rem; padding: .35rem 0; font-size: .9rem; }
+.wf span { color: var(--muted); }
+.wf b { text-align: right; font-variant-numeric: tabular-nums; }
+.wf.end { border-top: 1px solid var(--line); margin-top: .2rem; padding-top: .55rem; }
+.wf.end span { color: var(--ink); font-weight: 600; }
+.wf-track { position: relative; height: 14px; }
+.wf-track i { position: absolute; top: 0; bottom: 0; min-width: 2px; border-radius: 4px; }
+.wf-track i.total { background: var(--ink-2); }
+.wf-track i.you { background: var(--accent); }
+.wf-track i.emp { background: var(--gold); }
+.wf-track i.moved { background: var(--muted); }
+.wf-track i.gain { background: var(--ok); }
+.wf-track i.loss { background: var(--danger); }
+@media (max-width: 480px) { .wf { grid-template-columns: 6.6rem minmax(0, 1fr) 5.6rem; gap: .5rem; font-size: .84rem; } }
+.chart .bar-put { fill: var(--accent); }
+.chart .bar-gain { fill: var(--ok); }
+.chart .bar-loss { fill: var(--danger); }
+.chart .zero { stroke: var(--muted); }
+.legend i.bar-put, .legend i.bar-gain { width: 12px; height: 12px; border: 0; border-radius: 3px; background: var(--accent); }
+.legend i.bar-gain { background: var(--ok); }
+tr.on td { background: var(--accent-soft); }

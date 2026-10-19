@@ -32,6 +32,7 @@ create table public.fire_settings (
   withdrawal_rate numeric check (withdrawal_rate > 0 and withdrawal_rate <= 20),   -- % of savings spent a year
   retire_age int check (retire_age between 30 and 100),                -- "normal" retirement age
   start_age int check (start_age between 10 and 80),                   -- where salary history starts
+  hsa_family boolean,                                                  -- HSA limit: family coverage (null/false = self-only)
   updated_at timestamptz not null default now()
 );
 

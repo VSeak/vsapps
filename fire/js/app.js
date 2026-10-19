@@ -86,7 +86,7 @@ function route() {
   const [, page, id] = location.hash.split('/');
   const nav = $('.nav');
   nav.hidden = !me?.isOwner || wantsPassword;
-  const section = page === 'account' || page === 'sp500' ? 'accounts' : page === 'job' ? 'salary' : page || '';
+  const section = page === 'account' || page === 'sp500' || page === 'review' ? 'accounts' : page === 'job' ? 'salary' : page || '';
   nav.querySelectorAll('a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#/' + section));
   $('#signOut').hidden = !me;
   if (!me) return viewLogin();
@@ -95,6 +95,7 @@ function route() {
   const go = page === 'accounts' ? accountsPage()
     : page === 'account' && id ? accountPage(id)
     : page === 'sp500' ? comparePage()
+    : page === 'review' ? reviewPage(id)
     : page === 'spending' ? spendingPage()
     : page === 'salary' ? salaryPage()
     : page === 'job' && id ? jobPage(id)
