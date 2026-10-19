@@ -16,12 +16,16 @@ function accountYear(a, y) {
   };
   const r = { a, start: at(ys), end: at(ye), you: 0, employer: 0, moved: 0, added: 0, growth: 0, firstW: 0 };
   // The first update: its money counts as put in that year for the part of it that went in this year (all of it, unless
-  // it's spread from a Put In Since date); the rest of its balance counts as started tracking. firstW is that whole
-  // balance weighted by the share of the year it was invested, for the return.
+  // it's spread from a Put In Since date); the rest of its money and what it started with count as started tracking,
+  // and a balance under its money is a loss before tracking, counted as growth this year. firstW is that whole balance
+  // weighted by the share of the year it was invested, for the return.
   if (ys < e[0] && e[0] <= ye) {
-    const s0 = moneyFrom(a, 0), f = (e[0] - Math.max(s0, ys)) / (e[0] - s0);
-    Object.assign(r, { added: u[0].balance - f * putIn(u[0]), you: f * u[0].contributed, employer: f * u[0].employer, moved: f * u[0].moved,
-      firstW: u[0].balance * (ye - e[0]) / (ye - ys) });
+    const s0 = moneyFrom(a, 0), f = (e[0] - Math.max(s0, ys)) / (e[0] - s0), sw = startedWith(u[0]), Y = ye - ys;
+    // Money spread from a Put In Since date was invested before the update too: what came before this year since Jan 1,
+    // this year's part for half its days.
+    const before = u[0].put_in_since ? (sw + (1 - f) * putIn(u[0])) * (e[0] - ys) / Y + f * putIn(u[0]) * (e[0] - Math.max(s0, ys)) / (2 * Y) : 0;
+    Object.assign(r, { added: sw + (1 - f) * putIn(u[0]), you: f * u[0].contributed, employer: f * u[0].employer, moved: f * u[0].moved,
+      growth: u[0].balance - sw - putIn(u[0]), firstW: u[0].balance * (ye - e[0]) / Y + before });
   }
   for (let i = 1; i < u.length; i++) {
     const f = Math.max(0, Math.min(e[i], ye) - Math.max(e[i - 1], ys)) / (e[i] - e[i - 1]);
@@ -39,7 +43,7 @@ function yearReview(accounts, y) {
   r.putIn = r.you + r.employer;
   // Return, about: growth over the money invested on average: Jan 1, plus half of what came in during the year (it came
   // in evenly), plus accounts started that year for the part of the year they were tracked.
-  const firstIn = parts.reduce((s, p) => s + (p.firstW ? p.a.updates[0].balance : 0), 0);   // its added + money this year
+  const firstIn = parts.reduce((s, p) => s + (p.firstW ? startedWith(p.a.updates[0]) + putIn(p.a.updates[0]) : 0), 0);   // its added + money this year
   const base = r.start + (r.putIn + r.moved + r.added - firstIn) / 2 + r.firstW;
   r.ret = base > 0 ? r.growth / base : null;
   return r;

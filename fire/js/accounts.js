@@ -21,11 +21,14 @@ const putIn = u => u.contributed + u.employer + u.moved;
 // Since date (money tracked late, spread from then), else its own day. It runs to the end of the update's day.
 const moneyFrom = (a, i) => i ? dnum(a.updates[i - 1].as_of) + 1
   : dnum(a.updates[0].put_in_since && a.updates[0].put_in_since < a.updates[0].as_of ? a.updates[0].put_in_since : a.updates[0].as_of);
+// What a first update's balance already held before its money. Never below 0: a balance under the money put in means
+// it lost that much before tracking, which counts as growth.
+const startedWith = u0 => Math.max(0, u0.balance - putIn(u0));
 // Totals for an account: start, what was put in after the start, growth.
 function accountTotals(a) {
   const u = a.updates;
   if (!u.length) return null;
-  const start = u[0].balance - putIn(u[0]);
+  const start = startedWith(u[0]);
   const sum = k => u.reduce((s, x) => s + x[k], 0);
   const contributed = sum('contributed'), employer = sum('employer'), moved = sum('moved');
   return { start, contributed, employer, moved, balance: a.latest.balance, growth: a.latest.balance - start - contributed - employer - moved };
@@ -59,7 +62,7 @@ async function accountsPage() {
       : `<section class="card empty"><h2>No Accounts Yet</h2><p class="muted">Add each 401(k), IRA, HSA and brokerage account, yours and your partner's.
         Old employer plans too.</p></section>`}
     <div style="margin-top:1.4rem">${limitsCardHTML(accounts, people, jobs, settings)}</div>`);
-  wireLimitsCard();
+  wireLimitsCard(accounts, people, jobs, settings);
   $('#addAcct').onclick = async () => {
     const id = await accountDialog(null, people, jobs);
     if (id) goTo('#/account/' + id);

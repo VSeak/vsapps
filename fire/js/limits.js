@@ -5,15 +5,22 @@
 // 60–63, 55+ for an HSA. A year's amount is what the account updates show went in that year, plus the contribution
 // plan for the days they don't cover through Dec 31, so it warns before you go over.
 
-// Add each year when the IRS posts it (401(k) and IRA in the fall, HSA in the spring).
+// Add each year when the IRS posts it (401(k) and IRA in the fall, HSA in the spring). The 60–63 catch-up began in 2025;
+// earlier years repeat the 50+ one there.
 const LIMITS = {
+  2019: { k401: 19000, k401c50: 6000, k401c60: 6000, ira: 6000, irac50: 1000, hsaSelf: 3500, hsaFamily: 7000, hsac55: 1000 },
+  2020: { k401: 19500, k401c50: 6500, k401c60: 6500, ira: 6000, irac50: 1000, hsaSelf: 3550, hsaFamily: 7100, hsac55: 1000 },
+  2021: { k401: 19500, k401c50: 6500, k401c60: 6500, ira: 6000, irac50: 1000, hsaSelf: 3600, hsaFamily: 7200, hsac55: 1000 },
+  2022: { k401: 20500, k401c50: 6500, k401c60: 6500, ira: 6000, irac50: 1000, hsaSelf: 3650, hsaFamily: 7300, hsac55: 1000 },
+  2023: { k401: 22500, k401c50: 7500, k401c60: 7500, ira: 6500, irac50: 1000, hsaSelf: 3850, hsaFamily: 7750, hsac55: 1000 },
+  2024: { k401: 23000, k401c50: 7500, k401c60: 7500, ira: 7000, irac50: 1000, hsaSelf: 4150, hsaFamily: 8300, hsac55: 1000 },
   2025: { k401: 23500, k401c50: 7500, k401c60: 11250, ira: 7000, irac50: 1000, hsaSelf: 4300, hsaFamily: 8550, hsac55: 1000 },
   2026: { k401: 24500, k401c50: 8000, k401c60: 11250, ira: 7500, irac50: 1100, hsaSelf: 4400, hsaFamily: 8750, hsac55: 1000 },
 };
 const LIMIT_GROUPS = [
-  { key: 'k401', label: '401(k) and 403(b)', kinds: ['401k', 'roth_401k', '403b'], sources: ['you'] },
-  { key: 'ira', label: 'IRA', kinds: ['ira', 'roth_ira'], sources: ['you'] },
-  { key: 'hsa', label: 'HSA', kinds: ['hsa'], sources: ['you', 'employer'] },
+  { key: 'k401', label: '401(k) and 403(b)', short: '401(k)', kinds: ['401k', 'roth_401k', '403b'], sources: ['you'] },
+  { key: 'ira', label: 'IRA', short: 'IRA', kinds: ['ira', 'roth_ira'], sources: ['you'] },
+  { key: 'hsa', label: 'HSA', short: 'HSA', kinds: ['hsa'], sources: ['you', 'employer'] },
 ];
 
 // The limits for a year: that year's, else the latest one before it (`year` says which was used).
@@ -66,10 +73,22 @@ function limitRows(accounts, people, jobs, y, family) {
   }).filter(x => x.rows.length) };
 }
 
-// The card on the Accounts page.
-function limitsCardHTML(accounts, people, jobs, settings) {
-  const cy = new Date().getFullYear(), { year, people: list } = limitRows(accounts, people, jobs, cy, settings.hsa_family);
+// Years with money to count: from the earliest an account's money went in (a first update's Put In Since counts) to now.
+function limitYears(accounts) {
+  const cy = new Date().getFullYear(), starts = accounts.filter(a => a.updates.length).map(a => new Date(moneyFrom(a, 0) * 864e5).getUTCFullYear());
+  const out = [];
+  for (let y = cy; y >= Math.min(cy, ...starts); y--) out.push(y);
+  return out;
+}
+
+// The card on the Accounts page, for year y (this year unless picked): the bars, then By Year for every year.
+function limitsCardHTML(accounts, people, jobs, settings, y = new Date().getFullYear()) {
+  const cy = new Date().getFullYear(), { year, people: list } = limitRows(accounts, people, jobs, y, settings.hsa_family);
   if (!list.length) return '';
+  const years = limitYears(accounts), now = y === cy;
+  // Years before an account's first update come from spreading its Put In Since money evenly, so they're estimates.
+  const est = accounts.some(a => a.updates[0]?.put_in_since && y >= +a.updates[0].put_in_since.slice(0, 4) && y <= +a.updates[0].as_of.slice(0, 4)
+    && LIMIT_GROUPS.some(g => g.kinds.includes(a.kind)));
   const hasHsa = list.some(x => x.rows.some(r => r.g.key === 'hsa'));
   const row = r => {
     const over = r.total - r.limit, top = Math.max(r.limit, r.total) || 1, w = v => (v / top * 100).toFixed(1) + '%';
@@ -79,20 +98,47 @@ function limitsCardHTML(accounts, people, jobs, settings) {
           : `<span class="muted">${money(r.limit - r.total)} room left</span>`}</div>
       <div class="lim-bar" role="img" aria-label="${money(r.total)} of ${money(r.limit)}"><i style="width:${w(r.done)}"></i><i class="ahead" style="width:${w(r.ahead)}"></i>
         ${over >= 1 ? `<s style="left:${w(r.limit)}"></s>` : ''}</div>
-      <p class="muted">${money(r.done)} so far${r.ahead >= 1 ? ` · ${money(r.total)} by Dec 31 at your plan` : ''} · limit ${money(r.limit)}${r.g.key === 'hsa' ? ' (you and employer)' : ''}</p></div>`;
+      <p class="muted">${money(r.done)} ${now ? 'so far' : 'put in'}${r.ahead >= 1 ? ` · ${money(r.total)} by Dec 31 at your plan` : ''} · limit ${money(r.limit)}${r.g.key === 'hsa' ? ' (you and employer)' : ''}</p></div>`;
   };
-  return `<section class="card"><h2>${cy} Contribution Limits</h2>
-    <p class="hint">What you put in this year against the IRS limits${year !== cy ? ` (${cy}'s aren't in yet, so these are ${year}'s; ask Claude to add them to <code>fire/js/limits.js</code>)` : ''},
+  // By Year: each person's groups as columns, every year as a row; the picked year is marked.
+  const all = years.map(yy => ({ y: yy, ...limitRows(accounts, people, jobs, yy, settings.hsa_family) }));
+  const byYear = list.map(({ p }) => {
+    const groups = LIMIT_GROUPS.filter(g => all.some(x => x.people.some(q => q.p.id === p.id && q.rows.some(r => r.g === g))));
+    const cell = (x, g) => {
+      const r = x.people.find(q => q.p.id === p.id)?.rows.find(rr => rr.g === g);
+      if (!r) return '<td class="r"><span class="muted">—</span></td>';
+      const over = r.total - r.limit >= 1, maxed = !over && r.limit - r.total < 1;
+      return `<td class="r${over ? ' down' : ''}">${money(r.total)}<br>${maxed ? '<span class="chip ok">Maxed</span>' : `<span class="muted">of ${money(r.limit)}</span>`}</td>`;
+    };
+    return `<h3>${esc(p.name)}</h3><div class="table-wrap"><table><thead><tr><th>Year</th>${groups.map(g => `<th class="r">${g.short}</th>`).join('')}</tr></thead>
+      <tbody>${all.map(x => `<tr class="click${x.y === y ? ' on' : ''}" data-limyear="${x.y}" tabindex="0"><td>${x.y}${x.y === cy ? '<br><span class="muted">so far</span>' : ''}</td>${groups.map(g => cell(x, g)).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }).join('');
+  return `<section class="card" id="limCard"><div class="row between wrap"><h2>${y} Contribution Limits</h2>
+      ${years.length > 1 ? `<select id="limYear" aria-label="Year">${years.map(yy => `<option${yy === y ? ' selected' : ''}>${yy}</option>`).join('')}</select>` : ''}</div>
+    <p class="hint">What you put in ${now ? 'this year' : `in ${y}`} against the IRS limits${year !== y ? ` (${y}'s aren't in yet, so these are ${year}'s; ask Claude to add them to <code>fire/js/limits.js</code>)` : ''},
       catch-up included by age. 401(k) and 403(b) count only your money, pre-tax and Roth together; the employer match has its own, much higher limit.
-      By Dec 31 adds what your contribution plans put in for the rest of the year.</p>
+      ${now ? 'By Dec 31 adds what your contribution plans put in for the rest of the year.' : ''}${est ? ' Some of this year comes from spreading an account\'s Put In Since money evenly, so it\'s an estimate.' : ''}</p>
     ${list.map(({ p, age, rows }) => `<h3>${esc(p.name)}${age == null ? ' <span class="muted">(add a birth date in Settings for catch-up)</span>' : ''}</h3>${rows.map(row).join('')}`).join('')}
     ${hasHsa ? `<label class="lim-cov">HSA Coverage<select id="hsaCov"><option value="">Self-Only</option><option value="1"${settings.hsa_family ? ' selected' : ''}>Family</option></select></label>
-      <p class="hint" style="margin:.3rem 0 0">With family coverage the family limit is shared by both of you, if you each have an HSA.</p>` : ''}
+      <p class="hint" style="margin:.3rem 0 0">With family coverage the family limit is shared by both of you, if you each have an HSA. It applies to every year here.</p>` : ''}
+    ${years.length > 1 ? `<h2 class="lim-years">By Year</h2><p class="hint">Tap a year to see it above.</p>${byYear}` : ''}
   </section>`;
 }
-function wireLimitsCard() {
+// Picking a year (the menu or a By Year row) redraws only this card.
+function wireLimitsCard(accounts, people, jobs, settings) {
+  const card = $('#limCard');
+  if (!card) return;
+  const show = y => {
+    card.outerHTML = limitsCardHTML(accounts, people, jobs, settings, y);
+    wireLimitsCard(accounts, people, jobs, settings);
+  };
   const sel = $('#hsaCov');
   if (sel) sel.onchange = () => busy(null, () => saveSettings({ hsa_family: !!sel.value }, 'HSA coverage saved.'));
+  const pick = $('#limYear');
+  if (pick) pick.onchange = () => show(+pick.value);
+  const go = e => { const tr = e.target.closest('tr[data-limyear]'); if (tr) { show(+tr.dataset.limyear); $('#limCard').scrollIntoView({ behavior: 'smooth' }); } };
+  card.onclick = go;
+  card.onkeydown = e => { if (e.key === 'Enter') go(e); };
 }
 
 // A warning on the Overview when this year's plan goes over a limit.

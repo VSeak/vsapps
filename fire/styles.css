@@ -287,6 +287,8 @@ code { font-size: .85em; background: var(--sunk); padding: .05rem .3rem; border-
 .lim-bar s { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); }
 .lim-cov { display: flex; align-items: center; gap: .6rem; margin-top: .8rem; padding-top: .8rem; border-top: 1px solid var(--line); }
 .lim-cov select { width: auto; margin: 0; }
+#limYear { width: auto; margin: 0; }
+.lim-years { margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 
 /* Year in Review */
 .year-chips { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .2rem; margin: -.4rem 0 1rem; }
