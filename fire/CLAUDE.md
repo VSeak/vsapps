@@ -41,5 +41,5 @@ The owner's household money tracker: salary history for them and their partner, 
 
 - Look: "Ink & Ember": warm paper page, deep ink, ember-orange accent; Outfit headings, IBM Plex Sans body, tabular numbers for money. Tokens on `:root` with dark mode. Logo: a flame (`icon.svg`, inline in the header and on the root home card).
 - Works at ~400px wide. Title case for buttons, headings and labels; sentence case for hints and messages.
-- Dialogs use `ask()` like Top Out. Save buttons (`.primary`) grey until a field changes.
+- Dialogs use `ask()` like Top Out. The phone's Back closes an open dialog as Cancel (the user asked): `ask()` pushes a same-address history entry on open, and any other close goes back past it before the answer resolves (so a `goTo` after OK isn't undone). Save buttons (`.primary`) grey until a field changes.
 - Projections are labeled as assumptions, not advice.

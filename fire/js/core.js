@@ -149,8 +149,22 @@ function ask({ title, body = '', ok = 'OK', warn = false, cancel = true, wide = 
     <div class="row end">${extra ? `<button value="${extra.value}" formnovalidate class="ghost danger push-left">${esc(extra.label)}</button>` : ''}
     ${cancel ? '<button value="cancel" formnovalidate class="ghost">Cancel</button>' : ''}
     <button value="ok" class="${warn ? 'risky' : 'fill'}">${esc(ok)}</button></div></form>`;
-  return new Promise(resolve => {
+  return new Promise(resolveNow => {
     const f = d.querySelector('form');
+    // Back closes the dialog (the user asked): opening it adds a history step with the same address, and closing it
+    // any other way takes that step back first, so a goTo or replaceState after the answer lands on the right entry.
+    history.pushState({ dlg: true }, '');
+    let popped = false, settled = false;
+    const onPop = () => { popped = true; if (d.open) d.close(); };
+    addEventListener('popstate', onPop);
+    const resolve = v => {
+      if (settled) return;
+      settled = true;
+      removeEventListener('popstate', onPop);
+      if (popped || !history.state?.dlg) return resolveNow(v);
+      addEventListener('popstate', () => resolveNow(v), { once: true });
+      history.back();
+    };
     // Enter in a field means OK. (The browser would press the first button in the form, which is Cancel.)
     f.addEventListener('keydown', e => {
       if (e.key !== 'Enter' || e.isComposing || !e.target.matches('input:not([type="button"], [type="submit"])')) return;
