@@ -206,7 +206,7 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
   const histLine = hist.length ? line([...hist, [nowT, proj[0][1]]]) : '';
   // Every point on the line, for the hover readout (chartHover): time, value, and whether it's still a projection.
   const pts = [...hist.filter(p => p[0] < nowT), ...proj].map(([tm, v]) => [Math.round(tm), Math.round(v), tm >= nowT ? 1 : 0]);
-  const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts,
+  const hover = esc(JSON.stringify({ W, H, L, R, T, B, t0, t1, top, pts, nowT: Math.round(nowT),
     coast: coast && { goal, nowT, retireMonths: coast.retireMonths, realReturn: coast.realReturn } }));
   // Coast FIRE: the amount needed, from today to retirement (or the chart's end), and a dot where the projection meets it.
   let coastSvg = '';
@@ -235,19 +235,25 @@ function projectionChart(accounts, path, goal, fireDate, coast) {
 // Hover (or touch and drag) the projection chart: a vertical line with the year and the amount invested then.
 function chartHover(svg) {
   if (!svg?.dataset.hover) return;
-  const { W, H, L, R, T, B, t0, t1, top, pts, coast } = JSON.parse(svg.dataset.hover);
+  const { W, H, L, R, T, B, t0, t1, top, pts, nowT, coast } = JSON.parse(svg.dataset.hover);
   const g = svg.querySelector('.hover'), [ln, cdot, dot, box, txt] = g.children, [yr, amt, cst] = txt.children;
   const y = v => T + (1 - Math.min(v, top) / top) * (H - T - B);
   const show = e => {
     const r = svg.getBoundingClientRect();
-    const sx = Math.min(W - R, Math.max(L, (e.clientX - r.left) / r.width * W)), tm = t0 + (sx - L) / (W - L - R) * (t1 - t0);
+    const raw = t0 + (Math.min(W - R, Math.max(L, (e.clientX - r.left) / r.width * W)) - L) / (W - L - R) * (t1 - t0);
+    // Snap to the nearest January 1 on the chart (the first year's start if the chart begins mid-year), so each year
+    // reads one value: what was invested as it began (the user asked).
+    const marks = [t0];
+    for (let yy = new Date(t0).getFullYear() + 1; new Date(yy, 0, 1).getTime() <= t1; yy++) marks.push(new Date(yy, 0, 1).getTime());
+    const tm = marks.reduce((m, t) => Math.abs(t - raw) < Math.abs(m - raw) ? t : m);
+    const sx = L + (tm - t0) / (t1 - t0 || 1) * (W - L - R);
     let i = pts.findIndex(p => p[0] >= tm);
     if (i < 0) i = pts.length - 1;
     const a = pts[Math.max(0, i - 1)], b = pts[i], f = b[0] > a[0] ? Math.min(1, Math.max(0, (tm - a[0]) / (b[0] - a[0]))) : 1;
     const v = a[1] + (b[1] - a[1]) * f, cy = y(v);
     ln.setAttribute('x1', sx); ln.setAttribute('x2', sx); ln.setAttribute('y1', T); ln.setAttribute('y2', H - B);
     dot.setAttribute('cx', sx); dot.setAttribute('cy', cy);
-    yr.textContent = new Date(tm).getFullYear() + (b[2] ? ' · Projected' : '');
+    yr.textContent = new Date(tm).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) + (tm > nowT ? ' · Projected' : '');
     amt.textContent = money(v);
     // From today to retirement, also the Coast FIRE amount needed then (a second dot on its curve).
     const ci = coast ? (tm - coast.nowT) / (30.44 * 864e5) : -1, cv = ci >= 0 && ci <= coast.retireMonths ? coastNeed(coast.goal, coast.realReturn, coast.retireMonths, ci) : null;
