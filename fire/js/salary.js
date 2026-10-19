@@ -332,10 +332,15 @@ async function jobPage(id) {
       : '<p class="muted">No pay yet. Add what this job paid when you started.</p>'}
     </section>
     <section class="card"><div class="row between wrap"><h2>Bonuses</h2><button type="button" class="small" id="addBonus">+ Add Bonus</button></div>
-      ${j.bonuses.length ? `<div class="table-wrap"><table><thead><tr><th>Paid On</th><th>Bonus</th><th class="r">Amount</th></tr></thead>
-        <tbody>${[...j.bonuses].reverse().map(b => `<tr class="click" tabindex="0" data-bonus="${b.id}"><td>${fmtDate(b.paid_on)}</td>
-          <td>${b.amount != null ? 'Dollars' : `${+b.percent}% of pay`}${b.note ? `<br><span class="muted">${esc(b.note)}</span>` : ''}</td>
-          <td class="r">${money(b.amount != null ? b.amount : +b.percent / 100 * (rateOn(j, dnum(b.paid_on)) || 0))}</td></tr>`).join('')}</tbody></table></div>`
+      ${j.bonuses.length ? `<div class="table-wrap"><table><thead><tr><th>Paid On</th><th>Bonus</th><th class="r">Of Pay</th><th class="r">Amount</th></tr></thead>
+        <tbody>${[...j.bonuses].reverse().map(b => {
+          // Dollars show as a share of the yearly rate that day, and a percent as dollars.
+          const rate = rateOn(j, dnum(b.paid_on)) || 0, dollars = b.amount != null ? +b.amount : +b.percent / 100 * rate;
+          return `<tr class="click" tabindex="0" data-bonus="${b.id}"><td>${fmtDate(b.paid_on)}</td>
+          <td>${b.amount != null ? 'Dollars' : 'Percent'}${b.note ? `<br><span class="muted">${esc(b.note)}</span>` : ''}</td>
+          <td class="r${b.amount != null ? ' muted' : ''}">${b.amount != null ? (rate ? pct(dollars / rate) : '') : `${+b.percent}%`}</td>
+          <td class="r${b.amount != null ? '' : ' muted'}">${money(dollars)}</td></tr>`;
+        }).join('')}</tbody></table></div>`
       : '<p class="muted">No bonuses yet.</p>'}
     </section>
     <section class="card"><h2>By Year</h2>
