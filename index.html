@@ -62,7 +62,7 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
 .topout .brand .flag { fill: var(--accent); }
 .topout .brand path[stroke] { stroke: var(--accent); }
 .topout .brand h2 { font: 700 1.25rem/1 "Space Grotesk", sans-serif; letter-spacing: -.02em; }
-.app .sub { display: block; font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-top: .2rem; }
+.app .sub { display: block; white-space: nowrap; font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; margin-top: .2rem; }
 .sitstart .sub { color: var(--ss-accent); }
 .topout .sub { color: var(--to-accent-text); }
 .sitstart { border-top: 4px solid var(--ss-accent); }
@@ -73,7 +73,7 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
 .fire .brand .flame { fill: var(--fi-accent); }
 .fire .brand .core { fill: var(--fi-gold); }
 .fire .brand h2 { font: 700 1.3rem/1 Outfit, sans-serif; letter-spacing: .04em; }
-.fire .sub { color: var(--fi-gold); }
+.fire .sub { color: var(--fi-gold); letter-spacing: .06em; }   /* tighter so "Financial Independence" stays on one line and the cards keep one height */
 </style>
 </head>
 <body>
