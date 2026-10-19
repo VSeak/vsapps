@@ -25,8 +25,8 @@ function putInBetween(accounts, from, to) {
   let sum = 0;
   for (const a of accounts) a.updates.forEach((u, i) => {
     const v = u.contributed + u.employer;
-    if (!v || !i) return;   // a first update's money is part of where the account started
-    const s = dnum(a.updates[i - 1].as_of) + 1, b = dnum(u.as_of) + 1;
+    if (!v || !i && !u.put_in_since) return;   // a first update's money is part of where the account started, unless spread from a date
+    const s = moneyFrom(a, i), b = dnum(u.as_of) + 1;
     sum += v * Math.max(0, Math.min(b, to) - Math.max(s, from)) / (b - s);
   });
   return sum;

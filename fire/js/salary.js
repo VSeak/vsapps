@@ -175,19 +175,20 @@ function rateGrowth(years, inflation) {
 const todaysDollars = (amount, y, inflation) => amount * (1 + inflation / 100) ** (new Date().getFullYear() - y);
 
 // What you put in (not employer, not moved) per calendar year. From account updates where they cover the days: each
-// update's money is spread evenly over the days since the update before it (a first update's lands on its date).
-// Days an account's updates don't cover (before its first, after its last, up to today) come from its contribution plan.
+// update's money is spread evenly over the days since the update before it (a first update's from its Put In Since
+// date, else on its date; moneyFrom). Days an account's updates don't cover (before that, after its last, up to today)
+// come from its contribution plan.
 function savedByYear(accounts, jobsById = {}) {
   const out = {};
   const add = (y, v) => { out[y] = (out[y] || 0) + v; };
   for (const a of accounts) {
     a.updates.forEach((u, i) => {
       if (!u.contributed) return;
-      const prev = a.updates[i - 1], b = dnum(u.as_of) + 1, s = prev ? dnum(prev.as_of) + 1 : b - 1, span = b - s;
+      const b = dnum(u.as_of) + 1, s = moneyFrom(a, i), span = b - s;
       for (let y = new Date(s * 864e5).getUTCFullYear(); y <= new Date((b - 1) * 864e5).getUTCFullYear(); y++)
         add(y, u.contributed * (Math.min(b, yearStart(y + 1)) - Math.max(s, yearStart(y))) / span);
     });
-    const first = a.updates[0] ? dnum(a.updates[0].as_of) : Infinity, last = a.updates.at(-1) ? dnum(a.updates.at(-1).as_of) : -Infinity;
+    const first = a.updates[0] ? moneyFrom(a, 0) : Infinity, last = a.updates.at(-1) ? dnum(a.updates.at(-1).as_of) : -Infinity;
     planBetween(a.contributions || [], jobsById, -Infinity, dnum(today()) + 1, 'you', d => d >= first && d <= last, out);
   }
   return out;

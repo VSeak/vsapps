@@ -37,10 +37,10 @@ function accountInYear(a, jobsById, y, sources) {
   a.updates.forEach((u, i) => {
     const v = fields.reduce((s, f) => s + u[f], 0);
     if (!v) return;
-    const prev = a.updates[i - 1], b = dnum(u.as_of) + 1, s = prev ? dnum(prev.as_of) + 1 : b - 1;
+    const b = dnum(u.as_of) + 1, s = moneyFrom(a, i);
     done += v * Math.max(0, Math.min(b, ye) - Math.max(s, ys)) / (b - s);
   });
-  const first = a.updates[0] ? dnum(a.updates[0].as_of) : Infinity, last = a.updates.at(-1) ? dnum(a.updates.at(-1).as_of) : -Infinity;
+  const first = a.updates[0] ? moneyFrom(a, 0) : Infinity, last = a.updates.at(-1) ? dnum(a.updates.at(-1).as_of) : -Infinity;
   const skip = d => d >= first && d <= last;
   for (const src of sources) {
     done += planBetween(a.contributions, jobsById, ys, Math.min(ye, now), src, skip);

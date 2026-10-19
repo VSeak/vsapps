@@ -15,10 +15,14 @@ function accountYear(a, y) {
     return i === u.length - 1 ? u[i].balance : u[i].balance + (u[i + 1].balance - u[i].balance) * (t - e[i]) / (e[i + 1] - e[i]);
   };
   const r = { a, start: at(ys), end: at(ye), you: 0, employer: 0, moved: 0, added: 0, growth: 0, firstW: 0 };
-  // The first update: what was already there counts as started tracking; its money as put in that year. firstW is that
-  // whole balance weighted by the share of the year it was invested, for the return.
-  if (ys < e[0] && e[0] <= ye) Object.assign(r, { added: u[0].balance - putIn(u[0]), you: u[0].contributed, employer: u[0].employer, moved: u[0].moved,
-    firstW: u[0].balance * (ye - e[0]) / (ye - ys) });
+  // The first update: its money counts as put in that year for the part of it that went in this year (all of it, unless
+  // it's spread from a Put In Since date); the rest of its balance counts as started tracking. firstW is that whole
+  // balance weighted by the share of the year it was invested, for the return.
+  if (ys < e[0] && e[0] <= ye) {
+    const s0 = moneyFrom(a, 0), f = (e[0] - Math.max(s0, ys)) / (e[0] - s0);
+    Object.assign(r, { added: u[0].balance - f * putIn(u[0]), you: f * u[0].contributed, employer: f * u[0].employer, moved: f * u[0].moved,
+      firstW: u[0].balance * (ye - e[0]) / (ye - ys) });
+  }
   for (let i = 1; i < u.length; i++) {
     const f = Math.max(0, Math.min(e[i], ye) - Math.max(e[i - 1], ys)) / (e[i] - e[i - 1]);
     if (!f) continue;
@@ -35,7 +39,7 @@ function yearReview(accounts, y) {
   r.putIn = r.you + r.employer;
   // Return, about: growth over the money invested on average: Jan 1, plus half of what came in during the year (it came
   // in evenly), plus accounts started that year for the part of the year they were tracked.
-  const firstIn = parts.reduce((s, p) => s + (p.firstW ? p.added + putIn(p.a.updates[0]) : 0), 0);
+  const firstIn = parts.reduce((s, p) => s + (p.firstW ? p.a.updates[0].balance : 0), 0);   // its added + money this year
   const base = r.start + (r.putIn + r.moved + r.added - firstIn) / 2 + r.firstW;
   r.ret = base > 0 ? r.growth / base : null;
   return r;

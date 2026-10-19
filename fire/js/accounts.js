@@ -17,6 +17,10 @@ async function loadAccounts() {
 }
 
 const putIn = u => u.contributed + u.employer + u.moved;
+// The day number an update's money starts going in: the day after the update before; for a first update its Put In
+// Since date (money tracked late, spread from then), else its own day. It runs to the end of the update's day.
+const moneyFrom = (a, i) => i ? dnum(a.updates[i - 1].as_of) + 1
+  : dnum(a.updates[0].put_in_since && a.updates[0].put_in_since < a.updates[0].as_of ? a.updates[0].put_in_since : a.updates[0].as_of);
 // Totals for an account: start, what was put in after the start, growth.
 function accountTotals(a) {
   const u = a.updates;
@@ -135,7 +139,8 @@ async function accountPage(id) {
           <td>${fmtDate(u.as_of)}${u.note ? `<br><span class="muted">${esc(u.note)}</span>` : ''}</td>
           <td class="r">${money(u.balance)}</td>
           <td class="r">${change == null ? '<span class="muted">Start</span>' : signed(change)}</td>
-          <td class="r">${putIn(u) ? money(u.contributed + u.employer) + (u.moved ? `<br><span class="muted">${signed(u.moved)} moved</span>` : '') : '<span class="muted">—</span>'}</td>
+          <td class="r">${putIn(u) ? money(u.contributed + u.employer) + (u.moved ? `<br><span class="muted">${signed(u.moved)} moved</span>` : '')
+            + (u.put_in_since && u === a.updates[0] ? `<br><span class="muted">since ${fmtMonthYear(u.put_in_since)}</span>` : '') : '<span class="muted">—</span>'}</td>
           <td class="r ${growth > 0 ? 'up' : growth < 0 ? 'down' : ''}">${growth == null ? '' : signed(growth)}</td></tr>`).join('')}</tbody></table></div>
       </section>` : ''}
     ${tot ? accountCompareHTML(a) : ''}
@@ -167,9 +172,11 @@ async function updateDialog(a, u, jobsById = {}) {
   if (prefill) u = { as_of: today(), contributed: plan(today(), 'you'), employer: plan(today(), 'employer'), fromPlan: true };
   if (u?.fromPlan) u.isNew = true;
   const isNew = !u || u.isNew;
+  const job = jobsById[a.job_id];
   const f = await ask({ title: isNew ? 'Add Update' : 'Change Update', ok: isNew ? 'Add Update' : 'Save', wide: true,
     extra: isNew ? null : { value: 'delete', label: 'Delete Update' },
     onOpen: form => {
+      if (first) form.elements.as_of.addEventListener('change', e => { form.elements.put_in_since.max = e.target.value || today(); });
       if (!prefill) return;
       const typed = new Set();
       form.addEventListener('input', e => { if (e.target.name === 'contributed' || e.target.name === 'employer') typed.add(e.target.name); });
@@ -191,6 +198,8 @@ async function updateDialog(a, u, jobsById = {}) {
         ${moneyField('moved', 'Moved In', u?.moved || '', { negative: true, hint: '(rollover)' })}
       </div>
       <p class="hint">Moved In is money from another of your accounts, like a rollover (a minus for money moved out). It isn't new savings.</p>
+      ${first ? `<label>Put In Since <span class="muted">(optional)</span><input type="date" name="put_in_since" value="${esc(u?.put_in_since || '')}" max="${esc(u?.as_of || today())}"></label>
+      <p class="hint">If the money above went in over years, when it started (like the day you started that job): it counts as spread evenly from then, so Salary and Year in Review don't put it all on this date.${job?.start_date ? ` Your ${esc(job.employer)} job started ${fmtDate(job.start_date)}.` : ''}</p>` : ''}
       <label>Note <span class="muted">(optional)</span><input name="note" maxlength="500" value="${esc(u?.note)}" autocomplete="off"></label>` });
   if (!f) return;
   if (f.get('button') === 'delete') {
@@ -203,6 +212,7 @@ async function updateDialog(a, u, jobsById = {}) {
   }
   const row = { account_id: a.id, as_of: f.get('as_of'), balance: num(f.get('balance')), contributed: num(f.get('contributed')) || 0,
     employer: num(f.get('employer')) || 0, moved: num(f.get('moved')) || 0, note: f.get('note').trim() };
+  if (first) row.put_in_since = f.get('put_in_since') || null;
   await busy(null, async () => {
     if (!isNew) await sb.from('fire_updates').update(row).eq('id', u.id).then(must);
     else await sb.from('fire_updates').insert(row).then(must);

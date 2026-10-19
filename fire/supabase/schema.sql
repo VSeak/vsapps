@@ -120,6 +120,7 @@ create table public.fire_updates (
   contributed numeric not null default 0 check (contributed >= 0),
   employer numeric not null default 0 check (employer >= 0),
   moved numeric not null default 0,
+  put_in_since date,   -- first update only: its money went in evenly from this date (null: on as_of)
   note text not null default '' check (length(note) <= 500),
   created_at timestamptz not null default now(),
   unique (account_id, as_of)
