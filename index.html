@@ -107,7 +107,16 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
   </div>
 </main>
 <script>
-  try { if (localStorage.getItem('vsapps.fireOwner')) document.querySelector('.app.fire').hidden = false; } catch {}
+  const fireCard = document.querySelector('.app.fire');
+  try { if (localStorage.getItem('vsapps.fireOwner')) fireCard.hidden = false; } catch {}
+  // The owner's way in on a new device: tap Welcome 5 times (each within 1.5 seconds of the last) to show the card for this visit.
+  let taps = 0, last = 0;
+  document.querySelector('h1').addEventListener('click', () => {
+    const now = Date.now();
+    taps = now - last < 1500 ? taps + 1 : 1;
+    last = now;
+    if (taps >= 5) fireCard.hidden = false;
+  });
 </script>
 </body>
 </html>

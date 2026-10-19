@@ -19,7 +19,7 @@ The owner's household money tracker: salary history for them and their partner, 
 - **Same Supabase project as Sit Start and Top Out** (same URL and key). Tables are all `fire_*`; `supabase/schema.sql` creates them. Every table's rule is `fire_is_owner()`: the signed-in email is in `fire_owner` (one row, set in the SQL Editor). Any other login signs in and sees "No Access". There is no sign-up and no invite: the owner uses the login they already have for the other apps.
 - `login_in_other_app()` is replaced here to also answer for `fire_owner`, so Sit Start never deletes that login. If Top Out's schema is ever re-run, re-run that function from this schema too (it must check both `team_staff` and `fire_owner`).
 - Errors go to the shared `app_errors` with `app = 'fire'` (the schema widens its check).
-- The root home page hides its FIRE card (the user asked) unless `localStorage` `vsapps.fireOwner` is set: `loadMe` sets it for the owner (clears it for anyone else), Sign Out clears it. Looks only: on a new device the owner opens `fire/` by address once. The tables are what keep it private.
+- The root home page hides its FIRE card (the user asked) unless `localStorage` `vsapps.fireOwner` is set: `loadMe` sets it for the owner (clears it for anyone else), Sign Out clears it. Looks only: on a new device, tapping the home page's Welcome 5 times (each within 1.5 s) shows the card for that visit (the user asked), or open `fire/` by address. The tables are what keep it private.
 
 ## Data
 
