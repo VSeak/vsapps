@@ -182,6 +182,7 @@ h1.big { font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 700; margin: 0; let
 .prac-tools { display: flex; flex-direction: column; align-items: flex-start; gap: .55rem; }
 .prac-tools .search { margin: 0; width: 100%; }
 .prac-areas { align-items: center; margin-top: 0; }
+details.prac-areas-fold > summary { margin-bottom: .45rem; font-size: .9rem; font-weight: 600; color: var(--accent-text); cursor: pointer; }
 
 /* Home */
 .home-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.4rem; align-items: start; }

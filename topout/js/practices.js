@@ -5,7 +5,10 @@
 
 let practiceSearch = '';
 let practiceAreas = [];        // the list's Focus Area pills: area ids picked (a practice shows if it has any of them)
-let practiceSort = 'name';     // the list's Sort: a key of PRACTICE_SORTS
+// The pills fold under Focus Areas (the user asked: the list got long), shut unless one is picked; opening is remembered on this device.
+let practiceAreasOpen = false;
+try { practiceAreasOpen = localStorage.getItem('topout.pracAreas') === 'open'; } catch {}
+let practiceSort = 'name';    // the list's Sort: a key of PRACTICE_SORTS
 let practiceOneOffs = false;   // Show One-Offs: the list shows only the one-offs (Save to This Event Only copies) instead
 const PRACTICE_SORTS = { name: 'Name', recent: 'Recently Used', longest: 'Longest First', shortest: 'Shortest First' };
 const PRACTICE_MAX_BLOCKS = 40;
@@ -76,9 +79,11 @@ async function practicesPage() {
       <select id="pracSort" class="team-filter" aria-label="Sort practices">${Object.entries(PRACTICE_SORTS).map(([k, l]) =>
         `<option value="${k}"${k === practiceSort ? ' selected' : ''}>Sort: ${l}</option>`).join('')}</select>
       ${oneOffs.length ? `<label class="switch"><input type="checkbox" role="switch" id="pracOneOffs"${practiceOneOffs ? ' checked' : ''}> Show One-Offs (${oneOffs.length})</label>` : ''}
-      ${used.length ? `<div class="chips prac-areas" id="pracAreas" role="group" aria-label="Filter by focus area">
+      ${used.length ? `<details class="prac-areas-fold" id="pracAreasFold"${practiceAreasOpen || practiceAreas.length ? ' open' : ''}>
+        <summary>Focus Areas<span id="pracPicked"></span></summary>
+        <div class="chips prac-areas" id="pracAreas" role="group" aria-label="Filter by focus area">
         ${used.map(([a, n]) => `<label class="chip-check"><input type="checkbox" value="${a.id}"${practiceAreas.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)} (${n})</span></label>`).join('')}
-        <button type="button" class="small ghost" id="pracClear"${practiceAreas.length ? '' : ' hidden'}>Clear</button></div>` : ''}
+        <button type="button" class="small ghost" id="pracClear"${practiceAreas.length ? '' : ' hidden'}>Clear</button></div></details>` : ''}
     </div>
     <div class="practices" id="practices">${list.map(card).join('')}</div>
     <p class="muted" id="noMatch" hidden>No practices match.</p>`
@@ -94,6 +99,7 @@ async function practicesPage() {
     });
     $('#noMatch').hidden = !!n;
     if ($('#pracClear')) $('#pracClear').hidden = !practiceAreas.length;
+    if ($('#pracPicked')) $('#pracPicked').textContent = practiceAreas.length ? ` (${practiceAreas.length} Picked)` : '';
   };
   // Recently Used: last used first, then the ones only coming up, then never used; ties by name.
   const byName = (a, b) => a.name.localeCompare(b.name);
@@ -115,6 +121,10 @@ async function practicesPage() {
   $('#pracOneOffs')?.addEventListener('change', e => { practiceOneOffs = e.target.checked; practiceAreas = []; redraw(); });
   $('#pracAreas')?.addEventListener('change', () => {
     practiceAreas = [...app.querySelectorAll('#pracAreas input:checked')].map(i => i.value); filter();
+  });
+  $('#pracAreasFold')?.addEventListener('toggle', e => {
+    practiceAreasOpen = e.target.open;
+    try { localStorage.setItem('topout.pracAreas', practiceAreasOpen ? 'open' : ''); } catch {}
   });
   $('#pracClear')?.addEventListener('click', () => {
     app.querySelectorAll('#pracAreas input').forEach(i => { i.checked = false; }); practiceAreas = []; filter();
