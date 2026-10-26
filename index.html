@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&family=Outfit:wght@700&family=IBM+Plex+Sans:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&family=Outfit:wght@700&family=IBM+Plex+Sans:wght@400&family=DM+Serif+Display&family=Karla:wght@400&display=swap" rel="stylesheet">
 <style>
 /* Home: midnight blue and crimson. Each card wears its own app's colors. */
 :root {
@@ -19,6 +19,8 @@
   --to-card: #F7F5F0; --to-ink: #1B2340; --to-muted: #5E6680; --to-line: #E2DED3; --to-accent: #E8622C; --to-accent-text: #B8431A;
   /* FIRE: ink and ember */
   --fi-card: #171A21; --fi-ink: #F6F3EE; --fi-muted: #A6AAB4; --fi-line: #2A2E36; --fi-accent: #FF6B35; --fi-gold: #FFC857;
+  /* Kiddo Draw: pine and cranberry */
+  --xm-card: #1E3B2F; --xm-ink: #F7F3EC; --xm-muted: #AFC2B7; --xm-line: #2C4E3F; --xm-accent: #E5566B; --xm-gold: #F2C14E;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -74,6 +76,15 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
 .fire .brand .core { fill: var(--fi-gold); }
 .fire .brand h2 { font: 700 1.3rem/1 Outfit, sans-serif; letter-spacing: .04em; }
 .fire .sub { color: var(--fi-gold); letter-spacing: .06em; }   /* tighter so "Financial Independence" stays on one line and the cards keep one height */
+/* Kiddo Draw: a pine card in both themes, a candy-cane line on top */
+.xmas { --card: var(--xm-card); --ink: var(--xm-ink); --muted: var(--xm-muted); --line: var(--xm-line); --accent: var(--xm-accent);
+  font-family: Karla, Inter, sans-serif; position: relative; overflow: hidden; }
+.xmas::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: repeating-linear-gradient(-45deg, var(--xm-accent) 0 8px, var(--xm-ink) 8px 16px); }
+.xmas .brand .box { fill: #D23A50; }
+.xmas .brand .lid { fill: var(--xm-accent); }
+.xmas .brand .ribbon { fill: var(--xm-gold); }
+.xmas .brand h2 { font: 400 1.4rem/1 "DM Serif Display", serif; }
+.xmas .sub { color: var(--xm-gold); }
 </style>
 </head>
 <body>
@@ -104,18 +115,30 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
       </div>
       <p>Retire early.</p>
     </a>
+    <!-- Kiddo Draw is private too: hidden unless its app has seen the owner sign in on this device (christmas/js/app.js sets the flag). -->
+    <a class="app xmas" href="christmas/" hidden>
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect class="box" x="7" y="14.5" width="18" height="12.5" rx="1.5"/><rect class="lid" x="5.5" y="10.5" width="21" height="5" rx="1.5"/><rect class="ribbon" x="14.5" y="10.5" width="3" height="16.5"/><path class="ribbon" d="M16 10.5c-1.4-3.6-6.2-4.6-6.2-1.8 0 1.8 3.4 1.8 6.2 1.8zM16 10.5c1.4-3.6 6.2-4.6 6.2-1.8 0 1.8-3.4 1.8-6.2 1.8z"/></svg>
+        <div><h2>Kiddo Draw</h2><span class="sub">Christmas</span></div>
+      </div>
+      <p>Who shops for whom.</p>
+    </a>
   </div>
 </main>
 <script>
-  const fireCard = document.querySelector('.app.fire');
-  try { if (localStorage.getItem('vsapps.fireOwner')) fireCard.hidden = false; } catch {}
-  // The owner's way in on a new device: tap Welcome 5 times (each within 1.5 seconds of the last) to show the card for this visit.
+  // Private cards, each with the flag its app sets on a device where the owner has signed in.
+  const privateCards = [['.app.fire', 'vsapps.fireOwner'], ['.app.xmas', 'vsapps.xmasOwner']].map(([sel, flag]) => {
+    const card = document.querySelector(sel);
+    try { if (localStorage.getItem(flag)) card.hidden = false; } catch {}
+    return card;
+  });
+  // The owner's way in on a new device: tap Welcome 5 times (each within 1.5 seconds of the last) to show them for this visit.
   let taps = 0, last = 0;
   document.querySelector('h1').addEventListener('click', () => {
     const now = Date.now();
     taps = now - last < 1500 ? taps + 1 : 1;
     last = now;
-    if (taps >= 5) fireCard.hidden = false;
+    if (taps >= 5) privateCards.forEach(c => { c.hidden = false; });
   });
 </script>
 </body>
