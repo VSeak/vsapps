@@ -469,7 +469,8 @@ dialog .row.end { margin-top: .4rem; flex-wrap: wrap; position: sticky; bottom: 
 .practice-go { color: inherit; text-decoration: none; }
 .practice-go::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius); }   /* the whole card opens it */
 /* Delete sits on its own line under the chips, so they get the card's whole width (the user asked: +N More wrapped). */
-.practice-foot { margin-top: .35rem; flex-direction: column; align-items: stretch; gap: .5rem; }
+/* margin-top auto pins it to the card's bottom, so Delete lines up across a row of cards. */
+.practice-foot { margin-top: auto; padding-top: .35rem; flex-direction: column; align-items: stretch; gap: .5rem; }
 .practice-foot button { position: relative; z-index: 1; flex: none; align-self: flex-end; }   /* above the stretched link */
 .practice:hover, .practice:has(.practice-go:focus-visible) { border-color: var(--accent); }
 .practice h2 { margin: 0; overflow-wrap: anywhere; }

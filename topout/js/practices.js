@@ -17,14 +17,31 @@ const blockMinutes = b => b.blocks.reduce((n, x) => n + (+x.minutes || 0), 0);
 const fmtMinutes = n => n < 60 ? `${n} min` : `${Math.floor(n / 60)} h${n % 60 ? ` ${n % 60} min` : ''}`;
 const practiceMeta = p => [blockMinutes(p) ? fmtMinutes(blockMinutes(p)) : '',
   p.blocks.length ? `${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No blocks yet'].filter(Boolean).join(' · ');
-// max (the list's cards; the user asked, they got long): areas first, then sub-areas, and a "+N More" chip for the rest.
-const practiceAreaChips = (p, areas, max = Infinity) => {
-  const all = byGroup(areas).filter(a => p.area_ids.includes(a.id));
-  const list = all.length > max ? [...all.filter(a => !a.parent_id), ...all.filter(a => a.parent_id)].slice(0, max) : all;
-  return list.map(a => `<span class="chip">${esc(a.name)}</span>`).join('')
-    + (all.length > list.length ? `<span class="chip soft">+${all.length - list.length} More</span>` : '');
+// fit (the list's cards; the user asked, they got long): areas first, then sub-areas, and a hidden "+N More" chip that
+// fitChips shows once they pass two lines.
+const practiceAreaChips = (p, areas, fit = false) => {
+  let all = byGroup(areas).filter(a => p.area_ids.includes(a.id));
+  if (fit) all = [...all.filter(a => !a.parent_id), ...all.filter(a => a.parent_id)];
+  return all.map(a => `<span class="chip">${esc(a.name)}</span>`).join('') + (fit ? '<span class="chip soft chip-more" hidden></span>' : '');
 };
-const PRACTICE_CARD_CHIPS = 6;
+// Keeps a card's chips to two lines: hides chips from the end until "+N More" ends the second line. Run after the list
+// draws or filters (a hidden card can't be measured), when fonts load and on resize.
+function fitChips(box) {
+  const chips = [...box.querySelectorAll('.chip:not(.chip-more)')], more = box.querySelector('.chip-more');
+  chips.forEach(c => { c.hidden = false; }); more.hidden = true;
+  const lines = [...new Set(chips.map(c => c.offsetTop))].sort((a, b) => a - b);
+  if (lines.length <= 2) return;
+  let shown = chips.filter(c => c.offsetTop <= lines[1]).length;
+  more.hidden = false;
+  do {
+    chips.forEach((c, i) => { c.hidden = i >= shown; });
+    more.textContent = `+${chips.length - shown} More`;
+  } while (more.offsetTop > lines[1] && --shown > 0);
+}
+const fitAllChips = () => document.querySelectorAll('#practices .practice:not([hidden]) .practice-foot .chips').forEach(fitChips);
+let fitFrame = 0;
+addEventListener('resize', () => { cancelAnimationFrame(fitFrame); fitFrame = requestAnimationFrame(fitAllChips); });
+document.fonts?.ready.then(fitAllChips);
 const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active, parent_id').order('position').then(must);
 
 // Delete, after asking (from the list, the practice or the editor); then() runs once it's gone.
@@ -86,7 +103,7 @@ async function practicesPage() {
     ${p.event_only ? `<p class="small-text"><span class="chip soft">This Event Only</span>${orig(p) ? ` <span class="muted">Changed from ${esc(orig(p).name)}</span>` : ''}</p>` : ''}
     <p class="muted small-text practice-used">${useLine(p)}</p>
     ${p.summary ? `<p class="practice-sum">${esc(p.summary)}</p>` : ''}
-    <div class="row between practice-foot"><span class="chips">${practiceAreaChips(p, areas, PRACTICE_CARD_CHIPS)}</span>
+    <div class="row between practice-foot"><span class="chips">${practiceAreaChips(p, areas, true)}</span>
       <button type="button" class="small ghost danger" data-del="${p.id}">Delete</button></div></article>`;
   view(`${crumbs([['Home', '#/'], ['Practices']])}
     <div class="page-head"><div><h1 class="big">Practices</h1>
@@ -119,6 +136,7 @@ async function practicesPage() {
     $('#noMatch').hidden = !!n;
     if ($('#pracClear')) $('#pracClear').hidden = !practiceAreas.length;
     if ($('#pracPicked')) $('#pracPicked').textContent = practiceAreas.length ? ` (${practiceAreas.length} Picked)` : '';
+    fitAllChips();
   };
   // Recently Used: last used first, then the ones only coming up, then never used; ties by name.
   const byName = (a, b) => a.name.localeCompare(b.name);
