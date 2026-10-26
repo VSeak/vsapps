@@ -17,8 +17,14 @@ const blockMinutes = b => b.blocks.reduce((n, x) => n + (+x.minutes || 0), 0);
 const fmtMinutes = n => n < 60 ? `${n} min` : `${Math.floor(n / 60)} h${n % 60 ? ` ${n % 60} min` : ''}`;
 const practiceMeta = p => [blockMinutes(p) ? fmtMinutes(blockMinutes(p)) : '',
   p.blocks.length ? `${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No blocks yet'].filter(Boolean).join(' · ');
-const practiceAreaChips = (p, areas) => byGroup(areas).filter(a => p.area_ids.includes(a.id))
-  .map(a => `<span class="chip">${esc(a.name)}</span>`).join('');
+// max (the list's cards; the user asked, they got long): areas first, then sub-areas, and a "+N More" chip for the rest.
+const practiceAreaChips = (p, areas, max = Infinity) => {
+  const all = byGroup(areas).filter(a => p.area_ids.includes(a.id));
+  const list = all.length > max ? [...all.filter(a => !a.parent_id), ...all.filter(a => a.parent_id)].slice(0, max) : all;
+  return list.map(a => `<span class="chip">${esc(a.name)}</span>`).join('')
+    + (all.length > list.length ? `<span class="chip soft">+${all.length - list.length} More</span>` : '');
+};
+const PRACTICE_CARD_CHIPS = 6;
 const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active, parent_id').order('position').then(must);
 
 // Delete, after asking (from the list, the practice or the editor); then() runs once it's gone.
@@ -80,7 +86,7 @@ async function practicesPage() {
     ${p.event_only ? `<p class="small-text"><span class="chip soft">This Event Only</span>${orig(p) ? ` <span class="muted">Changed from ${esc(orig(p).name)}</span>` : ''}</p>` : ''}
     <p class="muted small-text practice-used">${useLine(p)}</p>
     ${p.summary ? `<p class="practice-sum">${esc(p.summary)}</p>` : ''}
-    <div class="row between practice-foot"><span class="chips">${practiceAreaChips(p, areas)}</span>
+    <div class="row between practice-foot"><span class="chips">${practiceAreaChips(p, areas, PRACTICE_CARD_CHIPS)}</span>
       <button type="button" class="small ghost danger" data-del="${p.id}">Delete</button></div></article>`;
   view(`${crumbs([['Home', '#/'], ['Practices']])}
     <div class="page-head"><div><h1 class="big">Practices</h1>
