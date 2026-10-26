@@ -60,6 +60,16 @@ async function practicesPage() {
   const useLine = p => [p.last ? `Last used ${useDate(p.last, p.lastAt)}` : 'Not used yet', p.next ? `Next: ${useDate(p.next, p.nextAt)}` : ''].filter(Boolean).join(' · ');
   const used = byGroup(areas).map(a => [a, list.filter(p => withParents(p.area_ids, areas).includes(a.id)).length]).filter(([, n]) => n);
   practiceAreas = practiceAreas.filter(id => used.some(([a]) => a.id === id));
+  // The pills laid out like the editor's (the user couldn't tell the order): each group's name on its own line with its
+  // areas, then a line per area for its sub-areas, indented and named after the area.
+  const areaFilterHTML = used => Object.entries(AREA_GROUPS).map(([g, gl]) => {
+    const inG = used.filter(([a]) => a.area_group === g);
+    const pill = ([a, n]) => `<label class="chip-check"><input type="checkbox" value="${a.id}"${practiceAreas.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)} (${n})</span></label>`;
+    const subs = a => inG.filter(([s]) => s.parent_id === a.id);
+    const tops = inG.filter(([a]) => !inG.some(([p]) => p.id === a.parent_id));
+    return inG.length ? `<div class="tag-group"><small>${gl}</small>${tops.map(pill).join('')}</div>
+      ${tops.filter(([a]) => subs(a).length).map(([a]) => `<div class="tag-group prac-subs"><small>${esc(a.name)}</small>${subs(a).map(pill).join('')}</div>`).join('')}` : '';
+  }).join('');
   const orig = p => all.find(o => o.id === p.based_on);
   // The name is the link, stretched over the card (.practice-go::after), so Delete can sit inside it.
   const card = p => `<article class="card practice" data-id="${p.id}" data-area="${withParents(p.area_ids, areas).join(' ')}" data-find="${esc((p.name + ' ' + p.summary).toLowerCase())}">
@@ -81,8 +91,7 @@ async function practicesPage() {
       ${oneOffs.length ? `<label class="switch"><input type="checkbox" role="switch" id="pracOneOffs"${practiceOneOffs ? ' checked' : ''}> Show One-Offs (${oneOffs.length})</label>` : ''}
       ${used.length ? `<details class="prac-areas-fold" id="pracAreasFold"${practiceAreasOpen || practiceAreas.length ? ' open' : ''}>
         <summary>Focus Areas<span id="pracPicked"></span></summary>
-        <div class="chips prac-areas" id="pracAreas" role="group" aria-label="Filter by focus area">
-        ${used.map(([a, n]) => `<label class="chip-check"><input type="checkbox" value="${a.id}"${practiceAreas.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)} (${n})</span></label>`).join('')}
+        <div class="tag-pick prac-areas" id="pracAreas" role="group" aria-label="Filter by focus area">${areaFilterHTML(used)}
         <button type="button" class="small ghost" id="pracClear"${practiceAreas.length ? '' : ' hidden'}>Clear</button></div></details>` : ''}
     </div>
     <div class="practices" id="practices">${list.map(card).join('')}</div>
