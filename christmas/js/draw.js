@@ -87,7 +87,7 @@ async function homePage() {
     const groups = pickGroups(pending.picks, people, last);
     main = `<div class="card hero-card">
       <div class="row between wrap"><div><p class="eyebrow">Not saved yet</p><h2>Christmas ${year}</h2></div>
-        <div class="row">${saved.length ? '<button id="keep" class="ghost">Keep Saved</button>' : ''}<button id="again" class="ghost">Draw Again</button><button id="save" class="fill">Save ${year}</button></div></div>
+        <div class="row">${saved.length ? '<button id="keep" class="ghost small">Keep Saved</button>' : ''}<button id="again" class="ghost small">Draw Again</button><button id="save" class="fill small">Save ${year}</button></div></div>
       ${lastYear ? `<p class="hint">${pending.repeats ? `${plural(pending.repeats, 'kid')} couldn't avoid last year's adult (marked).` : `No one has a kid they had in ${lastYear}.`}</p>` : ''}
       ${groupsHTML(groups, { animate: true })}</div>`;
   } else if (saved.length) {
