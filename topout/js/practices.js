@@ -25,18 +25,20 @@ const practiceAreaChips = (p, areas, fit = false) => {
   return all.map(a => `<span class="chip">${esc(a.name)}</span>`).join('') + (fit ? '<span class="chip soft chip-more" hidden></span>' : '');
 };
 // Keeps a card's chips to two lines: hides chips from the end until "+N More" ends the second line. Run after the list
-// draws or filters (a hidden card can't be measured), when fonts load and on resize.
+// draws or filters (a hidden card can't be measured), when fonts load and on resize. Tops are from the chips' own box: the
+// foot is pinned to the card's bottom, so it moves down as lines go and card-relative tops would keep growing.
 function fitChips(box) {
   const chips = [...box.querySelectorAll('.chip:not(.chip-more)')], more = box.querySelector('.chip-more');
+  const top = el => el.getBoundingClientRect().top - box.getBoundingClientRect().top;
   chips.forEach(c => { c.hidden = false; }); more.hidden = true;
-  const lines = [...new Set(chips.map(c => c.offsetTop))].sort((a, b) => a - b);
+  const lines = [...new Set(chips.map(c => Math.round(top(c))))].sort((a, b) => a - b);
   if (lines.length <= 2) return;
-  let shown = chips.filter(c => c.offsetTop <= lines[1]).length;
+  let shown = chips.filter(c => Math.round(top(c)) <= lines[1]).length;
   more.hidden = false;
   do {
     chips.forEach((c, i) => { c.hidden = i >= shown; });
     more.textContent = `+${chips.length - shown} More`;
-  } while (more.offsetTop > lines[1] && --shown > 0);
+  } while (Math.round(top(more)) > lines[1] && --shown > 0);
 }
 const fitAllChips = () => document.querySelectorAll('#practices .practice:not([hidden]) .practice-foot .chips').forEach(fitChips);
 let fitFrame = 0;
