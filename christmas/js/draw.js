@@ -94,7 +94,7 @@ async function homePage() {
     const groups = pickGroups(saved, people, last);
     main = `<div class="card hero-card">
       <div class="row between wrap"><div><p class="eyebrow">Saved ${fmtDate(iso(new Date(saved[0].saved_at)))}</p><h2>Christmas ${year}</h2></div>
-        <div class="row"><button id="copy" class="ghost small">Copy</button><button id="redo" class="ghost small danger">Redraw</button></div></div>
+        <div class="row"><button id="copy" class="ghost small">Copy</button><button id="redo" class="ghost small">Redraw</button><button class="ghost small danger" data-del="${year}">Delete</button></div></div>
       ${groupsHTML(groups)}</div>`;
   } else if (!ready) {
     main = `<div class="card empty hero-card"><h2>Christmas ${year}</h2>
