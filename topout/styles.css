@@ -184,7 +184,7 @@ h1.big { font-size: clamp(1.9rem, 5vw, 2.6rem); font-weight: 700; margin: 0; let
 .prac-areas { margin-top: 0; }
 .prac-areas > button { align-self: flex-start; }
 .prac-subs { margin-left: 1rem; }
-.prac-subs > small { color: var(--muted); font-size: .8rem; font-weight: 700; }
+.tag-group.prac-subs > small { color: var(--muted); font-size: .8rem; font-weight: 700; }
 details.prac-areas-fold > summary { margin-bottom: .45rem; font-size: .9rem; font-weight: 600; color: var(--accent-text); cursor: pointer; }
 
 /* Home */

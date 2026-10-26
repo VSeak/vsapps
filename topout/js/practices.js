@@ -61,14 +61,16 @@ async function practicesPage() {
   const used = byGroup(areas).map(a => [a, list.filter(p => withParents(p.area_ids, areas).includes(a.id)).length]).filter(([, n]) => n);
   practiceAreas = practiceAreas.filter(id => used.some(([a]) => a.id === id));
   // The pills laid out like the editor's (the user couldn't tell the order): each group's name on its own line with its
-  // areas, then a line per area for its sub-areas, indented and named after the area.
+  // areas, then a line per area for its sub-areas, indented and named after the area. A sub-area line shows only once its
+  // area is picked (the user asked: the open list took up the page), to narrow that area down.
+  const parentOf = Object.fromEntries(areas.map(a => [a.id, a.parent_id]));
   const areaFilterHTML = used => Object.entries(AREA_GROUPS).map(([g, gl]) => {
     const inG = used.filter(([a]) => a.area_group === g);
     const pill = ([a, n]) => `<label class="chip-check"><input type="checkbox" value="${a.id}"${practiceAreas.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)} (${n})</span></label>`;
     const subs = a => inG.filter(([s]) => s.parent_id === a.id);
     const tops = inG.filter(([a]) => !inG.some(([p]) => p.id === a.parent_id));
     return inG.length ? `<div class="tag-group"><small>${gl}</small>${tops.map(pill).join('')}</div>
-      ${tops.filter(([a]) => subs(a).length).map(([a]) => `<div class="tag-group prac-subs"><small>${esc(a.name)}</small>${subs(a).map(pill).join('')}</div>`).join('')}` : '';
+      ${tops.filter(([a]) => subs(a).length).map(([a]) => `<div class="tag-group prac-subs" data-sub-of="${a.id}"${practiceAreas.includes(a.id) ? '' : ' hidden'}><small>${esc(a.name)}</small>${subs(a).map(pill).join('')}</div>`).join('')}` : '';
   }).join('');
   const orig = p => all.find(o => o.id === p.based_on);
   // The name is the link, stretched over the card (.practice-go::after), so Delete can sit inside it.
@@ -100,10 +102,12 @@ async function practicesPage() {
 
   const filter = () => {
     const q = practiceSearch.trim().toLowerCase();
+    // An area with sub-areas picked counts as just those sub-areas, so picking Heel Hooks under Footwork narrows it.
+    const wanted = practiceAreas.filter(id => !practiceAreas.some(s => parentOf[s] === id));
     let n = 0;
     app.querySelectorAll('#practices .practice').forEach(p => {
       const has = p.dataset.area.split(' ');
-      p.hidden = (!!q && !p.dataset.find.includes(q)) || (practiceAreas.length > 0 && !practiceAreas.some(id => has.includes(id)));
+      p.hidden = (!!q && !p.dataset.find.includes(q)) || (wanted.length > 0 && !wanted.some(id => has.includes(id)));
       n += !p.hidden;
     });
     $('#noMatch').hidden = !!n;
@@ -128,7 +132,10 @@ async function practicesPage() {
   $('#pracSearch').addEventListener('input', e => { practiceSearch = e.target.value; filter(); });
   $('#pracSort').addEventListener('change', e => { practiceSort = e.target.value; sort(); });
   $('#pracOneOffs')?.addEventListener('change', e => { practiceOneOffs = e.target.checked; practiceAreas = []; redraw(); });
-  $('#pracAreas')?.addEventListener('change', () => {
+  $('#pracAreas')?.addEventListener('change', e => {
+    // Unpicking an area hides its line and unpicks its sub-areas, so no hidden pick keeps filtering.
+    const line = app.querySelector(`#pracAreas [data-sub-of="${e.target.value}"]`);
+    if (line) { line.hidden = !e.target.checked; if (!e.target.checked) line.querySelectorAll('input').forEach(i => { i.checked = false; }); }
     practiceAreas = [...app.querySelectorAll('#pracAreas input:checked')].map(i => i.value); filter();
   });
   $('#pracAreasFold')?.addEventListener('toggle', e => {
@@ -136,7 +143,8 @@ async function practicesPage() {
     try { localStorage.setItem('topout.pracAreas', practiceAreasOpen ? 'open' : ''); } catch {}
   });
   $('#pracClear')?.addEventListener('click', () => {
-    app.querySelectorAll('#pracAreas input').forEach(i => { i.checked = false; }); practiceAreas = []; filter();
+    app.querySelectorAll('#pracAreas input').forEach(i => { i.checked = false; });
+    app.querySelectorAll('#pracAreas [data-sub-of]').forEach(l => { l.hidden = true; }); practiceAreas = []; filter();
   });
   app.onclick = e => {
     const del = e.target.closest('[data-del]');
