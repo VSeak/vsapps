@@ -25,10 +25,14 @@ const para = (s, links = true) => {
   return bulletLines(links ? linkify(h) : h);
 };
 // Lines that start with "- " show as bullets: a block span each (not a <ul>), so para() still fits inside a <p>.
-const BULLET = /^[ \t]*[-•][ \t]+/;
-const bulletLines = h => h.split('\n').map(l => BULLET.test(l) ? `<span class="bul">${l.replace(BULLET, '')}</span>` : l + '<br>').join('').replace(/<br>$/, '');
+// Every two spaces in front (Tab in the box adds them) is a level in, up to BULLET_MAX.
+const BULLET = /^[ \t]*[-•][ \t]+/, BULLET_MAX = 4;
+const bulletLevel = l => Math.min(BULLET_MAX, Math.floor(l.match(/^[ \t]*/)[0].replace(/\t/g, '  ').length / 2));
+const bulletLines = h => h.split('\n').map(l => { if (!BULLET.test(l)) return l + '<br>'; const n = bulletLevel(l);
+  return `<span class="bul${n ? ' sub' : ''}"${n ? ` style="--lvl:${n}"` : ''}>${l.replace(BULLET, '')}</span>`; }).join('').replace(/<br>$/, '');
 // A textarea with Bold and Bullets buttons in its corner. Bold (Ctrl+B too) wraps the picked words in **, or unwraps them;
-// Bullets puts "- " in front of the picked lines, or takes it off, and Enter on a bullet line starts the next one.
+// Bullets puts "- " in front of the picked lines, or takes it off, and Enter on a bullet line starts the next one;
+// Tab moves bullet lines in a level and Shift+Tab back out.
 const BULLETS_ICON = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="4" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="2.5" cy="12" r="1.5"/><rect x="6" y="3" width="9" height="2" rx="1"/><rect x="6" y="7" width="9" height="2" rx="1"/><rect x="6" y="11" width="9" height="2" rx="1"/></g></svg>';
 const rich = textarea => `<div class="rich">${textarea}<button type="button" class="rich-b" data-bold title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button><button type="button" class="rich-b rich-l" data-bullets title="Bullets" aria-label="Bullets">${BULLETS_ICON}</button></div>`;
 function toggleBold(t) {
@@ -48,14 +52,31 @@ function toggleBullets(t) {
   t.focus();
   t.dispatchEvent(new Event('input', { bubbles: true }));
 }
-// Enter on a bullet line starts the next bullet; Enter on an empty bullet ends the list.
+// Enter on a bullet line starts the next bullet at the same level; Enter on an empty bullet moves it out a level, or
+// ends the list at the first level.
 function continueBullet(t, e) {
   const v = t.value, p = t.selectionStart, a = v.lastIndexOf('\n', p - 1) + 1, m = BULLET.exec(v.slice(a, p));
   if (!m || p !== t.selectionEnd) return;
   e.preventDefault();
   let z = v.indexOf('\n', p); if (z < 0) z = v.length;
-  if (!v.slice(a, z).replace(BULLET, '').trim()) t.setRangeText('', a, z, 'end');
-  else t.setRangeText('\n' + m[0], p, p, 'end');
+  const line = v.slice(a, z);
+  if (line.replace(BULLET, '').trim()) t.setRangeText('\n' + m[0], p, p, 'end');
+  else t.setRangeText(bulletLevel(line) ? line.replace(/^( {1,2}|\t)/, '') : '', a, z, 'end');
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+}
+// Tab on bullet lines (the caret's line, or every picked line) moves them in a level, Shift+Tab back out. Anywhere
+// else Tab does what it always does (the next field), so the keyboard never gets stuck in a box.
+function indentBullets(t, e) {
+  const v = t.value, s = t.selectionStart, en = t.selectionEnd, a = v.lastIndexOf('\n', s - 1) + 1;
+  let z = v.indexOf('\n', en); if (z < 0) z = v.length;
+  const lines = v.slice(a, z).split('\n');
+  if (!lines.some(l => BULLET.test(l)) || !lines.every(l => BULLET.test(l) || !l.trim())) return;
+  e.preventDefault();
+  const out = lines.map(l => !BULLET.test(l) ? l : e.shiftKey ? l.replace(/^( {1,2}|\t)/, '') : bulletLevel(l) < BULLET_MAX ? '  ' + l : l);
+  const text = out.join('\n'), moved = out[0].length - lines[0].length;
+  t.setRangeText(text, a, z);
+  if (lines.length > 1) t.setSelectionRange(a, a + text.length);
+  else t.setSelectionRange(Math.max(a, s + moved), Math.max(a, en + moved));   // the caret stays on the same letter
   t.dispatchEvent(new Event('input', { bubbles: true }));
 }
 document.addEventListener('mousedown', e => { if (e.target.closest('[data-bold], [data-bullets]')) e.preventDefault(); });   // keeps the picked words
@@ -67,6 +88,7 @@ document.addEventListener('keydown', e => {
   if (!e.target.matches?.('.rich textarea')) return;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleBold(e.target); }
   else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.isComposing) continueBullet(e.target, e);
+  else if (e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey) indentBullets(e.target, e);
 });
 // A textarea with data-grow grows downward to fit its text: CSS field-sizing where the browser has it,
 // otherwise here, on typing, on focus and after a redraw (growAll, from queueMark). Hidden ones wait until shown.
