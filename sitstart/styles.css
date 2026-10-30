@@ -102,13 +102,17 @@ textarea[data-grow] { field-sizing: content; min-height: 2.6rem; }
 textarea[data-grow][rows="2"] { min-height: 4.1rem; }
 textarea[data-grow][rows="3"] { min-height: 5.5rem; }
 textarea[data-grow][rows="6"] { min-height: 9.8rem; }
-/* A textarea with a Bold button in its top right corner (rich() in core.js) */
+/* A textarea with Bold and Bullets buttons in its top right corner (rich() in core.js) */
 .rich { position: relative; }
-.rich textarea { padding-right: 2.6rem; }
+.rich textarea { padding-right: 4.6rem; }
 .rich-b { position: absolute; top: 5px; right: 5px; min-height: 0; width: 1.9rem; height: 1.9rem; padding: 0;
   border-radius: 6px; font: 800 .9rem/1 "DM Sans", sans-serif; background: var(--card); color: var(--muted); }
 label > .rich { margin-top: .25rem; }
 label > .rich > textarea { margin-top: 0; }
+.rich-l { right: calc(5px + 2.1rem); display: grid; place-items: center; }
+/* A "- " line in a note (bulletLines in core.js): a hanging bullet */
+.bul { display: block; position: relative; padding-left: 1.1em; }
+.bul::before { content: "•"; position: absolute; left: .25em; }
 input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 [aria-invalid="true"] { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 7%, var(--field)); }
 [aria-invalid="true"]:focus { outline-color: var(--danger); }

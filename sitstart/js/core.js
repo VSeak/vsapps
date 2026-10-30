@@ -22,10 +22,15 @@ const linkify = h => h.replace(/\b(?:https?:\/\/|www\.)(?:[^\s&<]|&amp;)+/gi, m 
 });
 const para = (s, links = true) => {
   const h = esc(s).replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g, '<strong>$1</strong>');
-  return (links ? linkify(h) : h).replace(/\n/g, '<br>');
+  return bulletLines(links ? linkify(h) : h);
 };
-// A textarea with a Bold button in its corner (Ctrl+B does the same): wraps the picked words in **, or unwraps them.
-const rich = textarea => `<div class="rich">${textarea}<button type="button" class="rich-b" data-bold title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button></div>`;
+// Lines that start with "- " show as bullets: a block span each (not a <ul>), so para() still fits inside a <p>.
+const BULLET = /^[ \t]*[-•][ \t]+/;
+const bulletLines = h => h.split('\n').map(l => BULLET.test(l) ? `<span class="bul">${l.replace(BULLET, '')}</span>` : l + '<br>').join('').replace(/<br>$/, '');
+// A textarea with Bold and Bullets buttons in its corner. Bold (Ctrl+B too) wraps the picked words in **, or unwraps them;
+// Bullets puts "- " in front of the picked lines, or takes it off, and Enter on a bullet line starts the next one.
+const BULLETS_ICON = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="4" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="2.5" cy="12" r="1.5"/><rect x="6" y="3" width="9" height="2" rx="1"/><rect x="6" y="7" width="9" height="2" rx="1"/><rect x="6" y="11" width="9" height="2" rx="1"/></g></svg>';
+const rich = textarea => `<div class="rich">${textarea}<button type="button" class="rich-b" data-bold title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button><button type="button" class="rich-b rich-l" data-bullets title="Bullets" aria-label="Bullets">${BULLETS_ICON}</button></div>`;
 function toggleBold(t) {
   const a = t.selectionStart, z = t.selectionEnd, v = t.value;
   if (a >= 2 && v.slice(a - 2, a) === '**' && v.slice(z, z + 2) === '**') t.setRangeText(v.slice(a, z), a - 2, z + 2, 'select');
@@ -33,10 +38,35 @@ function toggleBold(t) {
   t.focus();
   t.dispatchEvent(new Event('input', { bubbles: true }));
 }
-document.addEventListener('mousedown', e => { if (e.target.closest('[data-bold]')) e.preventDefault(); });   // keeps the picked words
-document.addEventListener('click', e => { const b = e.target.closest('[data-bold]'); if (b) toggleBold(b.parentElement.querySelector('textarea')); });
+function toggleBullets(t) {
+  const v = t.value, a = v.lastIndexOf('\n', t.selectionStart - 1) + 1;
+  let z = v.indexOf('\n', t.selectionEnd); if (z < 0) z = v.length;
+  const lines = v.slice(a, z).split('\n'), filled = lines.filter(l => l.trim());
+  const off = filled.length > 0 && filled.every(l => BULLET.test(l));
+  const out = lines.map(l => off ? l.replace(BULLET, '') : BULLET.test(l) || (!l.trim() && lines.length > 1) ? l : '- ' + l).join('\n');
+  t.setRangeText(out, a, z, lines.length > 1 ? 'select' : 'end');
+  t.focus();
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+}
+// Enter on a bullet line starts the next bullet; Enter on an empty bullet ends the list.
+function continueBullet(t, e) {
+  const v = t.value, p = t.selectionStart, a = v.lastIndexOf('\n', p - 1) + 1, m = BULLET.exec(v.slice(a, p));
+  if (!m || p !== t.selectionEnd) return;
+  e.preventDefault();
+  let z = v.indexOf('\n', p); if (z < 0) z = v.length;
+  if (!v.slice(a, z).replace(BULLET, '').trim()) t.setRangeText('', a, z, 'end');
+  else t.setRangeText('\n' + m[0], p, p, 'end');
+  t.dispatchEvent(new Event('input', { bubbles: true }));
+}
+document.addEventListener('mousedown', e => { if (e.target.closest('[data-bold], [data-bullets]')) e.preventDefault(); });   // keeps the picked words
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-bold], [data-bullets]');
+  if (b) (b.hasAttribute('data-bold') ? toggleBold : toggleBullets)(b.parentElement.querySelector('textarea'));
+});
 document.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && e.target.matches?.('.rich textarea')) { e.preventDefault(); toggleBold(e.target); }
+  if (!e.target.matches?.('.rich textarea')) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleBold(e.target); }
+  else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.isComposing) continueBullet(e.target, e);
 });
 // A textarea with data-grow grows downward to fit its text: CSS field-sizing where the browser has it,
 // otherwise here, on typing, on focus and after a redraw (growAll, from queueMark). Hidden ones wait until shown.
