@@ -1,56 +1,30 @@
 // ---------- Check-ins (on the member page) ----------
 // A check-in is a snapshot on a day, as often as the coach likes: answers to the admin's questions (Proud Of, Want to
-// Improve with area tags, …), 1–5 ratings on the rated areas from the member and from the coach, and grades: the
-// hardest circuit color, board grades with the angle, outdoor boulder and route grades. All optional. The newest one
-// shows in full with how each value changed since the check-in before; older ones fold into History.
+// Improve with area tags, …), the member's level, their ranking of the Rated focus areas (strongest to weakest, their
+// own view; another coach's idea, replacing 1–5 ratings), and grades: the hardest circuit color, board grades with the
+// angle, outdoor boulder and route grades. All optional. The newest one shows in full with how each value changed since
+// the check-in before; older ones fold into History.
 
-// How to rate an area 1 to 5, for an area (or a number) with no description of its own.
-const RATING_GUIDE = [
-  "<b>Just starting.</b> New to it; needs a coach's help every time.",
-  '<b>Developing.</b> Shows up sometimes, mostly on easier climbs.',
-  '<b>Solid.</b> Does it reliably on climbs at their level.',
-  '<b>Strong.</b> Holds up on harder climbs and when tired.',
-  '<b>A real strength.</b> Stands out on the team; could show others how.',
-];
 const AREA_GROUPS = { physical: 'Physical', skill: 'Skill', mental: 'Mental' };
-// What number i (1–5) means for an area: its own line, else its area's (for a sub-area), else the general guide.
-const guideFor = (a, i, parent) => a.guide?.[i - 1]?.trim() ? esc(a.guide[i - 1])
-  : parent?.guide?.[i - 1]?.trim() ? esc(parent.guide[i - 1]) : RATING_GUIDE[i - 1];
-// Sub-areas (parent_id, one level; the user asked): an area's, in the admin's order.
-const subsOf = (a, areas) => areas.filter(s => s.parent_id === a.id);
-// Areas in Physical, Skill, Mental order (then the admin's order), each followed by its sub-areas, for tag chips and the
-// Team Summary. A sub-area whose area isn't in the list stands on its own.
-const byGroup = areas => {
-  const tops = areas.filter(a => !a.parent_id || !areas.some(p => p.id === a.parent_id));
-  return Object.keys(AREA_GROUPS).flatMap(g => tops.filter(a => a.area_group === g).flatMap(a => [a, ...subsOf(a, areas)]));
-};
-// The ids plus their areas' ids, so a practice tagged Heel Hooks shows when filtering by Footwork.
-const withParents = (ids, areas) => [...new Set(ids.flatMap(id => [id, areas.find(a => a.id === id)?.parent_id].filter(Boolean)))];
-// An area's rating on a check-in (key 'ratings' or 'coach_ratings'): the average of its rated sub-areas, else its own
-// rating, else null. Only what was rated counts (the user asked).
-function areaScore(c, key, a, areas) {
-  const v = subsOf(a, areas).map(s => c[key][s.id]).filter(x => x != null);
-  return v.length ? v.reduce((p, q) => p + q, 0) / v.length : c[key][a.id] ?? null;
+// Areas in Physical, Skill, Mental order, then the admin's order.
+const byGroup = areas => Object.keys(AREA_GROUPS).flatMap(g => areas.filter(a => a.area_group === g));
+// An area's 1–10 ladder (Focus Area Levels in Settings): what each level looks like, for reference only.
+const ladderHTML = a => a.guide.some(g => g.trim()) ? `<ol class="ladder">${a.guide.map((g, i) => g.trim()
+  ? `<li><b>${i + 1}</b><span>${esc(g)}</span></li>` : '').join('')}</ol>` : '<p class="muted">No levels written for this area yet.</p>';
+// An area's score on a check-in from its place in the ranking: the top area 10, the bottom 1, evenly between, so
+// rankings of different lengths average fairly. Null when it isn't ranked.
+function rankScore(c, id) {
+  const r = c.ranking || [], i = r.indexOf(id);
+  return i < 0 ? null : r.length === 1 ? 10 : 10 - 9 * i / (r.length - 1);
 }
 const scoreText = x => Number.isInteger(x) ? String(x) : x.toFixed(1);
 // Area chips to tick (checkboxes called `name`), in a row per group. Used for check-in tags, Team Focus and practices.
-// Sub-areas fold under "<group> Sub-Areas" (open when one is picked), a line per area, so the list stays short.
-// Ticking a sub-area ticks its area too (data-parent, the listener below; the user asked); an area can be picked alone.
-document.addEventListener('change', e => {
-  const p = e.target.checked && e.target.dataset.parent;
-  const area = p && e.target.closest('.tag-pick')?.querySelector(`input[value="${p}"]`);
-  if (area) area.checked = true;
-});
 const areaChips = (name, list, picked, label) => {
-  const chip = a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${a.parent_id ? ` data-parent="${a.parent_id}"` : ''}${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`;
+  const chip = a => `<label class="chip-check"><input type="checkbox" name="${name}" value="${a.id}"${picked.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)}</span></label>`;
   return `<div class="tag-pick" role="group" aria-label="${esc(label)}">
   ${Object.entries(AREA_GROUPS).map(([g, gl]) => {
-    const inG = byGroup(list).filter(a => a.area_group === g);
-    const tops = inG.filter(a => !inG.some(p => p.id === a.parent_id)), withSubs = tops.filter(a => subsOf(a, inG).length);
-    const open = withSubs.some(a => subsOf(a, inG).some(s => picked.includes(s.id)));
-    return inG.length ? `<div class="tag-group"><small>${gl}</small>${tops.map(chip).join('')}</div>
-      ${withSubs.length ? `<details class="tag-subs"${open ? ' open' : ''}><summary>${gl} Sub-Areas</summary>
-        ${withSubs.map(a => `<div class="tag-group"><small>${esc(a.name)}</small>${subsOf(a, inG).map(chip).join('')}</div>`).join('')}</details>` : ''}` : '';
+    const inG = list.filter(a => a.area_group === g);
+    return inG.length ? `<div class="tag-group"><small>${gl}</small>${inG.map(chip).join('')}</div>` : '';
   }).join('')}</div>`;
 };
 
@@ -76,26 +50,26 @@ const delta = (now, before) => now == null || before == null || now === before ?
 const answered = (c, questions, areas) => questions.map(q => ({ q, text: (c.answers[q.id] || '').trim(),
   tags: byGroup(areas).filter(a => (c.tags[q.id] || []).includes(a.id)) })).filter(x => x.text || x.tags.length);
 
-function checkinDetailHTML(c, older, { m, circuits, areas, questions }) {
+function checkinDetailHTML(c, older, { m, circuits, areas, questions, levels }) {
   const prevRank = key => { for (const o of older) { const p = gradeParts(o, circuits).find(x => x.key === key); if (p) return p.rank; } return null; };
-  const score = (o, key, a) => areaScore(o, key, a, areas);
-  const prevRating = (key, a) => { for (const o of older) { const r = score(o, key, a); if (r != null) return r; } return null; };
   const grades = gradeParts(c, circuits);
   const answers = answered(c, questions, areas);
-  // Each area with a rating (its score: the average of its rated sub-areas, else its own), then those sub-areas.
-  const rated = byGroup(areas).filter(a => score(c, 'ratings', a) != null || score(c, 'coach_ratings', a) != null);
-  const cell = (key, a) => {
-    const r = score(c, key, a);
-    return r == null ? '<span class="muted">—</span>' : `<span class="rcell"><span class="pips sm" aria-label="${scoreText(r)} out of 5">${[1, 2, 3, 4, 5].map(i =>
-      `<i class="${i <= Math.round(r) ? 'on' : ''}"></i>`).join('')}</span><b>${scoreText(r)}${delta(r, prevRating(key, a))}</b></span>`;
+  const level = levels.find(l => l.id === c.level_id);
+  // The ranking, strongest first, each with how many places it moved since the last check-in that has a ranking.
+  const ranked = c.ranking.map(id => areas.find(a => a.id === id)).filter(Boolean);
+  const before = older.find(o => o.ranking.length)?.ranking || [];
+  const moved = a => {
+    const was = before.indexOf(a.id), now = c.ranking.indexOf(a.id), n = was - now;
+    return was < 0 || !n ? '' : `<span class="delta ${n > 0 ? 'up' : 'down'}" title="${n > 0 ? 'Up' : 'Down'} ${Math.abs(n)} since the check-in before">${n > 0 ? '↑' : '↓'}${Math.abs(n)}</span>`;
   };
   return `${answers.length ? `<div class="answers">${answers.map(x => `<div class="answer"><small>${esc(x.q.prompt)}</small>
       ${x.text ? `<div>${para(x.text)}</div>` : ''}${x.tags.length ? `<span class="chips">${x.tags.map(a => `<span class="chip">${esc(a.name)}</span>`).join('')}</span>` : ''}</div>`).join('')}</div>` : ''}
-    ${grades.length ? `<div class="grades">${grades.map(p => `<div class="grade"><small>${p.label}</small>
+    ${level || grades.length ? `<div class="grades">${level ? `<div class="grade"><small>Level</small><b>${esc(level.name)}</b>${level.about ? `<small>${esc(level.about)}</small>` : ''}</div>` : ''}
+      ${grades.map(p => `<div class="grade"><small>${p.label}</small>
       <b>${p.show}${delta(p.rank, prevRank(p.key))}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</div>`).join('')}</div>` : ''}
-    ${rated.length ? `<div class="ratings"><span></span><small>${esc(m?.first_name || 'Member')}</small><small>Coach</small>
-      ${rated.map(a => `<span${a.parent_id ? ' class="sub-name"' : ''}>${esc(a.name)}</span>${cell('ratings', a)}${cell('coach_ratings', a)}`).join('')}</div>` : ''}
-    ${!answers.length && !grades.length && !rated.length ? '<p class="muted">No answers, ratings or grades recorded.</p>' : ''}
+    ${ranked.length ? `<div class="ranked"><small>${esc(m?.first_name || 'Member')}'s Ranking <span class="muted">(strongest first)</span></small>
+      <ol>${ranked.map(a => `<li><span>${esc(a.name)}</span>${moved(a)}</li>`).join('')}</ol></div>` : ''}
+    ${!answers.length && !grades.length && !ranked.length && !level ? '<p class="muted">No answers, ranking or grades recorded.</p>' : ''}
     ${c.notes ? `<div class="note-body">${para(c.notes)}</div>` : ''}
     <div class="row between wrap check-foot"><span class="hint">Check-in by ${esc(c.author_name || 'staff')}${c.edited_at ? ' · edited' : ''}</span>
       ${canChangeCheckin(c) ? `<span class="row"><button type="button" class="small ghost" data-checkin="edit" data-id="${c.id}">Edit</button>
@@ -117,7 +91,7 @@ function checkinsCardHTML(ctx) {
       ${older.length ? `<h3>History</h3>${older.map((c, i) => `<details class="history"><summary>${summary(c)}</summary>
         ${checkinDetailHTML(c, older.slice(i + 1), ctx)}</details>`).join('')}` : ''}`
     : `<p class="muted">No check-ins yet. A check-in records a chat with them (what they're proud of, what they want to improve),
-      1–5 ratings from them and from you, and their grades, whenever it suits you: monthly, each season or once a year.</p>`}
+      their level, how they rank their focus areas, and their grades, whenever it suits you: monthly, each season or once a year.</p>`}
   </section>`;
 }
 
@@ -130,11 +104,11 @@ async function checkinAction(btn, ctx) {
   checkinForm(c || null, ctx);
 }
 
-async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }) {
-  // A new check-in starts as a copy of the latest one (grades, both ratings and notes, but not the answers), dated today.
+async function checkinForm(c, { m, goals, checkins, circuits, areas, questions, levels }) {
+  // A new check-in starts as a copy of the latest one (level, ranking, grades and notes, but not the answers), dated today.
   const last = checkins[0];
   const v = c || (last ? { ...last, checkin_date: today(), answers: {}, tags: {} }
-    : { checkin_date: today(), ratings: {}, coach_ratings: {}, answers: {}, tags: {}, notes: '' });
+    : { checkin_date: today(), ranking: [], level_id: null, answers: {}, tags: {}, notes: '' });
   const vOpts = sel => `<option value="">—</option>${V_GRADES.map(g => `<option value="${g}"${g === sel ? ' selected' : ''}>V${g}</option>`).join('')}`;
   const angle = (name, val) => `<label>Angle<input type="number" name="${name}" min="0" max="70" step="5" inputmode="numeric" value="${val ?? ''}"
     placeholder="E.g. 40" data-range="Use an angle from 0° to 70°."></label>`;
@@ -142,27 +116,12 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
   const shownQs = questions.filter(q => q.active || v.answers[q.id] || v.tags[q.id]?.length);
   const tagsOn = q => q.tags || v.tags[q.id]?.length;
   const tagAreas = q => byGroup(areas.filter(a => a.active || (v.tags[q.id] || []).includes(a.id)));
-  const hasRating = a => v.ratings[a.id] != null || v.coach_ratings[a.id] != null;
-  // Rated, shown sub-areas of a shown area, and any with a rating; areas that are rated and shown, have a rating, or have such a sub-area.
-  const shownSubs = areas.filter(s => s.parent_id && ((s.rated && s.active && areas.find(p => p.id === s.parent_id)?.active) || hasRating(s)));
-  const shownTops = areas.filter(a => !a.parent_id && ((a.rated && a.active) || hasRating(a) || shownSubs.some(s => s.parent_id === a.id)));
-  const shownAreas = [...shownTops, ...shownSubs];
   const tagPick = q => areaChips('t_' + q.id, tagAreas(q), v.tags[q.id] || [], `Focus areas for ${q.prompt}`);
-  // The two sets of ratings: the member's own (labeled with their first name) and the coach's.
-  const raters = [['ratings', m.first_name, 'r_'], ['coach_ratings', 'Coach', 'c_']];
-  const pick = (a, [key, label, prefix]) => `<div class="rate-row" data-rater="${prefix}"><span>${esc(label)}</span><span class="rate-pick" role="radiogroup" aria-label="${esc(a.name)}: ${esc(label)}">
-    ${[1, 2, 3, 4, 5].map(i => `<label><input type="radio" name="${prefix}${a.id}" value="${i}"${v[key][a.id] === i ? ' checked' : ''}><span>${i}</span></label>`).join('')}</span>
-    ${a.parent_id ? '' : '<small class="rate-avg"></small>'}</div>`;
-  const lines = (a, parent) => `<ol class="rate-lines">${[1, 2, 3, 4, 5].map(i => `<li><b>${i}</b><span>${guideFor(a, i, parent)}</span></li>`).join('')}</ol>`;
-  // An area: its lines and picks, then Break Down with each sub-area (its lines folded, to keep the form short). Open
-  // when a sub-area already has a rating.
-  const rateArea = a => { const subs = shownSubs.filter(s => s.parent_id === a.id); return `<div class="rate-area" data-area="${a.id}"><b>${esc(a.name)}</b>
-    ${lines(a)}${raters.map(r => pick(a, r)).join('')}
-    ${subs.length ? `<details class="rate-subs"${subs.some(hasRating) ? ' open' : ''}><summary>Break Down <span class="muted">(${subs.length} sub-areas)</span></summary>
-      <p class="hint">Rate any you like. ${esc(a.name)} becomes the average of the ones rated, for each person.</p>
-      ${subs.map(s => `<div class="rate-sub"><b>${esc(s.name)}</b>
-        <details class="rate-guide"><summary>What the Numbers Mean</summary>${lines(s, a)}</details>
-        ${raters.map(r => pick(s, r)).join('')}</div>`).join('')}</details>` : ''}</div>`; };
+  // The ranking: the saved order, then any Rated, shown area it doesn't have yet (added since) at the bottom. An area
+  // that is no longer Rated or shown stays while this check-in ranks it.
+  const inRank = v.ranking.map(id => areas.find(a => a.id === id)).filter(Boolean);
+  const rankAreas = [...inRank, ...byGroup(areas.filter(a => a.rated && a.active && !inRank.includes(a)))];
+  const levelOf = id => levels.find(l => l.id === id);
   const pr = pronounWords(m.pronouns);
   // A reminder from their intake and goals, to talk about progress against what they came for (the user asked).
   const cur = goals.filter(g => g.status === 'current');
@@ -170,9 +129,12 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
       ${m.intake_wants.trim() ? `<p><b>What ${Cap(pr.subj)} ${pr.plural ? 'Want' : 'Wants'} From Adult Team:</b> ${esc(m.intake_wants)}</p>` : ''}
       ${cur.length ? `<p><b>Current Goals</b></p><ul>${cur.map(g => `<li>${esc(g.body)}</li>`).join('')}</ul>` : ''}</div>` : '';
   const f = await ask({ title: c ? 'Edit Check-In' : `Check-In: ${m.first_name}`, ok: c ? 'Save Check-In' : 'Add Check-In', wide: true,
-    body: `<label>Date<input type="date" name="checkin_date" required value="${v.checkin_date}" max="${today()}" data-need="Pick the date."
+    body: `<div class="two"><label>Date<input type="date" name="checkin_date" required value="${v.checkin_date}" max="${today()}" data-need="Pick the date."
         data-range="A check-in can't be in the future."></label>
-      <p class="hint">Record what's useful. Everything below is optional.${!c && last ? ` Ratings, grades and notes start from the last check-in (${fmtDate(last.checkin_date)}), so change what's new.` : ''}</p>
+      <label>Level<select name="level_id"><option value="">—</option>${levels.map(l =>
+        `<option value="${l.id}"${l.id === v.level_id ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
+        <small class="level-about" data-level-about>${esc(levelOf(v.level_id)?.about || '')}</small></label></div>
+      <p class="hint">Record what's useful. Everything below is optional.${!c && last ? ` Level, ranking, grades and notes start from the last check-in (${fmtDate(last.checkin_date)}), so change what's new.` : ''}</p>
       ${recap}
       ${shownQs.length ? `<h3 class="sec">Questions</h3>${shownQs.map(q => `<div class="q-block"><label>${esc(q.prompt)}${rich(`<textarea name="a_${q.id}" rows="2"
         placeholder="${esc(q.hint)}">${esc(v.answers[q.id] || '')}</textarea>`)}</label>${tagsOn(q) ? tagPick(q) : ''}</div>`).join('')}` : ''}
@@ -184,45 +146,32 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
       <fieldset><legend>MoonBoard</legend><div class="two"><label>Grade<select name="moon_grade">${vOpts(v.moon_grade)}</select></label>${angle('moon_angle', v.moon_angle)}</div></fieldset>
       <div class="two"><label>Boulder (Outdoor/Other)<select name="boulder_grade">${vOpts(v.boulder_grade)}</select></label>
         <label>Route<select name="route_grade"><option value="">—</option>${ROUTE_GRADES.map(g => `<option${g === v.route_grade ? ' selected' : ''}>${g}</option>`).join('')}</select></label></div>
-      ${shownTops.length ? `<h3 class="sec">Ratings</h3>
-        <p class="hint">${esc(m.first_name)}: how ${esc(m.first_name)} rates ${pr.self} (you tap it for ${pr.obj}).<br>Coach: your rating.
-          Every rating is optional; Break Down rates the parts of an area instead of the whole.</p>
-        ${byGroup(shownTops).map(rateArea).join('')}` : ''}
+      ${rankAreas.length ? `<h3 class="sec">${esc(m.first_name)}'s Ranking</h3>
+        <p class="hint">How ${esc(m.first_name)} sees ${pr.self}: drag ${pr.pos} strongest focus area to the top and weakest to the bottom
+          (you move them for ${pr.obj}). Tap a name for what each level looks like.</p>
+        <p class="hint rank-none"${v.ranking.length ? ' hidden' : ''}>Not ranked yet. Moving any area ranks them all in this order.</p>
+        <ol class="rank-list">${rankAreas.map(a => `<li class="rank-row" data-kind="rank" data-id="${a.id}">${GRIP}
+          <details class="rank-ladder"><summary>${esc(a.name)}</summary>${ladderHTML(a)}</details></li>`).join('')}</ol>
+        <input type="hidden" name="ranking" value="${v.ranking.length ? rankAreas.map(a => a.id).join(',') : ''}">
+        <button type="button" class="small ghost" data-rank-clear${v.ranking.length ? '' : ' hidden'}>Clear Ranking</button>` : ''}
       <h3 class="sec">Notes</h3>
       ${rich(`<textarea name="notes" rows="3" aria-label="Notes" placeholder="E.g. Moved up a color since spring. Wants to try the Kilter at 45° next.">${esc(v.notes)}</textarea>`)}`,
-    // Tapping the picked rating again clears it (a radio can't be unticked on its own); pointerdown notes whether it was already picked.
     onOpen: form => {
-      let was = null;
-      form.addEventListener('pointerdown', e => { const r = e.target.closest('.rate-pick label')?.querySelector('input'); was = r?.checked ? r : null; });
-      form.addEventListener('click', e => {
-        if (!e.target.matches('.rate-pick input')) return;
-        if (e.target === was) { e.target.checked = false; e.target.dispatchEvent(new Event('change', { bubbles: true })); }
-        was = null;
-      });
-      // Once a person has a sub-area rated, the area's own pick is off for them (a disabled radio isn't saved) and shows
-      // the average instead: a check-in holds one or the other, so the two can't disagree.
-      const sync = () => form.querySelectorAll('.rate-area[data-area]').forEach(box => {
-        for (const [, , prefix] of raters) {
-          const vals = [...box.querySelectorAll(`.rate-sub input[name^="${prefix}"]:checked`)].map(i => +i.value);
-          const row = box.querySelector(`:scope > .rate-row[data-rater="${prefix}"]`);
-          const avg = vals.length ? vals.reduce((p, q) => p + q, 0) / vals.length : null;
-          row.classList.toggle('from-subs', avg != null);
-          row.querySelectorAll('input').forEach(i => { i.disabled = avg != null; });
-          row.querySelector('.rate-avg').textContent = avg == null ? '' : `Average: ${scoreText(avg)}`;
-        }
-      });
-      form.addEventListener('change', e => { if (e.target.closest('.rate-sub')) sync(); });
-      sync();
+      // Moving an area saves the whole order; Clear Ranking leaves this check-in unranked.
+      const hidden = form.elements.ranking, clear = form.querySelector('[data-rank-clear]');
+      const set = ids => {
+        hidden.value = ids.join(',');
+        form.querySelector('.rank-none').hidden = !!ids.length;
+        clear.hidden = !ids.length;
+      };
+      if (hidden) wireGrips((kind, ids) => set(ids), form);
+      clear?.addEventListener('click', () => set([]));
+      form.elements.level_id.addEventListener('change', e => { form.querySelector('[data-level-about]').textContent = levelOf(e.target.value)?.about || ''; });
     } });
   if (!f) return;
   const num = k => f.get(k) === '' || f.get(k) == null ? null : +f.get(k);
-  // Ratings, answers and tags on areas or questions not in the form (none today, but an old check-in could have some) are kept.
+  // Answers and tags on questions not in the form (none today, but an old check-in could have some) are kept.
   const keep = (now, old, shown) => { if (old) for (const [k, x] of Object.entries(old)) if (!shown.some(s => s.id === k)) now[k] = x; return now; };
-  const pickAll = (prefix, old) => {
-    const out = {};
-    for (const a of shownAreas) if (f.get(prefix + a.id)) out[a.id] = +f.get(prefix + a.id);
-    return keep(out, old, shownAreas);
-  };
   const answers = {}, tags = {};
   for (const q of shownQs) {
     const text = (f.get('a_' + q.id) || '').trim(), t = f.getAll('t_' + q.id);
@@ -230,12 +179,12 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions }
     if (t.length) tags[q.id] = t;
   }
   const row = {
-    checkin_date: f.get('checkin_date'), circuit_id: f.get('circuit_id') || null,
+    checkin_date: f.get('checkin_date'), level_id: f.get('level_id') || null, circuit_id: f.get('circuit_id') || null,
     tb2_grade: num('tb2_grade'), tb2_angle: num('tb2_grade') == null ? null : num('tb2_angle'),
     kilter_grade: num('kilter_grade'), kilter_angle: num('kilter_grade') == null ? null : num('kilter_angle'),
     moon_grade: num('moon_grade'), moon_angle: num('moon_grade') == null ? null : num('moon_angle'),
     boulder_grade: num('boulder_grade'), route_grade: f.get('route_grade') || null,
-    ratings: pickAll('r_', c?.ratings), coach_ratings: pickAll('c_', c?.coach_ratings),
+    ranking: (f.get('ranking') || '').split(',').filter(Boolean),
     answers: keep(answers, c?.answers, shownQs), tags: keep(tags, c?.tags, shownQs), notes: f.get('notes').trim(),
   };
   await busy(null, async () => {

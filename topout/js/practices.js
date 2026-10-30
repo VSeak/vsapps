@@ -17,13 +17,9 @@ const blockMinutes = b => b.blocks.reduce((n, x) => n + (+x.minutes || 0), 0);
 const fmtMinutes = n => n < 60 ? `${n} min` : `${Math.floor(n / 60)} h${n % 60 ? ` ${n % 60} min` : ''}`;
 const practiceMeta = p => [blockMinutes(p) ? fmtMinutes(blockMinutes(p)) : '',
   p.blocks.length ? `${p.blocks.length} ${p.blocks.length === 1 ? 'block' : 'blocks'}` : 'No blocks yet'].filter(Boolean).join(' · ');
-// fit (the list's cards; the user asked, they got long): areas first, then sub-areas, and a hidden "+N More" chip that
-// fitChips shows once they pass two lines.
-const practiceAreaChips = (p, areas, fit = false) => {
-  let all = byGroup(areas).filter(a => p.area_ids.includes(a.id));
-  if (fit) all = [...all.filter(a => !a.parent_id), ...all.filter(a => a.parent_id)];
-  return all.map(a => `<span class="chip">${esc(a.name)}</span>`).join('') + (fit ? '<span class="chip soft chip-more" hidden></span>' : '');
-};
+// fit (the list's cards; the user asked, they got long): a hidden "+N More" chip that fitChips shows once they pass two lines.
+const practiceAreaChips = (p, areas, fit = false) => byGroup(areas).filter(a => p.area_ids.includes(a.id))
+  .map(a => `<span class="chip">${esc(a.name)}</span>`).join('') + (fit ? '<span class="chip soft chip-more" hidden></span>' : '');
 // Keeps a card's chips to two lines: hides chips from the end until "+N More" ends the second line. Run after the list
 // draws or filters (a hidden card can't be measured), when fonts load and on resize. Tops are from the chips' own box: the
 // foot is pinned to the card's bottom, so it moves down as lines go and card-relative tops would keep growing.
@@ -44,7 +40,7 @@ const fitAllChips = () => document.querySelectorAll('#practices .practice:not([h
 let fitFrame = 0;
 addEventListener('resize', () => { cancelAnimationFrame(fitFrame); fitFrame = requestAnimationFrame(fitAllChips); });
 document.fonts?.ready.then(fitAllChips);
-const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active, parent_id').order('position').then(must);
+const loadAreas = () => sb.from('team_rating_areas').select('id, name, area_group, active').order('position').then(must);
 
 // Delete, after asking (from the list, the practice or the editor); then() runs once it's gone.
 async function deletePractice(p, then) {
@@ -83,23 +79,17 @@ async function practicesPage() {
   });
   const useDate = (d, at) => (d === now ? 'Today' : d.slice(0, 4) === now.slice(0, 4) ? fmtShort(d) : fmtDate(d)) + (at ? ` at ${esc(at)}` : '');
   const useLine = p => [p.last ? `Last used ${useDate(p.last, p.lastAt)}` : 'Not used yet', p.next ? `Next: ${useDate(p.next, p.nextAt)}` : ''].filter(Boolean).join(' · ');
-  const used = byGroup(areas).map(a => [a, list.filter(p => withParents(p.area_ids, areas).includes(a.id)).length]).filter(([, n]) => n);
+  const used = byGroup(areas).map(a => [a, list.filter(p => p.area_ids.includes(a.id)).length]).filter(([, n]) => n);
   practiceAreas = practiceAreas.filter(id => used.some(([a]) => a.id === id));
-  // The pills laid out like the editor's (the user couldn't tell the order): each group's name on its own line with its
-  // areas, then a line per area for its sub-areas, indented and named after the area. A sub-area line shows only once its
-  // area is picked (the user asked: the open list took up the page), to narrow that area down.
-  const parentOf = Object.fromEntries(areas.map(a => [a.id, a.parent_id]));
+  // The pills laid out like the editor's (the user couldn't tell the order): each group's name on its own line with its areas.
   const areaFilterHTML = used => Object.entries(AREA_GROUPS).map(([g, gl]) => {
     const inG = used.filter(([a]) => a.area_group === g);
     const pill = ([a, n]) => `<label class="chip-check"><input type="checkbox" value="${a.id}"${practiceAreas.includes(a.id) ? ' checked' : ''}><span>${esc(a.name)} (${n})</span></label>`;
-    const subs = a => inG.filter(([s]) => s.parent_id === a.id);
-    const tops = inG.filter(([a]) => !inG.some(([p]) => p.id === a.parent_id));
-    return inG.length ? `<div class="tag-group"><small>${gl}</small>${tops.map(pill).join('')}</div>
-      ${tops.filter(([a]) => subs(a).length).map(([a]) => `<div class="tag-group prac-subs" data-sub-of="${a.id}"${practiceAreas.includes(a.id) ? '' : ' hidden'}><small>${esc(a.name)}</small>${subs(a).map(pill).join('')}</div>`).join('')}` : '';
+    return inG.length ? `<div class="tag-group"><small>${gl}</small>${inG.map(pill).join('')}</div>` : '';
   }).join('');
   const orig = p => all.find(o => o.id === p.based_on);
   // The name is the link, stretched over the card (.practice-go::after), so Delete can sit inside it.
-  const card = p => `<article class="card practice" data-id="${p.id}" data-area="${withParents(p.area_ids, areas).join(' ')}" data-find="${esc((p.name + ' ' + p.summary).toLowerCase())}">
+  const card = p => `<article class="card practice" data-id="${p.id}" data-area="${p.area_ids.join(' ')}" data-find="${esc((p.name + ' ' + p.summary).toLowerCase())}">
     <div class="row between"><h2><a class="practice-go" href="#/practice/${p.id}">${esc(p.name)}</a></h2>${ICON_ARROW}</div>
     <p class="muted small-text">${practiceMeta(p)}</p>
     ${p.event_only ? `<p class="small-text"><span class="chip soft">This Event Only</span>${orig(p) ? ` <span class="muted">Changed from ${esc(orig(p).name)}</span>` : ''}</p>` : ''}
@@ -127,12 +117,10 @@ async function practicesPage() {
 
   const filter = () => {
     const q = practiceSearch.trim().toLowerCase();
-    // An area with sub-areas picked counts as just those sub-areas, so picking Heel Hooks under Footwork narrows it.
-    const wanted = practiceAreas.filter(id => !practiceAreas.some(s => parentOf[s] === id));
     let n = 0;
     app.querySelectorAll('#practices .practice').forEach(p => {
       const has = p.dataset.area.split(' ');
-      p.hidden = (!!q && !p.dataset.find.includes(q)) || (wanted.length > 0 && !wanted.some(id => has.includes(id)));
+      p.hidden = (!!q && !p.dataset.find.includes(q)) || (practiceAreas.length > 0 && !practiceAreas.some(id => has.includes(id)));
       n += !p.hidden;
     });
     $('#noMatch').hidden = !!n;
@@ -158,10 +146,7 @@ async function practicesPage() {
   $('#pracSearch').addEventListener('input', e => { practiceSearch = e.target.value; filter(); });
   $('#pracSort').addEventListener('change', e => { practiceSort = e.target.value; sort(); });
   $('#pracOneOffs')?.addEventListener('change', e => { practiceOneOffs = e.target.checked; practiceAreas = []; redraw(); });
-  $('#pracAreas')?.addEventListener('change', e => {
-    // Unpicking an area hides its line and unpicks its sub-areas, so no hidden pick keeps filtering.
-    const line = app.querySelector(`#pracAreas [data-sub-of="${e.target.value}"]`);
-    if (line) { line.hidden = !e.target.checked; if (!e.target.checked) line.querySelectorAll('input').forEach(i => { i.checked = false; }); }
+  $('#pracAreas')?.addEventListener('change', () => {
     practiceAreas = [...app.querySelectorAll('#pracAreas input:checked')].map(i => i.value); filter();
   });
   $('#pracAreasFold')?.addEventListener('toggle', e => {
@@ -170,7 +155,7 @@ async function practicesPage() {
   });
   $('#pracClear')?.addEventListener('click', () => {
     app.querySelectorAll('#pracAreas input').forEach(i => { i.checked = false; });
-    app.querySelectorAll('#pracAreas [data-sub-of]').forEach(l => { l.hidden = true; }); practiceAreas = []; filter();
+    practiceAreas = []; filter();
   });
   app.onclick = e => {
     const del = e.target.closest('[data-del]');

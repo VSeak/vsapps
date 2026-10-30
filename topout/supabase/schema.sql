@@ -114,8 +114,25 @@ insert into public.team_circuits (name, color, position, v_min, v_max) values
   ('White',  '#F4F4F4', 9, 8, 10),
   ('Mint',   '#A8DCD1', 10, 11, null);
 
--- Areas: what a check-in rates 1–5 (rated) and what an answer can be tagged with (every area). Admins edit the list;
--- hiding one (active = false) keeps old ratings. guide = what each number 1–5 means, so coaches rate the same way.
+-- Levels: the team's levels, easiest first. about = who fits (the circuits they climb), shown under the pick on a
+-- check-in. Admins edit the list in Settings. Each check-in records one (level_id), so averages use the level at the time.
+create table public.team_levels (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (length(trim(name)) between 1 and 30),
+  name_key text generated always as (lower(trim(name))) stored unique,
+  about text not null default '' check (length(about) <= 120),
+  position int not null
+);
+insert into public.team_levels (name, about, position) values
+  ('Recreational', 'Yellow, Red, Green', 1),
+  ('Intermediate', 'Purple, Orange, Black', 2),
+  ('Advanced',     'Black, Blue, Pink', 3),
+  ('Open',         'Blue, Pink, White, Mint', 4);
+
+-- Focus Areas: rated ones are ranked on a check-in (the member's strongest to weakest); every area can tag an answer,
+-- a practice or Team Focus. Admins edit the list; hiding one (active = false) leaves it off new check-ins.
+-- guide = a 1–10 ladder (what each level looks like), for reference only. The ladders themselves are filled in by
+-- migrations/2026-10-30-rankings-levels.sql (safe to run after this file).
 create table public.team_rating_areas (
   id uuid primary key default gen_random_uuid(),
   name text not null check (length(trim(name)) between 1 and 40),
@@ -124,44 +141,23 @@ create table public.team_rating_areas (
   active boolean not null default true,
   area_group text not null default 'skill' check (area_group in ('physical', 'skill', 'mental')),
   rated boolean not null default true,   -- false = tag only
-  guide text[] not null default '{}' check (cardinality(guide) in (0, 5)),
-  parent_id uuid references public.team_rating_areas (id) on delete cascade   -- a sub-area (one level; team_area_parent)
+  guide text[] not null default '{}' check (cardinality(guide) in (0, 10))
 );
-create index team_rating_areas_parent on public.team_rating_areas (parent_id);
-insert into public.team_rating_areas (name, position, area_group, rated, guide) values
-  ('Technique', 1, 'skill', true, array[
-    'Climbs mostly with arms; moves feel stiff or random.',
-    'Knows basic moves (flagging, drop knees) but uses them only on easy climbs.',
-    'Picks the right move on most climbs at their level; smooth on familiar styles.',
-    'Adapts to new styles and harder climbs; rarely wastes a move.',
-    'Reads and climbs efficiently in any style; others copy their beta.']),
-  ('Strength', 2, 'physical', true, array[
-    'Struggles to hold small edges or pull through steep moves.',
-    'Holds good edges; steep or crimpy climbs at their level shut them down.',
-    'Strength matches their grade; rarely the main reason they fall.',
-    'Strength lets them try climbs above their grade; strong on the boards.',
-    'Powerful on any angle and hold type.']),
-  ('Endurance', 3, 'physical', true, array[
-    'Pumped or tired after a few climbs; needs long rests.',
-    'Lasts part of a session; quality drops off fast.',
-    'Climbs a full session at a steady level; recovers between tries.',
-    'Stays strong through long sessions and long problems.',
-    'Barely fades; many hard tries in a session or a comp round.']),
-  ('Mental Game', 4, 'mental', true, array[
-    'Hesitates or backs off when scared, pumped or watched.',
-    'Commits on familiar climbs; nerves or a fall throw them off.',
-    'Commits on most climbs at their level; bounces back after falls.',
-    'Calm and focused at their limit, in comps and on scary moves.',
-    'Thrives under pressure; makes good decisions when it counts.']),
-  ('Footwork', 5, 'skill', true, array[
-    'Feet cut or scrape often; looks at hands, not feet.',
-    'Places feet, but often readjusts or misses small holds.',
-    'Precise on most holds; quiet feet on easier climbs.',
-    'Precise on small holds at their limit; heel and toe hooks when needed.',
-    'Feet drive the climbing; finds and uses footholds others miss.']),
-  ('Flexibility', 6, 'physical', false, '{}'),
-  ('Volume', 7, 'skill', false, '{}'),
-  ('Comp Prep', 8, 'mental', false, '{}');
+insert into public.team_rating_areas (name, area_group, rated, position) values
+  ('Footwork',          'skill',    true,  1),
+  ('Technique',         'skill',    true,  2),
+  ('Dynamic Movement',  'skill',    true,  3),
+  ('Route Reading',     'skill',    true,  4),
+  ('Strength',          'physical', true,  5),
+  ('Power',             'physical', true,  6),
+  ('Endurance',         'physical', true,  7),
+  ('Flexibility',       'physical', true,  8),
+  ('Mental Game',       'mental',   true,  9),
+  ('Comp Prep',         'mental',   false, 10),
+  ('Hold Types',        'skill',    false, 11),
+  ('Wall Angles',       'skill',    false, 12),
+  ('Injury Prevention', 'physical', false, 13),
+  ('Projecting',        'mental',   false, 14);
 
 -- What a coach asks at a check-in. Admins edit the list; hiding one keeps old answers. tags = the answer can be tagged
 -- with areas (Want to Improve), which the Team Summary counts.
@@ -179,8 +175,8 @@ insert into public.team_checkin_questions (prompt, hint, position, tags) values
   ('Competition Thoughts', 'E.g. how Boulderfest went and how they felt about it', 3, false);
 
 -- A check-in: a snapshot of a member on a day, whenever the coach wants (monthly, per season, yearly).
--- Every grade is optional. V grades are 0–17. Board angles are degrees. ratings = the member's own {"<area id>": 1..5},
--- coach_ratings = the coach's. answers = {"<question id>": text}, tags = {"<question id>": ["<area id>", …]}.
+-- Every grade is optional. V grades are 0–17. Board angles are degrees. ranking = the member's Rated areas from
+-- strongest to weakest ["<area id>", …]. answers = {"<question id>": text}, tags = {"<question id>": ["<area id>", …]}.
 create table public.team_checkins (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references public.team_members (id) on delete cascade,
@@ -196,8 +192,8 @@ create table public.team_checkins (
   route_grade text check (route_grade in ('5.5', '5.6', '5.7', '5.8', '5.9',
     '5.10a', '5.10b', '5.10c', '5.10d', '5.11a', '5.11b', '5.11c', '5.11d', '5.12a', '5.12b', '5.12c', '5.12d',
     '5.13a', '5.13b', '5.13c', '5.13d', '5.14a', '5.14b', '5.14c', '5.14d', '5.15a', '5.15b', '5.15c', '5.15d')),
-  ratings jsonb not null default '{}' check (jsonb_typeof(ratings) = 'object'),
-  coach_ratings jsonb not null default '{}' check (jsonb_typeof(coach_ratings) = 'object'),
+  ranking jsonb not null default '[]' check (jsonb_typeof(ranking) = 'array'),
+  level_id uuid references public.team_levels (id) on delete set null,
   answers jsonb not null default '{}' check (jsonb_typeof(answers) = 'object'),
   tags jsonb not null default '{}' check (jsonb_typeof(tags) = 'object'),
   notes text not null default '',
@@ -578,19 +574,18 @@ $$;
 create trigger team_protect_owner before update or delete on public.team_staff
   for each row execute function public.team_protect_owner();
 
--- Deleting an area takes its ratings and tags off the check-ins that use it and takes it off any Team Focus (the user
--- wanted every area deletable; hiding it keeps old ratings). Deleting a question takes its answers and tags off them too.
+-- Deleting an area takes it off the check-ins that rank or tag it and off any Team Focus and practice (the user
+-- wanted every area deletable; hiding it keeps it on old check-ins). Deleting a question takes its answers and tags off them too.
 create function public.team_area_cleanup() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
   k text := old.id::text;
 begin
   update public.team_checkins c set
-    ratings = c.ratings - k,
-    coach_ratings = c.coach_ratings - k,
+    ranking = c.ranking - k,
     tags = coalesce((select jsonb_object_agg(e.key, e.value - k) from jsonb_each(c.tags) e
                      where jsonb_array_length(e.value - k) > 0), '{}')
-  where c.ratings ? k or c.coach_ratings ? k or exists (select 1 from jsonb_each(c.tags) e where e.value ? k);
+  where c.ranking ? k or exists (select 1 from jsonb_each(c.tags) e where e.value ? k);
   update public.team_focus set area_ids = array_remove(area_ids, old.id) where old.id = any (area_ids);
   update public.team_practices set area_ids = array_remove(area_ids, old.id) where old.id = any (area_ids);
   return old;
@@ -598,39 +593,6 @@ end;
 $$;
 create trigger team_area_cleanup before delete on public.team_rating_areas
   for each row execute function public.team_area_cleanup();
-
--- A sub-area sits under a top-level area (one level only) and takes its group and Rated; changing an area changes its
--- sub-areas too. The app scores an area on a check-in as the average of its rated sub-areas, else its own rating.
-create function public.team_area_parent() returns trigger
-language plpgsql set search_path = '' as $$
-declare
-  p public.team_rating_areas;
-begin
-  if new.parent_id is not null then
-    select * into p from public.team_rating_areas where id = new.parent_id;
-    if p.parent_id is not null then raise exception 'A sub-area can''t have sub-areas of its own.'; end if;
-    if exists (select 1 from public.team_rating_areas where parent_id = new.id) then
-      raise exception 'An area with sub-areas can''t become a sub-area.';
-    end if;
-    new.area_group := p.area_group;
-    new.rated := p.rated;
-  end if;
-  return new;
-end;
-$$;
-create trigger team_area_parent before insert or update on public.team_rating_areas
-  for each row execute function public.team_area_parent();
-
-create function public.team_area_children() returns trigger
-language plpgsql set search_path = '' as $$
-begin
-  update public.team_rating_areas set area_group = new.area_group, rated = new.rated
-  where parent_id = new.id and (area_group, rated) is distinct from (new.area_group, new.rated);
-  return null;
-end;
-$$;
-create trigger team_area_children after update of area_group, rated on public.team_rating_areas
-  for each row execute function public.team_area_children();
 
 create function public.team_question_cleanup() returns trigger
 language plpgsql security definer set search_path = '' as $$
@@ -668,6 +630,7 @@ alter table public.team_member_locations enable row level security;
 alter table public.team_goals enable row level security;
 alter table public.team_coach_notes enable row level security;
 alter table public.team_circuits enable row level security;
+alter table public.team_levels enable row level security;
 alter table public.team_rating_areas enable row level security;
 alter table public.team_checkins enable row level security;
 alter table public.team_events enable row level security;
@@ -735,6 +698,9 @@ create policy "author: delete" on public.team_checkins for delete to authenticat
 
 create policy "staff: read" on public.team_circuits for select to authenticated using ((select public.team_is_staff()));
 create policy "admin: everything" on public.team_circuits for all to authenticated
+  using ((select public.team_is_admin())) with check ((select public.team_is_admin()));
+create policy "staff: read" on public.team_levels for select to authenticated using ((select public.team_is_staff()));
+create policy "admin: everything" on public.team_levels for all to authenticated
   using ((select public.team_is_admin())) with check ((select public.team_is_admin()));
 create policy "staff: read" on public.team_rating_areas for select to authenticated using ((select public.team_is_staff()));
 create policy "admin: everything" on public.team_rating_areas for all to authenticated

@@ -9,7 +9,7 @@ let notesAll = false;
 async function memberPage(id) {
   const t = ++navToken;
   view(loading);
-  const [m, goals, notes, checkins, circuits, areas, questions, locs, exits] = await Promise.all([
+  const [m, goals, notes, checkins, circuits, areas, questions, locs, exits, levels] = await Promise.all([
     sb.from('team_members').select('*, teams:team_member_locations(location_id, inactive_on)').eq('id', id).maybeSingle().then(must),
     sb.from('team_goals').select('*').eq('member_id', id).order('created_at').then(must),
     sb.from('team_coach_notes').select('*').eq('member_id', id)
@@ -20,6 +20,7 @@ async function memberPage(id) {
     sb.from('team_checkin_questions').select('*').order('position').then(must),
     sb.from('team_locations').select('id, name, short_name').order('position').then(must),
     sb.from('team_exits').select('*').eq('member_id', id).order('left_on', { ascending: false }).then(r => r.data || []),   // still works before the migration
+    sb.from('team_levels').select('*').order('position').then(must),
   ]);
   if (t !== navToken) return;
   if (!m) return view(`${crumbs([['Home', '#/'], ['Not Found']])}<section class="card"><h2>Member Not Found</h2>
@@ -31,7 +32,7 @@ async function memberPage(id) {
   m.backTo = loc && lastLoc !== 'members' ? `#/loc/${loc.id}/team` : '#/members';
   // The Exit Intake for this time they left (none yet if they left before there was one); earlier exits are read-only.
   const exit = m.left_on ? exits.find(x => x.left_on === m.left_on) || null : null;
-  const ctx = { m, goals, notes, checkins, circuits, areas, questions, locs, exit, pastExits: exits.filter(x => x !== exit) };
+  const ctx = { m, goals, notes, checkins, circuits, areas, questions, levels, locs, exit, pastExits: exits.filter(x => x !== exit) };
   const status = [mine.map(l => m.inactive[l.id] ? `${l.name} (inactive)` : l.name).join(', '), m.joined_on ? `Joined ${fmtMonthYear(m.joined_on)}` : '', m.left_on ? `Left ${fmtDate(m.left_on)}` : '']
     .filter(Boolean).map(esc).join(' · ');
   view(`${crumbs([['Home', '#/'], m.backTo === '#/members' ? ['Team Members', m.backTo] : [loc.name, m.backTo], [m.name]])}

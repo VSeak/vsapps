@@ -39,26 +39,31 @@ function inactiveOn(m) {
 }
 
 // Every member this person can see, each with `teams` (location ids), plus the latest check-in per member and the
-// circuits and locations to show them with.
+// circuits, levels and locations to show them with. A member's level is from their latest check-in that has one.
 async function loadMembers() {
-  const [members, checkins, circuits, locs] = await Promise.all([
+  const [members, checkins, circuits, locs, levels] = await Promise.all([
     sb.from('team_members').select('id, first_name, name, pronouns, joined_on, left_on, email, intake_why, intake_wants, teams:team_member_locations(location_id, inactive_on)')
       .order('first_name').order('last_name').then(must),
-    sb.from('team_checkins').select('member_id, checkin_date, circuit_id').order('checkin_date', { ascending: false }).then(must),
+    sb.from('team_checkins').select('member_id, checkin_date, circuit_id, level_id').order('checkin_date', { ascending: false }).then(must),
     sb.from('team_circuits').select('id, name, color').then(must),
     sb.from('team_locations').select('id, name, short_name').order('position').order('name').then(must),
+    sb.from('team_levels').select('id, name').then(must),
   ]);
   for (const m of members) inactiveOn(m);
   const latest = {};
-  for (const c of checkins) latest[c.member_id] ??= c;   // newest first
-  return { members, latest, circuits, locs };
+  const level = {};
+  for (const c of checkins) {   // newest first
+    latest[c.member_id] ??= c;
+    if (c.level_id) level[c.member_id] ??= levels.find(l => l.id === c.level_id);
+  }
+  return { members, latest, level, circuits, locs };
 }
 
 // Active / Moved / Former, a search box and the member cards. teamChips(m) adds chips for the teams they're on;
 // moved(m) says who goes under Moved (still on Adult Team, inactive here). Former is everyone who left Adult Team.
 // Moved and Former show only when someone is in them.
 // Two members with the same name get a line telling them apart: when they joined, and their email if there is one.
-function membersView(head, list, { latest, circuits, teamChips, moved: isMoved, tools = '', empty }) {
+function membersView(head, list, { latest, level, circuits, teamChips, moved: isMoved, tools = '', empty }) {
   const named = {};
   for (const m of list) named[m.name.toLowerCase()] = (named[m.name.toLowerCase()] || 0) + 1;
   const tellApart = m => named[m.name.toLowerCase()] < 2 ? ''
@@ -72,6 +77,7 @@ function membersView(head, list, { latest, circuits, teamChips, moved: isMoved, 
     const chips = [
       teamChips(m),
       !m.intake_why.trim() && !m.intake_wants.trim() ? '<span class="chip warn">Needs Intake</span>' : '',
+      level[m.id] ? `<span class="chip">${esc(level[m.id].name)}</span>` : '',
       circ ? circuitChip(circ) : '',
       c ? `<span class="chip">Checked in ${fmtShort(c.checkin_date)}</span>` : '<span class="chip soft">No check-in yet</span>',
       m.left_on ? `<span class="chip soft">Left ${fmtShort(m.left_on)}</span>` : '',
@@ -106,13 +112,13 @@ function membersView(head, list, { latest, circuits, teamChips, moved: isMoved, 
 }
 
 async function teamTabView(loc, head, t) {
-  const { members, latest, circuits, locs } = await loadMembers();
+  const { members, latest, level, circuits, locs } = await loadMembers();
   if (t !== navToken) return;
   // The other teams they're active on (a coach may not see that location's name): Also on X, or Now at X once moved from here.
   const also = m => m.left_on ? '' : (m.inactive[loc.id] ? `<span class="chip soft">Moved ${fmtShort(m.inactive[loc.id])}</span>` : '')
     + m.teams.filter(id => id !== loc.id && !m.inactive[id]).map(id =>
       `<span class="chip soft">${m.inactive[loc.id] ? 'Now at' : 'Also on'} ${esc(locShort(locs.find(l => l.id === id)) || 'another team')}</span>`).join('');
-  membersView(head, members.filter(m => m.teams.includes(loc.id)), { latest, circuits, teamChips: also, moved: m => !!m.inactive[loc.id],
+  membersView(head, members.filter(m => m.teams.includes(loc.id)), { latest, level, circuits, teamChips: also, moved: m => !!m.inactive[loc.id],
     tools: '<button type="button" id="addMember" class="fill">+ Add Member</button>',
     empty: `<section class="card empty"><h2>No Team Members Yet</h2><p class="muted">Add the first member of the ${esc(loc.name)} team.</p></section>` });
   $('#addMember').onclick = () => addMember(loc);
@@ -122,7 +128,7 @@ async function teamTabView(loc, head, t) {
 async function membersPage() {
   const t = ++navToken;
   view(loading);
-  const { members, latest, circuits, locs } = await loadMembers();
+  const { members, latest, level, circuits, locs } = await loadMembers();
   if (t !== navToken) return;
   lastLoc = 'members';
   if (membersTeam && membersTeam !== 'several' && !locs.some(l => l.id === membersTeam)) membersTeam = '';
@@ -135,7 +141,7 @@ async function membersPage() {
   const head = `${crumbs([['Home', '#/'], ['Team Members']])}
     <div class="page-head"><div><h1 class="big">Team Members</h1>
       <p class="muted">Everyone on ${me.isAdmin ? 'a team' : 'your teams'} and which teams they're on.</p></div></div>`;
-  membersView(head, list, { latest, circuits, teamChips: teams, moved,
+  membersView(head, list, { latest, level, circuits, teamChips: teams, moved,
     tools: locs.length > 1 ? `<label class="inline">Location:<select id="membersTeam" class="team-filter">
       <option value="">All Locations</option>${locs.map(l => `<option value="${l.id}"${l.id === membersTeam ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}
       <option value="several"${membersTeam === 'several' ? ' selected' : ''}>On Several Teams</option></select></label>` : '',

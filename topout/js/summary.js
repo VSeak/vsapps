@@ -1,7 +1,7 @@
 // ---------- A location's Team Summary: #/loc/<id>/summary ----------
 // What the coach used to build in a spreadsheet: each active member's latest check-in (since a date, if one is picked),
-// the team's average member and coach rating per area, how many tagged each area (Want to Improve), and every answer, by
-// question or by member. Team Focus is what the coaches decide from it: dated and signed, with earlier ones kept.
+// each focus area's average score from the members' rankings (the whole team and each level), how many tagged each area
+// (Want to Improve), and every answer, by question or by member. Team Focus is what the coaches decide from it: dated and signed, with earlier ones kept.
 // Copy Summary (text for an email or a message) and Copy Table (tab-separated: pastes into a spreadsheet as cells) are
 // for coaches who aren't on the app yet.
 
@@ -14,30 +14,29 @@ const SAID_SHOWN = 5;       // answers shown per question on Check-In Answers be
 const avgText = x => x ? x.avg.toFixed(1) : '—';
 const firstLine = s => { const l = s.trim().split('\n')[0].replace(/\*\*/g, ''); return l.length > 90 ? l.slice(0, 88).trimEnd() + '…' : l; };
 
-// Per area: the average member and coach rating (with how many rated it) and, for each question with tags, how many tagged it.
-// An area's rating per member is its score (the average of their rated sub-areas, else its own; areaScore), and a tag on
-// a sub-area counts for its area too. Sub-areas are listed under their area only once someone rated or tagged them.
-function teamStats(rows, areas, questions) {
+// Per area: the average ranking score (rankScore: a member's top area 10, bottom 1) for the whole team and for each level
+// (the level on that check-in; another coach asked), each with how many ranked it, and for each question with tags, how
+// many tagged it. Only levels someone in the rows has get a column.
+function teamStats(rows, areas, questions, levels) {
   const tagQs = questions.filter(q => q.tags || rows.some(r => r.c.tags[q.id]?.length));
-  const avg = (key, a) => {
-    const v = rows.map(r => areaScore(r.c, key, a, areas)).filter(x => x != null);
+  const lvls = levels.filter(l => rows.some(r => r.c.level_id === l.id));
+  const avg = (a, rs) => {
+    const v = rs.map(r => rankScore(r.c, a.id)).filter(x => x != null);
     return v.length ? { avg: v.reduce((a, b) => a + b, 0) / v.length, n: v.length } : null;
   };
-  const ids = a => [a.id, ...subsOf(a, areas).map(s => s.id)];
-  const list = byGroup(areas).map(a => ({ a, them: avg('ratings', a), coach: avg('coach_ratings', a),
-    tagged: tagQs.map(q => rows.filter(r => (r.c.tags[q.id] || []).some(id => ids(a).includes(id))).length) }))
-    .filter(x => (!x.a.parent_id && x.a.active && (x.a.rated || tagQs.length)) || x.them || x.coach || x.tagged.some(Boolean));
-  for (const x of list) x.gap = x.them && x.coach && Math.abs(x.them.avg - x.coach.avg) >= 1;
-  // Most Wanted and Lowest Rated name the most precise thing: a sub-area, or an area none of whose sub-areas are listed.
-  const leaves = list.filter(x => x.a.parent_id || !list.some(s => s.a.parent_id === x.a.id));
-  const wanted = tagQs.length ? leaves.filter(x => x.tagged[0]).sort((p, q) => q.tagged[0] - p.tagged[0]).slice(0, 3) : [];
-  const score = x => (x.coach || x.them)?.avg;
-  const lowest = leaves.filter(x => score(x) != null).sort((p, q) => score(p) - score(q)).slice(0, 3);
-  return { tagQs, list, wanted, lowest };
+  const list = byGroup(areas).map(a => ({ a, team: avg(a, rows), by: lvls.map(l => avg(a, rows.filter(r => r.c.level_id === l.id))),
+    tagged: tagQs.map(q => rows.filter(r => (r.c.tags[q.id] || []).includes(a.id)).length) }))
+    .filter(x => (x.a.active && (x.a.rated || tagQs.length)) || x.team || x.tagged.some(Boolean));
+  const wanted = tagQs.length ? list.filter(x => x.tagged[0]).sort((p, q) => q.tagged[0] - p.tagged[0]).slice(0, 3) : [];
+  const ranked = list.filter(x => x.team).sort((p, q) => q.team.avg - p.team.avg);
+  const strongest = ranked.slice(0, 3), weakest = ranked.length > 3 ? ranked.slice(-3).reverse() : [];
+  return { tagQs, lvls, list, wanted, strongest, weakest };
 }
+// A level's short column head (Recreational → Rec; Open stays), the full name in its title.
+const levelShort = l => l.name.length <= 5 ? l.name : l.name.slice(0, 3);
 
 async function summaryTab(loc, head, t) {
-  const [onTeam, areas, questions, focus, [next]] = await Promise.all([
+  const [onTeam, areas, questions, focus, [next], levels] = await Promise.all([
     sb.from('team_member_locations').select('member:team_members(id, name, first_name, left_on, intake_injuries)').eq('location_id', loc.id).is('inactive_on', null).then(must),
     sb.from('team_rating_areas').select('*').order('position').then(must),
     sb.from('team_checkin_questions').select('*').order('position').then(must),
@@ -45,6 +44,7 @@ async function summaryTab(loc, head, t) {
     // The next Practice here (not other kinds of event), for the Next Practice card.
     sb.from('team_events').select('*').eq('kind', 'practice').or(`location_ids.is.null,location_ids.cs.{${loc.id}}`)
       .gte('event_date', today()).order('event_date').order('start_time', { nullsFirst: true }).limit(1).then(must),
+    sb.from('team_levels').select('*').order('position').then(must),
   ]);
   const members = onTeam.map(x => x.member).filter(m => m && !m.left_on).sort((a, b) => a.name.localeCompare(b.name));
   const plan = next?.practice_id ? await sb.from('team_practices').select('*').eq('id', next.practice_id).maybeSingle().then(r => r.data) : null;
@@ -55,8 +55,8 @@ async function summaryTab(loc, head, t) {
   for (const c of checkins) if (!sumSince || c.checkin_date >= sumSince) latest[c.member_id] ??= c;
   const rows = members.filter(m => latest[m.id]).map(m => ({ m, c: latest[m.id] }));
   const missing = members.filter(m => !latest[m.id]);
-  const s = teamStats(rows, areas, questions);
-  const ctx = { loc, members, rows, areas, questions, focus, s };
+  const s = teamStats(rows, areas, questions, levels);
+  const ctx = { loc, members, rows, areas, questions, levels, focus, s };
   const link = m => `<a href="#/member/${m.id}">${esc(m.name)}</a>`;
 
   view(`${head}
@@ -160,25 +160,28 @@ function nextPracticeHTML(e, plan, loc, areas, members) {
 // ---------- By Area ----------
 
 function areaCardHTML({ rows, s }) {
-  const { tagQs, list, wanted, lowest } = s;
+  const { tagQs, lvls, list, wanted, strongest, weakest } = s;
   if (!rows.length) return `<section class="card"><h2>By Focus Area</h2><p class="muted">No check-ins to sum up${sumSince ? ' since that date' : ' yet'}.</p></section>`;
-  const val = x => x ? `<span class="avg"><b>${avgText(x)}</b><small>${x.n}</small></span>` : '<span class="muted">—</span>';
+  const val = (x, lvl) => x ? `<span class="avg${lvl ? ' lvl' : ''}"><b>${avgText(x)}</b><small>${x.n}</small></span>` : '<span class="muted">—</span>';
   const count = k => `<span class="tcount"><span class="tbar"><i style="width:${Math.round(k / rows.length * 100)}%"></i></span><b>${k}</b></span>`;
+  const names = xs => xs.map(x => `${esc(x.a.name)} (${avgText(x.team)})`).join(', ');
+  const legend = lvls.filter(l => levelShort(l) !== l.name).map(l => `${levelShort(l)} = ${l.name}`).join(', ');
   const glance = [
     wanted.length ? `<li><b>Most wanted (${esc(tagQs[0].prompt)}):</b> ${wanted.map(x => `${esc(x.a.name)} (${x.tagged[0]})`).join(', ')}</li>` : '',
-    lowest.length ? `<li><b>Lowest rated:</b> ${lowest.map(x => `${esc(x.a.name)} (${avgText(x.coach || x.them)})`).join(', ')}</li>` : '',
+    strongest.length ? `<li><b>Strongest:</b> ${names(strongest)}</li>` : '',
+    weakest.length ? `<li><b>Weakest:</b> ${names(weakest)}</li>` : '',
   ].join('');
   return `<section class="card"><h2>By Focus Area</h2>
     ${glance ? `<ul class="glance">${glance}</ul>` : ''}
-    <div class="area-table" style="--cols:${2 + tagQs.length}">
-      <span></span><small>Member</small><small>Coach</small>${tagQs.map(q => `<small>${esc(q.prompt)}</small>`).join('')}
+    <div class="area-scroll"><div class="area-table" style="--cols:${1 + lvls.length + tagQs.length}">
+      <span></span><small>Team</small>${lvls.map(l => `<small title="${esc(l.name)}">${esc(levelShort(l))}</small>`).join('')}${tagQs.map(q => `<small>${esc(q.prompt)}</small>`).join('')}
       ${Object.entries(AREA_GROUPS).map(([g, label]) => { const inG = list.filter(x => x.a.area_group === g); return inG.length ? `<h3>${label}</h3>
-        ${inG.map(x => `<span${x.a.parent_id ? ' class="sub-name"' : ''}>${esc(x.a.name)}</span>${x.a.rated || x.them || x.coach ? `${val(x.them)}<span class="${x.gap ? 'gap' : ''}">${val(x.coach)}</span>`
-          : '<span class="muted small-text tag-only">Tag only</span>'}${x.tagged.map(count).join('')}`).join('')}` : ''; }).join('')}
-    </div>
-    <p class="hint">Averages of each member's latest check-in; the small number is how many rated it. An area broken down counts as
-      the average of its rated sub-areas, which show under it once someone rates or tags them. Lowest rated uses the coach average.
-      ${list.some(x => x.gap) ? '<span class="gap">Highlighted</span>: members and coaches differ by 1 or more on average.' : ''}</p>
+        ${inG.map(x => `<span>${esc(x.a.name)}</span>${x.a.rated || x.team ? val(x.team) + x.by.map(x => val(x, true)).join('')
+          : `<span class="muted small-text tag-only" style="grid-column: span ${1 + lvls.length}">Tag only</span>`}${x.tagged.map(count).join('')}`).join('')}` : ''; }).join('')}
+    </div></div>
+    <p class="hint">From each member's ranking on their latest check-in: their strongest area scores 10, their weakest 1. A high average
+      means members feel strong there; a low one is where the team feels weakest. It compares areas with each other, not skill levels.
+      The small number is how many ranked it.${lvls.length ? ` Level columns use the level on each check-in${legend ? ` (${esc(legend)})` : ''}.` : ''}</p>
   </section>`;
 }
 
@@ -229,12 +232,12 @@ function summaryText({ loc, members, rows, areas, questions, focus, s }) {
     L.push(`TEAM FOCUS (${fmtDate(f.focus_date)}, ${f.author_name || 'staff'})`, plain(f.body.trim()), ...(names.length ? [`Focus Areas: ${names.join(', ')}`] : []), '');
   }
   if (rows.length) {
-    L.push(`BY FOCUS AREA (Member average / Coach average${s.tagQs.map(q => ` / ${q.prompt}`).join('')})`);
+    L.push(`BY FOCUS AREA (ranking average, 10 = strongest: Team${s.lvls.map(l => ` / ${l.name}`).join('')}${s.tagQs.map(q => ` / ${q.prompt}`).join('')})`);
     for (const [g, label] of Object.entries(AREA_GROUPS)) {
       const inG = s.list.filter(x => x.a.area_group === g);
       if (!inG.length) continue;
       L.push(label);
-      for (const x of inG) L.push(`${x.a.parent_id ? '    - ' : '- '}${x.a.name}: ${[...(x.a.rated || x.them || x.coach ? [avgText(x.them), avgText(x.coach)] : ['tag only']),
+      for (const x of inG) L.push(`- ${x.a.name}: ${[...(x.a.rated || x.team ? [x.team, ...x.by].map(avgText) : ['tag only']),
         ...x.tagged.map(k => `${k} of ${rows.length}`)].join(' / ')}`);
     }
     L.push('');
@@ -250,19 +253,17 @@ function summaryText({ loc, members, rows, areas, questions, focus, s }) {
 }
 
 // One row per member, tab-separated, so it pastes into Sheets or Excel as cells. Tabs and new lines in answers become spaces.
-function summaryTable({ rows, areas, questions }) {
+function summaryTable({ rows, areas, questions, levels }) {
   const cell = x => String(x ?? '').replace(/\*\*/g, '').replace(/\s*[\t\r\n]+\s*/g, ' ').trim();
   const qs = questions.filter(q => q.active || rows.some(r => r.c.answers[q.id] || r.c.tags[q.id]?.length));
   const tagQs = qs.filter(q => q.tags || rows.some(r => r.c.tags[q.id]?.length));
-  // Rated, shown areas, plus any area or sub-area someone has a score for. Sub-area columns are named "Area: Sub-Area".
-  const score = (c, key, a) => { const r = areaScore(c, key, a, areas); return r == null ? '' : scoreText(r); };
-  const rated = byGroup(areas).filter(a => (!a.parent_id && a.rated && a.active)
-    || rows.some(r => areaScore(r.c, 'ratings', a, areas) != null || areaScore(r.c, 'coach_ratings', a, areas) != null));
-  const full = a => a.parent_id ? `${areas.find(p => p.id === a.parent_id)?.name}: ${a.name}` : a.name;
-  const head = ['Member', 'Check-In', 'By', ...qs.flatMap(q => tagQs.includes(q) ? [q.prompt, `${q.prompt}: Focus Areas`] : [q.prompt]),
-    ...rated.flatMap(a => [`${full(a)} (Member)`, `${full(a)} (Coach)`])];
-  const line = ({ m, c }) => [m.name, c.checkin_date, c.author_name,
+  // Rated, shown areas, plus any area someone ranked: each member's place for it (1 = their strongest).
+  const ranked = byGroup(areas).filter(a => (a.rated && a.active) || rows.some(r => r.c.ranking.includes(a.id)));
+  const place = (c, a) => { const i = c.ranking.indexOf(a.id); return i < 0 ? '' : i + 1; };
+  const head = ['Member', 'Check-In', 'By', 'Level', ...qs.flatMap(q => tagQs.includes(q) ? [q.prompt, `${q.prompt}: Focus Areas`] : [q.prompt]),
+    ...ranked.map(a => `${a.name} (Rank)`)];
+  const line = ({ m, c }) => [m.name, c.checkin_date, c.author_name, levels.find(l => l.id === c.level_id)?.name,
     ...qs.flatMap(q => [c.answers[q.id], ...(tagQs.includes(q) ? [byGroup(areas).filter(a => (c.tags[q.id] || []).includes(a.id)).map(a => a.name).join(', ')] : [])]),
-    ...rated.flatMap(a => [score(c, 'ratings', a), score(c, 'coach_ratings', a)])];
+    ...ranked.map(a => place(c, a))];
   return [head, ...rows.map(line)].map(r => r.map(cell).join('\t')).join('\n') + '\n';
 }
