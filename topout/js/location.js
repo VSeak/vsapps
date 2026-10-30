@@ -44,7 +44,7 @@ async function loadMembers() {
   const [members, checkins, circuits, locs, levels] = await Promise.all([
     sb.from('team_members').select('id, first_name, name, pronouns, joined_on, left_on, email, intake_why, intake_wants, teams:team_member_locations(location_id, inactive_on)')
       .order('first_name').order('last_name').then(must),
-    sb.from('team_checkins').select('member_id, checkin_date, circuit_id, level_id').order('checkin_date', { ascending: false }).then(must),
+    sb.from('team_checkins').select('member_id, checkin_date, circuit_id, project_circuit_id, level_id').order('checkin_date', { ascending: false }).then(must),
     sb.from('team_circuits').select('id, name, color').then(must),
     sb.from('team_locations').select('id, name, short_name').order('position').order('name').then(must),
     sb.from('team_levels').select('id, name').then(must),
@@ -73,12 +73,13 @@ function membersView(head, list, { latest, level, circuits, teamChips, moved: is
   const groups = { active, moved, former };
   if (!groups[teamTab]?.length) teamTab = 'active';
   const card = m => {
-    const c = latest[m.id], circ = c && circuits.find(x => x.id === c.circuit_id);
+    const c = latest[m.id], circ = c && circuits.find(x => x.id === c.circuit_id), proj = c && circuits.find(x => x.id === c.project_circuit_id);
     const chips = [
       teamChips(m),
       !m.intake_why.trim() && !m.intake_wants.trim() ? '<span class="chip warn">Needs Intake</span>' : '',
       level[m.id] ? `<span class="chip">${esc(level[m.id].name)}</span>` : '',
       circ ? circuitChip(circ) : '',
+      proj ? `<span class="chip">${swatch(proj.color)}Project: ${esc(proj.name)}</span>` : '',   // hardest and project both (a few one-off sends can overstate the hardest)
       c ? `<span class="chip">Checked in ${fmtShort(c.checkin_date)}</span>` : '<span class="chip soft">No check-in yet</span>',
       m.left_on ? `<span class="chip soft">Left ${fmtShort(m.left_on)}</span>` : '',
     ].join('');

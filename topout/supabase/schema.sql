@@ -181,7 +181,8 @@ create table public.team_checkins (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references public.team_members (id) on delete cascade,
   checkin_date date not null default current_date,
-  circuit_id uuid references public.team_circuits (id) on delete set null,
+  circuit_id uuid references public.team_circuits (id) on delete set null,           -- Hardest Circuit: the hardest sent, even once
+  project_circuit_id uuid references public.team_circuits (id) on delete set null,   -- Project Circuit: where most of their projects are
   tb2_grade smallint check (tb2_grade between 0 and 17),
   tb2_angle smallint check (tb2_angle between 0 and 70),
   kilter_grade smallint check (kilter_grade between 0 and 17),

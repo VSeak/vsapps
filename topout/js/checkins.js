@@ -32,10 +32,12 @@ const canChangeCheckin = c => me.isAdmin || c.author_id === me.user.id;
 
 // Each grade: its label, how to read it for display, and a number to compare (higher = harder).
 function gradeParts(c, circuits) {
-  const circ = circuits.find(x => x.id === c.circuit_id);
+  const circ = circuits.find(x => x.id === c.circuit_id), proj = circuits.find(x => x.id === c.project_circuit_id);
   const board = (g, a) => g == null ? null : vText(g) + (a != null ? ` @ ${a}°` : '');
+  const color = x => x ? `${swatch(x.color)}${esc(x.name)}` : null;
   return [
-    { key: 'circuit', label: 'Circuit', show: circ ? `${swatch(circ.color)}${esc(circ.name)}` : null, sub: circ ? circuitRange(circ) : '', rank: circ?.position },
+    { key: 'circuit', label: 'Hardest Circuit', show: color(circ), sub: circ ? circuitRange(circ) : '', rank: circ?.position },
+    { key: 'project', label: 'Project Circuit', show: color(proj), sub: proj ? circuitRange(proj) : '', rank: proj?.position },
     { key: 'tb2', label: 'Tension Board 2', show: esc(board(c.tb2_grade, c.tb2_angle)), rank: c.tb2_grade },
     { key: 'kilter', label: 'Kilter Board', show: esc(board(c.kilter_grade, c.kilter_angle)), rank: c.kilter_grade },
     { key: 'moon', label: 'MoonBoard', show: esc(board(c.moon_grade, c.moon_angle)), rank: c.moon_grade },
@@ -81,7 +83,7 @@ function checkinsCardHTML(ctx) {
   const [latest, ...older] = checkins;
   const summary = c => {
     const circ = circuits.find(x => x.id === c.circuit_id);
-    const bits = gradeParts(c, circuits).filter(p => p.key !== 'circuit').map(p => `${p.key === 'tb2' ? 'TB2' : p.key === 'kilter' ? 'Kilter' : p.key === 'moon' ? 'Moon' : ''} ${p.show}`.trim());
+    const bits = gradeParts(c, circuits).filter(p => p.key !== 'circuit' && p.key !== 'project').map(p => `${p.key === 'tb2' ? 'TB2' : p.key === 'kilter' ? 'Kilter' : p.key === 'moon' ? 'Moon' : ''} ${p.show}`.trim());
     return `<b>${fmtDate(c.checkin_date)}</b>${circ ? circuitChip(circ) : ''}<span class="muted">${[...bits.slice(0, 2), c.author_name ? `by ${esc(c.author_name)}` : ''].filter(Boolean).join(' · ')}</span>`;
   };
   return `<section class="card checkins-card">
@@ -122,6 +124,10 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions, 
   const inRank = v.ranking.map(id => areas.find(a => a.id === id)).filter(Boolean);
   const rankAreas = [...inRank, ...byGroup(areas.filter(a => a.rated && a.active && !inRank.includes(a)))];
   const levelOf = id => levels.find(l => l.id === id);
+  // A circuit pick with its hint under the label (the user asked for both).
+  const circuitPick = (name, label, hint) => `<label>${label}<small class="label-hint">${hint}</small>
+    <select name="${name}"><option value="">—</option>${circuits.map(x =>
+      `<option value="${x.id}"${x.id === v[name] ? ' selected' : ''}>${esc(x.name)}${circuitRange(x) ? ` (${circuitRange(x)})` : ''}</option>`).join('')}</select></label>`;
   const pr = pronounWords(m.pronouns);
   // A reminder from their intake and goals, to talk about progress against what they came for (the user asked).
   const cur = goals.filter(g => g.status === 'current');
@@ -139,8 +145,8 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions, 
       ${shownQs.length ? `<h3 class="sec">Questions</h3>${shownQs.map(q => `<div class="q-block"><label>${esc(q.prompt)}${rich(`<textarea name="a_${q.id}" rows="2"
         placeholder="${esc(q.hint)}">${esc(v.answers[q.id] || '')}</textarea>`)}</label>${tagsOn(q) ? tagPick(q) : ''}</div>`).join('')}` : ''}
       <h3 class="sec">Grades</h3>
-      <label>Hardest Circuit<select name="circuit_id"><option value="">—</option>${circuits.map(x =>
-        `<option value="${x.id}"${x.id === v.circuit_id ? ' selected' : ''}>${esc(x.name)}${circuitRange(x) ? ` (${circuitRange(x)})` : ''}</option>`).join('')}</select></label>
+      <div class="two">${circuitPick('circuit_id', 'Hardest Circuit', "The hardest color they've sent, even once.")}
+        ${circuitPick('project_circuit_id', 'Project Circuit', 'The color where most of their projects are. It can be below Hardest if those sends were one-offs.')}</div>
       <fieldset><legend>Tension Board 2</legend><div class="two"><label>Grade<select name="tb2_grade">${vOpts(v.tb2_grade)}</select></label>${angle('tb2_angle', v.tb2_angle)}</div></fieldset>
       <fieldset><legend>Kilter Board</legend><div class="two"><label>Grade<select name="kilter_grade">${vOpts(v.kilter_grade)}</select></label>${angle('kilter_angle', v.kilter_angle)}</div></fieldset>
       <fieldset><legend>MoonBoard</legend><div class="two"><label>Grade<select name="moon_grade">${vOpts(v.moon_grade)}</select></label>${angle('moon_angle', v.moon_angle)}</div></fieldset>
@@ -179,7 +185,8 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions, 
     if (t.length) tags[q.id] = t;
   }
   const row = {
-    checkin_date: f.get('checkin_date'), level_id: f.get('level_id') || null, circuit_id: f.get('circuit_id') || null,
+    checkin_date: f.get('checkin_date'), level_id: f.get('level_id') || null,
+    circuit_id: f.get('circuit_id') || null, project_circuit_id: f.get('project_circuit_id') || null,
     tb2_grade: num('tb2_grade'), tb2_angle: num('tb2_grade') == null ? null : num('tb2_angle'),
     kilter_grade: num('kilter_grade'), kilter_angle: num('kilter_grade') == null ? null : num('kilter_angle'),
     moon_grade: num('moon_grade'), moon_angle: num('moon_grade') == null ? null : num('moon_angle'),

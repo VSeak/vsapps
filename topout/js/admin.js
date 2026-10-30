@@ -139,19 +139,19 @@ async function settingsPage() {
     sb.from('team_levels').select('*').order('position').then(must),
     sb.from('team_rating_areas').select('*').order('position').then(must),
     sb.from('team_checkin_questions').select('*').order('position').then(must),
-    sb.from('team_checkins').select('circuit_id, level_id, ranking, answers, tags').then(must),
+    sb.from('team_checkins').select('circuit_id, project_circuit_id, level_id, ranking, answers, tags').then(must),
   ]);
   if (t !== navToken) return;
   const nMembers = id => members.filter(m => m.location_id === id).length;
   const USES = {
-    circuit: id => used.filter(c => c.circuit_id === id).length,
+    circuit: id => used.filter(c => c.circuit_id === id || c.project_circuit_id === id).length,
     level: id => used.filter(c => c.level_id === id).length,
     area: id => used.filter(c => c.ranking.includes(id) || Object.values(c.tags).some(t => t.includes(id))).length,
     question: id => used.filter(c => c.answers[id] != null || c.tags[id] != null).length,
   };
   // What comes off the check-ins that use it (the database does it: on delete set null, team_area_cleanup, team_question_cleanup).
   const LOSES = {
-    circuit: n => `It comes off ${n === 1 ? 'that check-in' : 'them'} as the hardest circuit.`,
+    circuit: n => `It comes off ${n === 1 ? 'that check-in' : 'them'} as the hardest or project circuit.`,
     level: n => `It comes off ${n === 1 ? 'that check-in' : 'them'} as the level.`,
     area: n => `It comes off ${n === 1 ? 'that check-in' : 'them'} (rankings and tags), and off any Team Focus and practice.`,
     question: n => `Its answers and tags come off ${n === 1 ? 'that check-in' : 'them'}.`,

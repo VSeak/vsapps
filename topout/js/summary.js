@@ -36,7 +36,7 @@ function teamStats(rows, areas, questions, levels) {
 const levelShort = l => l.name.length <= 5 ? l.name : l.name.slice(0, 3);
 
 async function summaryTab(loc, head, t) {
-  const [onTeam, areas, questions, focus, [next], levels] = await Promise.all([
+  const [onTeam, areas, questions, focus, [next], levels, circuits] = await Promise.all([
     sb.from('team_member_locations').select('member:team_members(id, name, first_name, left_on, intake_injuries)').eq('location_id', loc.id).is('inactive_on', null).then(must),
     sb.from('team_rating_areas').select('*').order('position').then(must),
     sb.from('team_checkin_questions').select('*').order('position').then(must),
@@ -45,6 +45,7 @@ async function summaryTab(loc, head, t) {
     sb.from('team_events').select('*').eq('kind', 'practice').or(`location_ids.is.null,location_ids.cs.{${loc.id}}`)
       .gte('event_date', today()).order('event_date').order('start_time', { nullsFirst: true }).limit(1).then(must),
     sb.from('team_levels').select('*').order('position').then(must),
+    sb.from('team_circuits').select('id, name').then(must),
   ]);
   const members = onTeam.map(x => x.member).filter(m => m && !m.left_on).sort((a, b) => a.name.localeCompare(b.name));
   const plan = next?.practice_id ? await sb.from('team_practices').select('*').eq('id', next.practice_id).maybeSingle().then(r => r.data) : null;
@@ -56,7 +57,7 @@ async function summaryTab(loc, head, t) {
   const rows = members.filter(m => latest[m.id]).map(m => ({ m, c: latest[m.id] }));
   const missing = members.filter(m => !latest[m.id]);
   const s = teamStats(rows, areas, questions, levels);
-  const ctx = { loc, members, rows, areas, questions, levels, focus, s };
+  const ctx = { loc, members, rows, areas, questions, levels, circuits, focus, s };
   const link = m => `<a href="#/member/${m.id}">${esc(m.name)}</a>`;
 
   view(`${head}
@@ -253,16 +254,17 @@ function summaryText({ loc, members, rows, areas, questions, focus, s }) {
 }
 
 // One row per member, tab-separated, so it pastes into Sheets or Excel as cells. Tabs and new lines in answers become spaces.
-function summaryTable({ rows, areas, questions, levels }) {
+function summaryTable({ rows, areas, questions, levels, circuits }) {
+  const circ = id => circuits.find(x => x.id === id)?.name;
   const cell = x => String(x ?? '').replace(/\*\*/g, '').replace(/\s*[\t\r\n]+\s*/g, ' ').trim();
   const qs = questions.filter(q => q.active || rows.some(r => r.c.answers[q.id] || r.c.tags[q.id]?.length));
   const tagQs = qs.filter(q => q.tags || rows.some(r => r.c.tags[q.id]?.length));
   // Rated, shown areas, plus any area someone ranked: each member's place for it (1 = their strongest).
   const ranked = byGroup(areas).filter(a => (a.rated && a.active) || rows.some(r => r.c.ranking.includes(a.id)));
   const place = (c, a) => { const i = c.ranking.indexOf(a.id); return i < 0 ? '' : i + 1; };
-  const head = ['Member', 'Check-In', 'By', 'Level', ...qs.flatMap(q => tagQs.includes(q) ? [q.prompt, `${q.prompt}: Focus Areas`] : [q.prompt]),
+  const head = ['Member', 'Check-In', 'By', 'Level', 'Hardest Circuit', 'Project Circuit', ...qs.flatMap(q => tagQs.includes(q) ? [q.prompt, `${q.prompt}: Focus Areas`] : [q.prompt]),
     ...ranked.map(a => `${a.name} (Rank)`)];
-  const line = ({ m, c }) => [m.name, c.checkin_date, c.author_name, levels.find(l => l.id === c.level_id)?.name,
+  const line = ({ m, c }) => [m.name, c.checkin_date, c.author_name, levels.find(l => l.id === c.level_id)?.name, circ(c.circuit_id), circ(c.project_circuit_id),
     ...qs.flatMap(q => [c.answers[q.id], ...(tagQs.includes(q) ? [byGroup(areas).filter(a => (c.tags[q.id] || []).includes(a.id)).map(a => a.name).join(', ')] : [])]),
     ...ranked.map(a => place(c, a))];
   return [head, ...rows.map(line)].map(r => r.map(cell).join('\t')).join('\n') + '\n';
