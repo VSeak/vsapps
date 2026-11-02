@@ -109,7 +109,8 @@ function openTimer(name, x) {
   tmSetup();
   if (!tmDlg.open) tmDlg.showModal();
 }
-const tmTopHTML = () => `<div class="tm-top"><button type="button" data-close>‹ Close</button>
+// Close leaves the timer; once it is counting, Back goes to the first screen instead (the user asked).
+const tmTopHTML = back => `<div class="tm-top"><button type="button" ${back ? 'data-stop>‹ Back' : 'data-close>‹ Close'}</button>
   <button type="button" class="tm-sound" data-sound aria-pressed="${tmSound()}" aria-label="Sound">${tmSoundIcon()}</button></div>`;
 // A speaker with sound waves when on, crossed out when off.
 const tmSoundIcon = () => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -159,7 +160,7 @@ function tmStart() {
   // Made on this tap: browsers only let sound start from one.
   try { tmAudio ??= new (window.AudioContext || window.webkitAudioContext)(); tmAudio.resume(); } catch {}
   tmAwake(true);
-  tmDlg.innerHTML = `${tmTopHTML()}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tm.name || TM_TITLE)}</p>
+  tmDlg.innerHTML = `${tmTopHTML(true)}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tm.name || TM_TITLE)}</p>
     <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="tm-track" cx="100" cy="100" r="90"/>
       <circle class="tm-fill" cx="100" cy="100" r="90" stroke-dasharray="${TM_C}" stroke-dashoffset="${TM_C}"/></svg>
       <div class="tm-mid"><span class="tm-phase" role="status"></span><span class="tm-left"></span><span class="tm-set"></span></div></div>
@@ -258,6 +259,8 @@ tmDlg.addEventListener('click', e => {
   // Go Again: the same numbers, straight into the countdown.
   if ('again' in d) { tmSetup(); tmStart(); }
 });
+// Esc matches the top button: back to the first screen while counting, closed from there.
+tmDlg.addEventListener('cancel', e => { if (tm && tm.phase !== 'setup') { e.preventDefault(); tmSetup(); } });
 // Closing it (Close, or Esc) stops everything.
 tmDlg.addEventListener('close', () => {
   cancelAnimationFrame(tm?.raf);
