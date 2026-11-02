@@ -135,7 +135,7 @@ function tmSetup() {
   tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate>${tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}
     <h2 id="tmTitle">${esc(tm.name || TM_TITLE)}</h2>
     ${tm.name ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}
-    ${tmStepHTML('sets', 'Sets', tm.sets, 'sets')}${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
+    ${tmStepHTML('sets', 'Sets', tm.sets || 1, 'sets')}${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
     <span class="eyebrow tm-group">Each Set</span>
     ${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap)}
