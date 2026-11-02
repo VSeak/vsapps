@@ -390,6 +390,8 @@ const ADMIN_PAGES = [
   { href: '#/users', title: 'Users', roles: ['admin'], blurb: 'Everyone who can sign in.',
     stat: async () => (await sb.rpc('list_users').select('id').then(must)).length },
   { href: '#/me', title: 'View My Training', roles: ['student'], blurb: 'Your own plans and goals.' },
+  // Not a page: opens the Hang Timer, empty, for the coach's own training (the user asked).
+  { href: '#/', timer: true, title: 'Hang Timer', roles: ['coach', 'admin', 'student'], blurb: 'Time your own hangs and rests.' },
 ];
 
 const ICON_ARROW = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
@@ -457,7 +459,7 @@ async function adminHome() {
     <div class="home-grid">
       ${n || me.isCoach ? `<section class="needs">${n ? `<div class="row between"><span class="eyebrow">Needs Attention</span><span class="pill">${n}</span></div>
         ${items.map(todo).join('')}${coming && `<div class="coming-after">${coming}</div>`}` : clear + coming}</section>` : ''}
-      <div class="tiles">${pages.map((p, i) => `<a class="card tile${p.stat ? '' : ' tile-soft'}" href="${p.href}">
+      <div class="tiles">${pages.map((p, i) => `<a class="card tile${p.stat ? '' : ' tile-soft'}" href="${p.href}"${p.timer ? ' data-timer=""' : ''}>
         <div><h2>${esc(p.title)}</h2><p class="muted">${esc(p.blurb)}</p></div>
         ${p.stat ? `<span class="big-num" data-stat="${i}"></span>` : ICON_ARROW}</a>`).join('')}</div>
     </div>`);

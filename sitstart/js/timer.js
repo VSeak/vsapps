@@ -1,6 +1,6 @@
 // ---------- Hang Timer: sets of hangs and rests, counted down full screen ----------
 // Opened from a student's exercise card (exCardHTML) whose Reps/Time holds a time (a rest time alone is not a hang), or by a
-// coach from an open exercise or Coach View (openExTimer), and filled in from the exercise.
+// coach from an open exercise or Coach View (openExTimer), and filled in from the exercise. Staff Home's tile opens it empty.
 // Nothing is saved: it only counts. The screen changes color with the phase (Get Ready, Hang, Rest, Done) and the
 // ring fills once per hang and once per rest. Repeaters (several hangs a set, "6 × 7 sec") get a short rest between
 // the hangs of a set (gap) and the long rest between sets.
@@ -9,6 +9,7 @@ const TM_MAX = 3600;    // the longest hang or rest, in seconds
 const TM_SETS = 99;
 const TM_C = 2 * Math.PI * 90;   // the ring's length (r = 90 in its viewBox)
 const TM_GAP = 3;       // a repeater's rest between hangs when the exercise doesn't say: 7 on, 3 off is the usual
+const TM_TITLE = 'Hang Timer';   // its heading when no exercise opened it (the staff Home tile)
 const TM_LABEL = { ready: 'Get Ready', hang: 'Hang', gap: 'Rest', rest: 'Rest', done: 'Nice Work!' };
 const TM_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="14" r="7"/><path d="M12 14v-3.5M9.5 3h5M12 3v4"/></svg>`;
@@ -52,7 +53,7 @@ const timerBtnHTML = x => tmSecs(x.reps) ? `<div class="timer-row"><button type=
   data-sets="${esc(x.sets)}" data-reps="${esc(x.reps)}" data-rest="${esc(x.rest)}" data-gap="${tmReps(x.reps) > 1 ? tmGap(x) : ''}">${TM_ICON}Timer</button></div>` : '';
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-timer]');
-  if (b) openTimer(b.dataset.timer, b.dataset);
+  if (b) { e.preventDefault(); openTimer(b.dataset.timer, b.dataset); }
 });
 
 // A coach's way in: the open exercise's Timer button (always there, so they can time anything) and Coach View's. The
@@ -129,9 +130,9 @@ function tmSetup() {
   tm.phase = 'setup'; tm.left = null;
   tmDlg.dataset.phase = 'setup';
   tmDlg.classList.remove('paused');
-  tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate><span class="eyebrow">Hang Timer</span>
-    <h2 id="tmTitle">${esc(tm.name)}</h2>
-    <p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>
+  tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate>${tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}
+    <h2 id="tmTitle">${esc(tm.name || TM_TITLE)}</h2>
+    ${tm.name ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}
     ${tmStepHTML('sets', 'Sets', tm.sets, 'sets')}${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap, !(tm.reps > 1))}
     ${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
@@ -158,7 +159,7 @@ function tmStart() {
   // Made on this tap: browsers only let sound start from one.
   try { tmAudio ??= new (window.AudioContext || window.webkitAudioContext)(); tmAudio.resume(); } catch {}
   tmAwake(true);
-  tmDlg.innerHTML = `${tmTopHTML()}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tm.name)}</p>
+  tmDlg.innerHTML = `${tmTopHTML()}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tm.name || TM_TITLE)}</p>
     <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="tm-track" cx="100" cy="100" r="90"/>
       <circle class="tm-fill" cx="100" cy="100" r="90" stroke-dasharray="${TM_C}" stroke-dashoffset="${TM_C}"/></svg>
       <div class="tm-mid"><span class="tm-phase" role="status"></span><span class="tm-left"></span><span class="tm-set"></span></div></div>
