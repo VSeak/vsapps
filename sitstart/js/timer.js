@@ -119,12 +119,13 @@ const tmStepHTML = (k, label, v, many) => `<div class="log-step"><div class="log
   <div class="log-sp"><button type="button" data-step="-1" data-f="${k}" aria-label="Fewer ${many}">−</button>
     <input data-tm="${k}" aria-labelledby="tm-${k}" inputmode="numeric" maxlength="2" value="${v ?? ''}" placeholder="—" autocomplete="off">
     <button type="button" data-step="1" data-f="${k}" aria-label="More ${many}">+</button></div></div>`;
-const tmTimeHTML = (k, label, t, hide) => `<div class="log-step" data-row="${k}"${hide ? ' hidden' : ''}><div class="log-lab"><b>${label}</b></div><div class="tm-time">
+const tmTimeHTML = (k, label, t) => `<div class="log-step" data-row="${k}"><div class="log-lab"><b>${label}</b></div><div class="tm-time">
   <input data-tm="${k}M" inputmode="numeric" maxlength="2" value="${t >= 60 ? Math.floor(t / 60) : ''}" placeholder="0" aria-label="${label}, minutes" autocomplete="off"><span>min</span>
   <input data-tm="${k}S" inputmode="numeric" maxlength="2" value="${t ? t % 60 : ''}" placeholder="0" aria-label="${label}, seconds" autocomplete="off"><span>sec</span></div></div>`;
 
-// The first screen: Sets, Reps Per Set, Hang Time and the rests, then Start and Clear. Rest Between Reps only shows
-// for a repeater (more than 1 rep a set).
+// The first screen, grouped like the workout (the user asked): Sets and the rest between them, then what Each Set is,
+// then a line saying it all back, Start and Clear. A rest only shows when it can happen: Rest Between Reps for a repeater
+// (more than 1 rep a set), Rest Between Sets unless it is 1 set.
 function tmSetup() {
   cancelAnimationFrame(tm.raf);
   tmAwake(false);
@@ -134,11 +135,14 @@ function tmSetup() {
   tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate>${tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}
     <h2 id="tmTitle">${esc(tm.name || TM_TITLE)}</h2>
     ${tm.name ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}
-    ${tmStepHTML('sets', 'Sets', tm.sets, 'sets')}${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
-    ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap, !(tm.reps > 1))}
-    ${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
+    ${tmStepHTML('sets', 'Sets', tm.sets, 'sets')}${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
+    <span class="eyebrow tm-group">Each Set</span>
+    ${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
+    ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap)}
+    <p class="tm-sum"></p>
     <p class="tm-err" role="alert"></p>
     <div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div></form>`;
+  tmRows();
 }
 function tmRead() {
   const n = k => { const v = parseInt(tmDlg.querySelector(`[data-tm="${k}"]`).value, 10); return v > 0 ? v : 0; };
@@ -148,14 +152,32 @@ function tmRead() {
   tm.gap = Math.min(TM_MAX, n('gapM') * 60 + n('gapS')) || null;
   tm.rest = Math.min(TM_MAX, n('restM') * 60 + n('restS')) || null;
 }
-const tmGapRow = () => { tmDlg.querySelector('[data-row="gap"]').hidden = !(parseInt(tmDlg.querySelector('[data-tm="reps"]').value, 10) > 1); };
-tmDlg.addEventListener('input', e => { if (e.target.dataset.tm === 'reps') tmGapRow(); });
+// What stops it starting, or '' when it is ready.
+const tmProblem = () => !tm.sets || !tm.hang ? 'Fill in the sets and the hang time to start.'
+  : tm.reps > 1 && !tm.gap ? 'Add a rest between reps, or make it 1 rep per set.'
+  : tm.sets > 1 && !tm.rest ? 'Add a rest between sets, or make it 1 set.' : '';
+const tmLong = s => [s >= 60 ? `${Math.floor(s / 60)} min` : '', s % 60 ? `${s % 60} sec` : ''].filter(Boolean).join(' ');
+// The workout in words, with how long it takes (not counting Get Ready). Only once it can start.
+function tmSummary() {
+  if (tmProblem()) return '';
+  const { sets, reps, hang, gap, rest } = tm, many = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
+  const total = (reps * hang + (reps - 1) * (gap ?? 0)) * sets + (sets - 1) * (rest ?? 0);
+  const top = reps > 1 ? `${many(sets, 'set')} of ${reps} reps · ${tmLong(hang)} on, ${tmLong(gap)} off` : `${many(sets, 'set')} · ${tmLong(hang)} hang`;
+  return `<b>${top}</b>${sets > 1 ? `${tmLong(rest)} between sets · ` : ''}${tmLong(total)} total`;
+}
+// After any change on the first screen: which rests show, and the summary.
+function tmRows() {
+  tmRead();
+  tmDlg.querySelector('[data-row="gap"]').hidden = !(tm.reps > 1);
+  tmDlg.querySelector('[data-row="rest"]').hidden = tm.sets === 1;
+  tmDlg.querySelector('.tm-sum').innerHTML = tmSummary();
+  if (!tmProblem()) tmDlg.querySelector('.tm-err').textContent = '';
+}
+tmDlg.addEventListener('input', e => { if (e.target.dataset.tm) tmRows(); });
 
 function tmStart() {
   tmRead();
-  const err = !tm.sets || !tm.hang ? 'Fill in the sets and the hang time to start.'
-    : tm.reps > 1 && !tm.gap ? 'Add a rest between reps, or make it 1 rep per set.'
-    : tm.sets > 1 && !tm.rest ? 'Add a rest between sets, or make it 1 set.' : '';
+  const err = tmProblem();
   if (err) { tmDlg.querySelector('.tm-err').textContent = err; return; }
   // Made on this tap: browsers only let sound start from one.
   try { tmAudio ??= new (window.AudioContext || window.webkitAudioContext)(); tmAudio.resume(); } catch {}
@@ -240,12 +262,12 @@ tmDlg.addEventListener('click', e => {
   if (d.step) {
     const input = tmDlg.querySelector(`[data-tm="${d.f}"]`), v = parseInt(input.value, 10);
     input.value = v > 0 ? Math.min(TM_SETS, Math.max(1, v + +d.step)) : 1;
-    return tmGapRow();
+    return tmRows();
   }
   if ('clear' in d) {
     tmDlg.querySelectorAll('[data-tm]').forEach(i => { i.value = ''; });
     tmDlg.querySelector('.tm-err').textContent = '';
-    tmGapRow();
+    tmRows();
     return tmDlg.querySelector('[data-tm="sets"]').focus();
   }
   if ('pause' in d) {

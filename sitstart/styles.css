@@ -1079,6 +1079,10 @@ dialog.timer:not([data-phase="setup"]) button { background: transparent; color: 
 .tm-time { flex: none; display: flex; align-items: center; gap: 6px; }
 .tm-time input { width: 3.4rem; height: 48px; margin: 0; padding: 6px 2px; text-align: center; font: 800 1.35rem "Bricolage Grotesque", sans-serif; border-radius: 12px; }
 .tm-time span { font-size: .85rem; color: var(--muted); }
+.tm-group { margin-top: 20px; }
+.tm-sum { margin: 14px 0 0; font-size: .9rem; color: var(--muted); }
+.tm-sum b { display: block; color: var(--ink); }
+.tm-sum:empty { display: none; }
 .tm-err { margin: 12px 0 0; color: var(--danger); font-weight: 600; }
 .tm-err:empty { display: none; }
 .tm-go { display: flex; gap: 10px; margin-top: 18px; }
