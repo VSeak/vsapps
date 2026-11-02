@@ -1,5 +1,6 @@
 // ---------- Hang Timer: sets of hangs and rests, counted down full screen ----------
-// Opened from an exercise card (exCardHTML) whose Reps/Time holds a time (a rest time alone is not a hang), and filled in from the exercise.
+// Opened from a student's exercise card (exCardHTML) whose Reps/Time holds a time (a rest time alone is not a hang), or by a
+// coach from an open exercise or Coach View (openExTimer), and filled in from the exercise.
 // Nothing is saved: it only counts. The screen changes color with the phase (Get Ready, Hang, Rest, Done) and the
 // ring fills once per hang and once per rest. Repeaters (several hangs a set, "6 × 7 sec") get a short rest between
 // the hangs of a set (gap) and the long rest between sets.
@@ -53,6 +54,14 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-timer]');
   if (b) openTimer(b.dataset.timer, b.dataset);
 });
+
+// A coach's way in: the open exercise's Timer button (always there, so they can time anything) and Coach View's. The
+// values are read on the click, since the coach may have just changed them. A coaching session's description is plan_notes.
+const tmOpenHTML = attrs => `<button type="button" class="small tm-open" ${attrs}>${TM_ICON}Timer</button>`;
+function openExTimer(x) {
+  openTimer(x.name.trim() || 'Exercise', { sets: x.sets, reps: x.reps, rest: x.rest,
+    gap: tmReps(x.reps) > 1 ? tmGap({ reps: x.reps, notes: x.plan_notes ?? x.notes }) : '' });
+}
 
 const tmDlg = Object.assign(document.createElement('dialog'), { id: 'hangTimer', className: 'timer' });
 tmDlg.setAttribute('aria-labelledby', 'tmTitle');
@@ -122,7 +131,7 @@ function tmSetup() {
   tmDlg.classList.remove('paused');
   tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate><span class="eyebrow">Hang Timer</span>
     <h2 id="tmTitle">${esc(tm.name)}</h2>
-    <p class="hint">Filled in from your plan where it could be. Change anything you need.</p>
+    <p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>
     ${tmStepHTML('sets', 'Sets', tm.sets, 'sets')}${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap, !(tm.reps > 1))}
     ${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}

@@ -572,6 +572,9 @@ body:has(.savebar.unsaved) main { padding-bottom: 7rem; }
 .ex-edit .ex-name input { font: 800 1rem "Bricolage Grotesque", sans-serif; }
 .ex-three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .ex-three input { text-align: center; font-weight: 700; }
+/* One height for the name and the three boxes: the name's heading font would otherwise make its box shorter. */
+.ex-edit :is(.ex-name, .ex-sets, .ex-reps, .ex-rest) input { display: block; height: 2.6rem; }
+.ex-edit .ex-name { margin: 0; }   /* .ex-name is also the card heading, whose margin lifted this box above the other three */
 .ex-acts { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 /* Drag to reorder (drag.js): an exercise's grip, a session's tab, the lifted item and the gap where it will land. */
 .grip { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px;
@@ -616,6 +619,7 @@ button.ex-open > svg { flex: none; color: var(--muted); }
 .ex-top-row .row { gap: 4px; }
 .ex-count { font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .ex-top-row .fill { min-height: 34px; min-width: 64px; font-size: .8rem; border-radius: 10px; }
+.ex-top-row .tm-open { min-height: 34px; padding: 0 10px; font-size: .8rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px; }
 [data-ex].just-added { animation: just-added 2.4s ease-out; }
 @keyframes just-added { from { box-shadow: 0 0 0 2px var(--accent); } to { box-shadow: 0 0 0 2px transparent; } }
 .ex-edit.just-added { animation: none; }
@@ -1058,6 +1062,7 @@ a.msg-tile.off:hover { border-color: var(--line); }
 /* ---------- Hang Timer (timer.js): full screen, the whole screen the color of the phase ---------- */
 .timer-row { margin-top: 10px; }
 .timer-row button { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.cv-main .timer-row { margin-top: 0; }
 dialog.timer { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0;
   border: 0; border-radius: 0; overflow: auto; background: var(--bg); color: var(--ink); transition: background-color .25s; }
 dialog.timer[open] { display: flex; flex-direction: column; }

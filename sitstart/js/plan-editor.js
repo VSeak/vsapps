@@ -119,7 +119,7 @@ function exEditHTML(s, i, e) {
     ${last ? `<div class="ex-box logged"><div><span class="eyebrow">${who} ${last.logged_on === todayISO() ? 'Logged Today' : `Last Logged, ${logDay(last.logged_on)}`}</span>
       <span class="ex-box-v">${esc(logLine(last))}</span></div>${btn('ex-hist', 'History')}</div>` : ''}`;
   return `<div class="ex-edit" data-ex><div class="ex-top-row"><span class="row">${gripHTML(s, i, e)}<span class="ex-count">Exercise ${e + 1} of ${n}</span></span>
-      <button type="button" class="small fill" data-act="close-ex">Done</button></div>
+      <span class="row">${tmOpenHTML(`data-act="ex-timer" data-s="${i}" data-e="${e}"`)}<button type="button" class="small fill" data-act="close-ex">Done</button></span></div>
     ${f('name', 'Exercise', 'Exercise/Purpose')}
     <div class="ex-three">${f('sets', 'Sets')}${f('reps', 'Reps/Time')}${f('rest', 'Rest')}</div>
     ${notes}
@@ -293,6 +293,7 @@ function renderEditor() {
         return;
       }
       case 'browse': return openExBrowser(S[i].id);
+      case 'ex-timer': return openExTimer(S[i].exercises[x]);
       case 'ex-hist': return openLogHistory(exKey(S[i].exercises[x].name), { logs: draft.logs, who: draft.plan.student.name });
       case 'ex-track': {
         const ex = S[i].exercises[x];

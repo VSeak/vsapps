@@ -237,7 +237,7 @@ function csExEditHTML(x, k, n) {
     ${field === 'name' ? 'data-combo role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="exMenu" maxlength="200"' : 'maxlength="100"'}></label>`;
   const btn = (act, label) => `<button type="button" class="small" data-cs="${act}" data-k="${k}">${label}</button>`;
   return `<div class="ex-edit" data-ex><div class="ex-top-row"><span class="row">${n > 1 ? `<span class="grip" data-k="${k}" title="Drag to Reorder">${GRIP}</span>` : ''}
-      <span class="ex-count">Exercise ${k + 1} of ${n}</span></span><button type="button" class="small fill" data-cs="close">Done</button></div>
+      <span class="ex-count">Exercise ${k + 1} of ${n}</span></span><span class="row">${tmOpenHTML(`data-cs="timer" data-k="${k}"`)}<button type="button" class="small fill" data-cs="close">Done</button></span></div>
     ${f('name', 'Exercise')}
     <div class="ex-three">${f('sets', 'Sets')}${f('reps', 'Reps/Time')}${f('rest', 'Rest')}</div>
     ${csDescHTML(x)}
@@ -445,6 +445,7 @@ document.addEventListener('click', async e => {
     case 'set-next': return $('#nextCard [data-next="set"]')?.click();
     case 'add-session': return $('#nextCard [data-next="add"]')?.click();
     case 'view': return openCoachView();
+    case 'timer': return openExTimer(c.exercises[k]);
     case 'add': return csOpenAdd(b);
     case 'copy': return csCopy(b);
     case 'delete': return csDelete(b);
@@ -692,6 +693,7 @@ function renderCoachView() {
       <div class="cv-bar" aria-hidden="true">${ex.map((_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('')}</div>
       <h2 class="cv-name">${esc(x.name.trim() || 'Unnamed Exercise')}</h2>
       <div class="stats cv-stats">${statHTML('Sets', x.sets)}${statHTML('Reps/Time', x.reps)}${statHTML('Rest', x.rest)}</div>
+      <div class="timer-row"><button type="button" data-cv="timer">${TM_ICON}Timer</button></div>
       ${String(x.plan_notes ?? '').trim() ? `<p class="cv-from">${para(x.plan_notes)}</p>` : ''}
       <label class="cv-l">Notes<textarea data-cv-f="notes" rows="4" data-grow maxlength="1000" placeholder="How did the exercise go?">${esc(x.notes)}</textarea></label>`
       : `<p class="cv-empty">No exercises yet.</p><button type="button" class="cv-add cv-add-main" data-cv="add">+ Add Exercises</button>`}</main>
@@ -728,6 +730,7 @@ cvDlg.addEventListener('click', e => {
   if (b.dataset.cvGo) return go(+b.dataset.cvGo);
   switch (b.dataset.cv || b.dataset.cs) {
     case 'exit': return cvDlg.close();
+    case 'timer': return openExTimer(cs.open.exercises[cs.view.i]);
     case 'prev': return go(cs.view.i - 1);
     case 'next': return go(cs.view.i + 1);
     case 'add': return csOpenAdd(b);
