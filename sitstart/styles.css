@@ -737,6 +737,9 @@ dialog { border: 1px solid var(--line); border-radius: 22px; background: var(--c
 dialog::backdrop { background: rgba(0,0,0,.4); }
 /* While a popup is open the page behind it doesn't scroll (phones scrolled it under the popup) */
 html:has(dialog:modal) { overflow: hidden; scrollbar-gutter: stable; }
+/* The gutter keeps the page from jumping sideways behind a popup. A full-screen dialog hides the page and is sized to
+   what the gutter leaves, so there the gutter would only show as a dark bar down the right side. */
+html:has(dialog.timer:modal, dialog.cs-view:modal) { scrollbar-gutter: auto; }
 dialog { overscroll-behavior: contain; }
 dialog:focus { outline: none; }
 dialog .row { margin-top: 1rem; }
@@ -1088,6 +1091,21 @@ dialog.timer:not([data-phase="setup"]) button { background: transparent; color: 
 .tm-go { display: flex; gap: 10px; margin-top: 18px; }
 .tm-go button { flex: 1; min-height: 52px; }
 .tm-go .fill { flex: 2; font-size: 1.05rem; }
+.tm-name-field { margin-bottom: 10px; }
+.tm-del { width: 100%; min-height: 44px; margin-top: 10px; }
+.tm-saved { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+.tm-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.tm-saved-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; }
+.tm-saved-head .hint { display: block; margin: 0; }
+.tm-saved-head button { flex: none; min-height: 40px; }
+.tm-saved > .hint { margin: 10px 0 0; }
+.tm-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.tm-item { display: flex; align-items: center; gap: 8px; padding-right: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.tm-item.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.tm-item button { flex: none; }
+.tm-item .tm-load { flex: 1; min-width: 0; min-height: 52px; padding: 8px 4px 8px 12px; text-align: left; background: none; border: 0; border-radius: 14px; }
+.tm-load b { display: block; overflow-wrap: anywhere; }
+.tm-load span { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); }
 .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: 0 16px calc(20px + env(safe-area-inset-bottom)); text-align: center; }
 .tm-name { margin: 0; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }

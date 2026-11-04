@@ -1,7 +1,7 @@
 // ---------- Hang Timer: sets of hangs and rests, counted down full screen ----------
 // Opened from a student's exercise card (exCardHTML) whose Reps/Time holds a time (a rest time alone is not a hang), or by a
 // coach from an open exercise or Coach View (openExTimer), and filled in from the exercise. Staff Home's tile opens it empty.
-// Nothing is saved: it only counts. The screen changes color with the phase (Get Ready, Hang, Rest, Done) and the
+// Anyone can keep timers to load again (saved_timers, the list under Start). The screen changes color with the phase (Get Ready, Hang, Rest, Done) and the
 // ring fills once per hang and once per rest. Repeaters (several hangs a set, "6 × 7 sec") get a short rest between
 // the hangs of a set (gap) and the long rest between sets.
 const TM_READY = 5;     // seconds counted down before the first hang
@@ -10,6 +10,9 @@ const TM_SETS = 99;
 const TM_C = 2 * Math.PI * 90;   // the ring's length (r = 90 in its viewBox)
 const TM_GAP = 3;       // a repeater's rest between hangs when the exercise doesn't say: 7 on, 3 off is the usual
 const TM_TITLE = 'Hang Timer';   // its heading when no exercise opened it (the staff Home tile)
+const TM_NAME_MAX = 40;  // a saved timer's name (saved_timers.name)
+// How many timers a person can keep (the user asked). The saved_timers_limit trigger holds the same numbers.
+const tmSavesMax = () => me?.isCoach || me?.isAdmin ? 10 : 5;
 const TM_LABEL = { ready: 'Get Ready', hang: 'Hang', gap: 'Rest', rest: 'Rest', done: 'Nice Work!' };
 const TM_ICON = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <circle cx="12" cy="14" r="7"/><path d="M12 14v-3.5M9.5 3h5M12 3v4"/></svg>`;
@@ -69,8 +72,10 @@ tmDlg.setAttribute('aria-labelledby', 'tmTitle');
 document.body.append(tmDlg);
 // { name, sets, reps (hangs a set), hang, gap (the rest between a set's hangs), rest (between sets; seconds, as the
 //   fields say), phase ('setup', 'ready', 'hang', 'gap', 'rest', 'done'), set, rep, len (the phase's seconds), endsAt,
-//   left (ms left, while paused), shown (the second on screen), raf }
+//   left (ms left, while paused), shown (the second on screen), raf, savedId (the saved timer on the first screen),
+//   editing (the saved timer being edited), before (the first screen's numbers to go back to after editing) }
 let tm = null;
+let tmSaved = null, tmSavedErr = '';   // this person's saved timers, A to Z; null until loaded or if they couldn't be
 const tmRunning = () => !!tm && ['ready', 'hang', 'gap', 'rest'].includes(tm.phase);
 
 // Beeps on the last three seconds and at each change, since nobody watches a screen mid-hang. Sound On / Off is kept
@@ -106,8 +111,10 @@ function openTimer(name, x) {
   const sets = /\d+/.exec(x.sets ?? '');
   tm = { name, sets: sets ? Math.min(TM_SETS, +sets[0]) || null : null, reps: tmReps(x.reps), hang: tmSecs(x.reps),
     gap: +x.gap || null, rest: tmSecs(x.rest) };
+  tmSaved = null; tmSavedErr = '';
   tmSetup();
   if (!tmDlg.open) tmDlg.showModal();
+  tmLoadSaved();
 }
 // Close leaves the timer; once it is counting, Back goes to the first screen instead (the user asked).
 const tmTopHTML = back => `<div class="tm-top"><button type="button" ${back ? 'data-stop>‹ Back' : 'data-close>‹ Close'}</button>
@@ -132,17 +139,28 @@ function tmSetup() {
   tm.phase = 'setup'; tm.left = null;
   tmDlg.dataset.phase = 'setup';
   tmDlg.classList.remove('paused');
-  tmDlg.innerHTML = `${tmTopHTML()}<form class="tm-setup" novalidate>${tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}
-    <h2 id="tmTitle">${esc(tm.name || TM_TITLE)}</h2>
-    ${tm.name ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}
+  const ed = tm.editing;
+  tmDlg.innerHTML = `${tmTopHTML(!!ed)}<form class="tm-setup" novalidate><div class="tm-head">${tmHeadHTML()}</div>
+    ${ed ? `<label class="tm-name-field">Name<input data-tm-name required maxlength="${TM_NAME_MAX}" value="${esc(ed.name)}" autocomplete="off"></label>` : ''}
     ${tmStepHTML('sets', 'Sets', tm.sets || 1, 'sets')}${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
     <span class="eyebrow tm-group">Each Set</span>
     ${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap)}
     <p class="tm-sum"></p>
     <p class="tm-err" role="alert"></p>
-    <div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div></form>`;
+    ${ed ? `<div class="tm-go"><button type="button" data-stop>Cancel</button><button class="fill">Save Changes</button></div>
+      <button type="button" class="ghost danger tm-del" data-tm-del>Delete Timer</button>`
+    : '<div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div><section class="tm-saved"></section>'}</form>`;
   tmRows();
+  tmDrawSaved();
+}
+const tmLoaded = () => tmSaved?.find(s => s.id === tm.savedId) ?? null;
+const tmHeading = () => tmLoaded()?.name || tm.name || TM_TITLE;
+function tmHeadHTML() {
+  if (tm.editing) return '<h2 id="tmTitle">Edit Timer</h2>';
+  const from = !tmLoaded() && tm.name;
+  return `${tmLoaded() || tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}<h2 id="tmTitle">${esc(tmHeading())}</h2>
+    ${from ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}`;
 }
 function tmRead() {
   const n = k => { const v = parseInt(tmDlg.querySelector(`[data-tm="${k}"]`).value, 10); return v > 0 ? v : 0; };
@@ -153,25 +171,142 @@ function tmRead() {
   tm.rest = Math.min(TM_MAX, n('restM') * 60 + n('restS')) || null;
 }
 // What stops it starting, or '' when it is ready.
-const tmProblem = () => !tm.sets || !tm.hang ? 'Fill in the sets and the hang time to start.'
+const tmProblem = (doing = 'start') => !tm.sets || !tm.hang ? `Fill in the sets and the hang time to ${doing}.`
   : tm.reps > 1 && !tm.gap ? 'Add a rest between reps, or make it 1 rep per set.'
   : tm.sets > 1 && !tm.rest ? 'Add a rest between sets, or make it 1 set.' : '';
 const tmLong = s => [s >= 60 ? `${Math.floor(s / 60)} min` : '', s % 60 ? `${s % 60} sec` : ''].filter(Boolean).join(' ');
 // The workout in words, with how long it takes (not counting Get Ready). Only once it can start.
+function tmWords({ sets, reps, hang, gap, rest }) {
+  const many = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
+  const total = (reps * hang + (reps - 1) * (gap ?? 0)) * sets + (sets - 1) * (rest ?? 0);
+  return { top: reps > 1 ? `${many(sets, 'set')} of ${reps} reps · ${tmLong(hang)} on, ${tmLong(gap)} off` : `${many(sets, 'set')} · ${tmLong(hang)} hang`,
+    between: sets > 1 ? `${tmLong(rest)} between sets · ` : '', total: `${tmLong(total)} total` };
+}
 function tmSummary() {
   if (tmProblem()) return '';
-  const { sets, reps, hang, gap, rest } = tm, many = (k, word) => `${k} ${word}${k === 1 ? '' : 's'}`;
-  const total = (reps * hang + (reps - 1) * (gap ?? 0)) * sets + (sets - 1) * (rest ?? 0);
-  const top = reps > 1 ? `${many(sets, 'set')} of ${reps} reps · ${tmLong(hang)} on, ${tmLong(gap)} off` : `${many(sets, 'set')} · ${tmLong(hang)} hang`;
-  return `<b>${top}</b>${sets > 1 ? `${tmLong(rest)} between sets · ` : ''}${tmLong(total)} total`;
+  const w = tmWords(tm);
+  return `<b>${w.top}</b>${w.between}${w.total}`;
 }
-// After any change on the first screen: which rests show, and the summary.
+// After any change on the first screen: which rests show, and the summary. Changing a loaded timer's numbers makes it
+// no longer that timer (changing the saved one is what Edit is for), so its name comes off the heading.
 function tmRows() {
   tmRead();
   tmDlg.querySelector('[data-row="gap"]').hidden = !(tm.reps > 1);
   tmDlg.querySelector('[data-row="rest"]').hidden = tm.sets === 1;
   tmDlg.querySelector('.tm-sum').innerHTML = tmSummary();
   if (!tmProblem()) tmDlg.querySelector('.tm-err').textContent = '';
+  if (tm.savedId && !tm.editing && !tmSame(tm, tmLoaded())) {
+    tm.savedId = null;
+    tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
+    tmDrawSaved();
+  }
+}
+
+// ---------- Saved timers (saved_timers): the list under Start, a person's own, on every device ----------
+// The numbers a timer really uses: a rest that can't happen isn't kept.
+const tmNums = t => ({ sets: t.sets, reps: t.reps, hang: t.hang, gap: t.reps > 1 ? t.gap : null, rest: t.sets > 1 ? t.rest : null });
+const tmSame = (a, b) => !!b && JSON.stringify(tmNums(a)) === JSON.stringify(tmNums(b));
+const TM_COLS = 'id,name,sets,reps,hang,gap,rest';
+const tmSortSaved = () => tmSaved.sort((a, b) => a.name.localeCompare(b.name));
+// Loading can fail at a gym with no signal. The timer itself needs no server, so it just says so and keeps working.
+async function tmLoadSaved() {
+  try {
+    tmSaved = await sb.from('saved_timers').select(TM_COLS).then(must);
+    tmSortSaved();
+  } catch (e) {
+    msgOf(e);
+    tmSavedErr = "Couldn't load your saved timers. The timer still works.";
+  }
+  tmDrawSaved();
+}
+function tmDrawSaved() {
+  const box = tm && !tm.editing && tm.phase === 'setup' ? tmDlg.querySelector('.tm-saved') : null;
+  if (!box) return;
+  const max = tmSavesMax(), n = tmSaved?.length ?? 0, room = tmSaved && n < max;
+  box.innerHTML = `<div class="tm-saved-head"><div><h3>Saved Timers</h3>${tmSaved ? `<span class="hint">${n} of ${max}</span>` : ''}</div>
+      ${room ? '<button type="button" class="small" data-tm-save>+ Save This Timer</button>' : ''}</div>
+    ${!tmSaved ? `<p class="hint">${tmSavedErr ? esc(tmSavedErr) : 'Loading…'}</p>`
+    : !n ? '<p class="hint">None yet. Fill in the numbers above, then save them here to use them again.</p>'
+    : `<ul class="tm-list">${tmSaved.map(s => {
+      const w = tmWords(s), on = s.id === tm.savedId;
+      return `<li class="tm-item${on ? ' on' : ''}"><button type="button" class="tm-load" data-tm-load="${s.id}" aria-pressed="${on}">
+          <b>${esc(s.name)}</b><span>${w.top} · ${w.total}</span></button>
+        <button type="button" class="small" data-tm-edit="${s.id}" aria-label="Edit ${esc(s.name)}">Edit</button></li>`;
+    }).join('')}</ul>`}
+    ${tmSaved && !room ? `<p class="hint">You've saved ${max}, the most you can. Delete one to save another.</p>` : ''}`;
+}
+// Why a name won't do, or ''. skip: the timer being edited, which may keep its own name.
+function tmNameProblem(name, skip) {
+  const key = String(name ?? '').trim().toLowerCase();
+  if (!key) return 'Give it a name.';
+  return tmSaved.some(s => s.id !== skip && s.name.trim().toLowerCase() === key) ? 'You already have a timer with that name.' : '';
+}
+// A flash would sit behind this full-screen dialog, so errors show on its own line.
+function tmFail(e) {
+  tmDlg.querySelector('.tm-err').textContent = e?.code === '23505' ? 'You already have a timer with that name.' : e?.code === 'P0001' ? e.message : msgOf(e);
+}
+// Picking one fills in the first screen, with Start right there; nothing starts until it is tapped.
+function tmPick(id) {
+  Object.assign(tm, tmNums(tmSaved.find(s => s.id === id)), { savedId: id });
+  tmSetup();
+  tmDlg.scrollTo({ top: 0 });
+  tmDlg.querySelector('.tm-go .fill').focus({ preventScroll: true });
+}
+async function tmSaveNew(btn) {
+  tmRead();
+  const err = tmProblem('save');
+  if (err) { tmDlg.querySelector('.tm-err').textContent = err; return; }
+  const w = tmWords(tm);
+  const f = await ask({ title: 'Save Timer', ok: 'Save', fill: true,
+    body: `<label>Name<input name="name" required maxlength="${TM_NAME_MAX}" value="${esc(tm.name || '')}" placeholder="E.g. Max Hangs" autocomplete="off"></label>
+      <p class="hint">${w.top}<br>${w.between}${w.total}</p>`,
+    check: d => { const bad = tmNameProblem(d.get('name')); return bad ? ['name', bad] : null; } });
+  if (!f || !tm) return;
+  btn.disabled = true;
+  try {
+    const row = await sb.from('saved_timers').insert({ name: f.get('name').trim(), ...tmNums(tm) }).select(TM_COLS).single().then(must);
+    tmSaved.push(row); tmSortSaved();
+    tm.savedId = row.id;
+    tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
+    tmDrawSaved();
+  } catch (e) { tmFail(e); btn.disabled = false; }
+}
+// Editing uses the first screen itself, with a Name box and Save Changes, so it looks like what it sets up.
+function tmEdit(id) {
+  tmRead();
+  const s = tmSaved.find(x => x.id === id);
+  tm.before = { sets: tm.sets, reps: tm.reps, hang: tm.hang, gap: tm.gap, rest: tm.rest, savedId: tm.savedId };
+  Object.assign(tm, tmNums(s), { editing: s });
+  tmSetup();
+  tmDlg.scrollTo({ top: 0 });
+}
+// Back to the first screen as it was, or (after Save Changes) with the timer just saved loaded.
+function tmEndEdit(row) {
+  Object.assign(tm, tm.before, { editing: null, before: null }, row ? { ...tmNums(row), savedId: row.id } : {});
+  tmSetup();
+}
+async function tmSaveEdit() {
+  tmRead();
+  const input = tmDlg.querySelector('[data-tm-name]'), err = tmProblem('save'), bad = tmNameProblem(input.value, tm.editing.id);
+  if (bad) { fieldError(input, bad); input.focus(); return; }
+  if (err) { tmDlg.querySelector('.tm-err').textContent = err; return; }
+  const btn = tmDlg.querySelector('.tm-go .fill');
+  btn.disabled = true;
+  try {
+    const row = await sb.from('saved_timers').update({ name: input.value.trim(), ...tmNums(tm) }).eq('id', tm.editing.id).select(TM_COLS).single().then(must);
+    tmSaved[tmSaved.findIndex(s => s.id === row.id)] = row; tmSortSaved();
+    tmEndEdit(row);
+  } catch (e) { tmFail(e); btn.disabled = false; }
+}
+async function tmDelete() {
+  const { id, name } = tm.editing;
+  if (!await ask({ title: 'Delete Timer?', body: `<p>${esc(name)} will be gone from your saved timers.</p>`, ok: 'Delete Timer', warn: true })) return;
+  try {
+    await sb.from('saved_timers').delete().eq('id', id).then(must);
+    tmSaved = tmSaved.filter(s => s.id !== id);
+    if (tm.before.savedId === id) tm.before.savedId = null;
+    tmEndEdit();
+  } catch (e) { tmFail(e); }
 }
 tmDlg.addEventListener('input', e => { if (e.target.dataset.tm) tmRows(); });
 
@@ -182,7 +317,7 @@ function tmStart() {
   // Made on this tap: browsers only let sound start from one.
   try { tmAudio ??= new (window.AudioContext || window.webkitAudioContext)(); tmAudio.resume(); } catch {}
   tmAwake(true);
-  tmDlg.innerHTML = `${tmTopHTML(true)}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tm.name || TM_TITLE)}</p>
+  tmDlg.innerHTML = `${tmTopHTML(true)}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tmHeading())}</p>
     <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="tm-track" cx="100" cy="100" r="90"/>
       <circle class="tm-fill" cx="100" cy="100" r="90" stroke-dasharray="${TM_C}" stroke-dashoffset="${TM_C}"/></svg>
       <div class="tm-mid"><span class="tm-phase" role="status"></span><span class="tm-left"></span><span class="tm-set"></span></div></div>
@@ -247,7 +382,7 @@ function tmTick() {
   tm.raf = requestAnimationFrame(tmTick);
 }
 
-tmDlg.addEventListener('submit', e => { e.preventDefault(); tmStart(); });
+tmDlg.addEventListener('submit', e => { e.preventDefault(); tm.editing ? tmSaveEdit() : tmStart(); });
 tmDlg.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || !tm) return;
@@ -277,12 +412,20 @@ tmDlg.addEventListener('click', e => {
     b.textContent = tm.left != null ? 'Resume' : 'Pause';
     return;
   }
-  if ('stop' in d) return tmSetup();
+  if ('stop' in d) return tm.editing ? tmEndEdit() : tmSetup();
+  if ('tmSave' in d) return tmSaveNew(b);
+  if (d.tmLoad) return tmPick(d.tmLoad);
+  if (d.tmEdit) return tmEdit(d.tmEdit);
+  if ('tmDel' in d) return tmDelete();
   // Go Again: the same numbers, straight into the countdown.
   if ('again' in d) { tmSetup(); tmStart(); }
 });
 // Esc matches the top button: back to the first screen while counting, closed from there.
-tmDlg.addEventListener('cancel', e => { if (tm && tm.phase !== 'setup') { e.preventDefault(); tmSetup(); } });
+tmDlg.addEventListener('cancel', e => {
+  if (!tm) return;
+  if (tm.editing) { e.preventDefault(); tmEndEdit(); }
+  else if (tm.phase !== 'setup') { e.preventDefault(); tmSetup(); }
+});
 // Closing it (Close, or Esc) stops everything.
 tmDlg.addEventListener('close', () => {
   cancelAnimationFrame(tm?.raf);
