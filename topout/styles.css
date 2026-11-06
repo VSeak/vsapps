@@ -5,7 +5,7 @@
   --accent: #E8622C; --accent-ink: #FFFFFF; --accent-soft: #FCE6DB; --accent-text: #B8431A;
   --navy: #1B2340; --navy-ink: #F7F5F0; --navy-muted: #AEB5CC;
   --ok: #2F7D55; --ok-soft: #DDF0E5; --warn: #A45E00; --warn-soft: #FDF0D6; --warn-line: #EFC577; --danger: #C0392B;
-  --k-competition: #E8622C; --k-practice: #2E6FD1; --k-open_house: #2F9C6A; --k-other: #7A7F95;
+  --k-competition: #E8622C; --k-practice: #2E6FD1; --k-open_house: #2F9C6A; --k-other: #6B7086;
   --radius: 18px; --shadow: 0 1px 2px rgba(27, 35, 64, .06), 0 4px 14px rgba(27, 35, 64, .05);
   color-scheme: light;
 }
@@ -201,7 +201,7 @@ details.prac-areas-fold > summary { margin-bottom: .45rem; font-size: .9rem; fon
 .loc-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 5px; background: var(--accent); }
 .loc-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 .loc-top { display: flex; align-items: center; gap: .5rem; margin-top: .3rem; }
-.loc-top h2 { margin: 0; font-size: 1.45rem; flex: 1; }
+.loc-top h2 { margin: 0; font-size: 1.45rem; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .loc-top svg:last-child { color: var(--accent-text); }
 .loc-pin { color: var(--accent-text); display: inline-flex; }
 .loc-stats { display: flex; align-items: baseline; gap: .45rem; margin: .8rem 0 .4rem; }

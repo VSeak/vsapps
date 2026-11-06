@@ -96,7 +96,6 @@ const loading = '<p class="muted">Loading…</p>';
 document.title = CONFIG.siteName;
 $('.brand-name').textContent = CONFIG.siteName;
 $('.brand-sub').textContent = CONFIG.siteSub;
-$('.brand').setAttribute('aria-label', `${CONFIG.siteName}, ${CONFIG.siteSub}`);
 
 let sb, mailer;
 let me = null;               // {user, staffId, roles, isAdmin, isCoach, firstName, fullName}
@@ -280,7 +279,8 @@ document.addEventListener('input', e => {
 function ask({ title, body = '', ok = 'OK', warn = false, cancel = true, wide = false, extra = null, alt = null, onOpen = null, okClass = '', cancelLabel = 'Cancel' }) {
   const d = $('#dlg');
   d.className = wide ? 'wide' : '';
-  d.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2>${body}
+  d.setAttribute('aria-labelledby', 'dlgTitle');   // the dialog's name for screen readers is its heading
+  d.innerHTML = `<form method="dialog"><h2 id="dlgTitle">${esc(title)}</h2>${body}
     <div class="row end${alt ? ' many' : ''}">${extra ? `<button value="${extra.value}" formnovalidate class="ghost danger push-left">${esc(extra.label)}</button>` : ''}
     ${cancel ? `<button value="cancel" formnovalidate class="ghost">${esc(cancelLabel)}</button>` : ''}
     ${alt ? `<button value="${alt.value}" class="${alt.class || 'ghost'}">${esc(alt.label)}</button>` : ''}

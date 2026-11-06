@@ -4,7 +4,7 @@
   --danger: #B42318; --warn: #9A5B00; --ok: #2F7D4F; --shadow: 0 1px 2px rgba(44,38,32,.06);
   --deep: #2C2620; --deep-ink: #ECE5DB; --deep-muted: #CFC6B9; --deep-accent: #A4BA8F; --deep-line: transparent;
   --deep-danger: #F09A92;
-  --goal: #A4BA8F; --goal-ink: #17220D; --chip: #E6E0D6; --ink-2: #4A4138; --blank: #B5AB9E;
+  --goal: #A4BA8F; --goal-ink: #17220D; --chip: #E6E0D6; --ink-2: #4A4138; --blank: #8F8476;
   --best: #E3AE5A; --best-ink: #2C1A00;
   --live: #B3261E;   /* Live strip, Submit Session and the timer's Hang, with white text in both themes */
   --recover: #3F6B3A;   /* The timer's Rest, with white text in both themes */
@@ -17,7 +17,7 @@
     --line: #352F27; --accent: #A4BA8F; --accent-ink: #17220D; --soft: #2C3322;
     --danger: #F97066; --warn: #E3AE5A; --ok: #74C295; --shadow: none;
     --deep: #2E2821; --deep-ink: #ECE5DB; --deep-muted: #BFB5A7; --deep-accent: #A4BA8F; --deep-line: #40382F; --deep-danger: #F09A92;
-    --goal: #A4BA8F; --goal-ink: #17220D; --chip: #352F27; --ink-2: #CFC6B9; --blank: #6E655A;
+    --goal: #A4BA8F; --goal-ink: #17220D; --chip: #352F27; --ink-2: #CFC6B9; --blank: #7D7366;
     color-scheme: dark;
   }
 }
@@ -26,7 +26,7 @@
   --line: #352F27; --accent: #A4BA8F; --accent-ink: #17220D; --soft: #2C3322;
   --danger: #F97066; --warn: #E3AE5A; --ok: #74C295; --shadow: none;
   --deep: #2E2821; --deep-ink: #ECE5DB; --deep-muted: #BFB5A7; --deep-accent: #A4BA8F; --deep-line: #40382F; --deep-danger: #F09A92;
-  --goal: #A4BA8F; --goal-ink: #17220D; --chip: #352F27; --ink-2: #CFC6B9; --blank: #6E655A;
+  --goal: #A4BA8F; --goal-ink: #17220D; --chip: #352F27; --ink-2: #CFC6B9; --blank: #7D7366;
   color-scheme: dark;
 }
 
@@ -263,6 +263,7 @@ a.tile h2 { margin: 0; }
 a.tile p { margin: 6px 0 0; font-size: .9rem; }
 a.tile svg { flex: none; color: var(--accent); }
 a.tile.tile-soft { background: var(--soft); border-color: var(--soft); }
+a.tile.tile-soft .muted { color: var(--ink-2); }   /* --muted is 4.18:1 on --soft in light mode */
 .big-num.zero { color: var(--blank); }
 
 /* Goals */

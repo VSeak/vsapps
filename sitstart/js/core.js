@@ -103,7 +103,6 @@ const loading = '<p class="muted">Loading…</p>';
 document.title = CONFIG.siteName;
 $('.brand-name').textContent = CONFIG.siteName;
 $('.brand-sub').textContent = CONFIG.siteSub;
-$('.brand').setAttribute('aria-label', `${CONFIG.siteName}, ${CONFIG.siteSub}`);
 
 let sb, mailer;
 let me = null;               // {user, roles, isStaff, isCoach, isAdmin, student}. roles: staff roles, e.g. ['admin', 'coach']; [] for a student
@@ -243,7 +242,8 @@ document.addEventListener('input', e => {
 // check(FormData): [field name, message] to keep the dialog open with that field's error, or null to settle.
 function ask({ title, body = '', ok = 'OK', warn = false, cancel = true, fill = false, check = null }) {
   const d = $('#dlg');
-  d.innerHTML = `<form method="dialog"><h2>${esc(title)}</h2>${body}
+  d.setAttribute('aria-labelledby', 'dlgTitle');   // the dialog's name for screen readers is its heading
+  d.innerHTML = `<form method="dialog"><h2 id="dlgTitle">${esc(title)}</h2>${body}
     <div class="row end">${cancel ? '<button value="cancel" formnovalidate class="ghost">Cancel</button>' : ''}
     <button value="ok" class="${fill ? 'fill' : 'primary'}${warn ? ' danger' : ''}">${esc(ok)}</button></div></form>`;
   return new Promise(resolve => {
