@@ -1069,10 +1069,15 @@ a.msg-tile.off:hover { border-color: var(--line); }
 dialog.timer { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0;
   border: 0; border-radius: 0; overflow: auto; background: var(--bg); color: var(--ink); transition: background-color .25s; }
 dialog.timer[open] { display: flex; flex-direction: column; }
-dialog.timer:is([data-phase="ready"], [data-phase="done"]) { background: var(--deep); color: var(--deep-ink); }
-dialog.timer[data-phase="hang"] { background: var(--live); color: #fff; }
-dialog.timer:is([data-phase="rest"], [data-phase="gap"]) { background: var(--recover); color: #fff; }
-dialog.timer:not([data-phase="setup"]) button { background: transparent; color: inherit; border: 1px solid color-mix(in srgb, currentColor 45%, transparent); }
+dialog.timer:is([data-phase="ready"], [data-phase="done"]) { --tm-bg: var(--deep); background: var(--deep); color: var(--deep-ink); }
+dialog.timer[data-phase="hang"] { --tm-bg: var(--live); background: var(--live); color: #fff; }
+dialog.timer:is([data-phase="rest"], [data-phase="gap"]) { --tm-bg: var(--recover); background: var(--recover); color: #fff; }
+/* Buttons over the phase color read as buttons, not just outlines (the user found outlines hard to see from the board):
+   a see-through fill with a firm edge, and the main one (Pause / Resume, Go Again) solid in the text color. */
+dialog.timer:not([data-phase="setup"]) button { background: color-mix(in srgb, currentColor 20%, transparent); color: inherit;
+  border: 2px solid color-mix(in srgb, currentColor 75%, transparent); font-weight: 700; }
+/* Its text takes the phase color through text-fill, so `color` (and currentColor, the fill) stays the light ink. */
+dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background: currentColor; border-color: currentColor; -webkit-text-fill-color: var(--tm-bg); }
 .tm-top { flex: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 16px; }
 .tm-top button { min-height: 44px; }
 .tm-top .tm-sound { width: 44px; padding: 0; display: grid; place-items: center; }
