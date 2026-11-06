@@ -388,9 +388,12 @@ async function msgThread(sid, fromStudent = false, pick) {
       box.focus();
       // The other side's notification. It only works once push is set up (SETUP.md), and never holds up the page.
       // A device the push service turned down goes to the error log, so a missing notification can be traced.
-      if (CONFIG.vapidKey) sb.functions.invoke('message-push', { body: { id: m.id } }).then(({ data }) => {
-        console.info('message-push', data);
-        if (data?.failed?.length) logError('push', 'A notification was not accepted', JSON.stringify(data.failed));
+      if (CONFIG.vapidKey) sb.functions.invoke('message-push', { body: { id: m.id } }).then(({ data, error }) => {
+        console.info('message-push', data, error ?? '');
+        if (error) return logError('error', 'Push: ' + (error.message || error), error.context?.status ?? '');
+        // kind 'error': app_errors only allows 'error' and 'slow', so a 'push' row was refused and never showed up.
+        if (data?.failed?.length) logError('error', 'Push: a notification was not accepted', JSON.stringify(data.failed));
+        else if (data?.error) logError('error', 'Push: ' + data.error);
       }).catch(() => {});
     });
   };
