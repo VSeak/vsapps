@@ -23,4 +23,4 @@ The owner's Christmas draw: each year, every kid is given to one adult to shop f
 ## Conventions
 
 - Look: "Pine & Cranberry": snowy cream page, deep pine ink, cranberry accent, gold; candy-cane stripe on the year card. DM Serif Display headings, Karla body. Tokens on `:root` with dark mode. Logo: a gift box (`icon.svg`, inline in the header and on the root home card).
-- Works at ~400px wide. Title case for buttons, headings and labels; sentence case for hints and messages.
+- Works at ~400px wide. Title case for buttons, headings, and labels; sentence case for hints and messages.

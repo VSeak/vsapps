@@ -1,6 +1,6 @@
 <!-- Supabase → Authentication → Emails → Templates → magic-link. Made by supabase-emails/build.sh: edit
      sitstart/supabase/emails/magic-link.html or topout/supabase/emails/magic-link.html instead, then run it again.
-     Subject: {{ if .Data.topout }}Top Out: Your Sign-In Link 🧗{{ else }}Sit Start: {{ if .Data.email_changed_to }}Your Email Was Changed{{ else }}Your Sign-In Link{{ end }} 🧗{{ end }} -->
+     Subject: {{ if .Data.topout }}Top Out: Your Sign-In Link{{ else }}Sit Start: {{ if .Data.email_changed_to }}Your Email Was Changed{{ else }}Your Sign-In Link{{ end }} 🧗{{ end }} -->
 {{ if .Data.topout }}
 <!DOCTYPE html>
 <html lang="en">

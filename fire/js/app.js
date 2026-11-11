@@ -126,12 +126,12 @@ $('#signOut').onclick = async () => {
 // ---------- Sign-in pages ----------
 
 function authPage(head, sub, card, note = '') {
-  view(`<section class="auth"><h1 class="hey">${head}<span> ${sub}</span></h1>
+  view(`<section class="auth"><h1 class="hey">${head}${sub ? `<span> ${sub}</span>` : ''}</h1>
     <div class="card auth-card">${card}</div>${note ? `<p class="hint auth-note">${note}</p>` : ''}</section>`);
 }
 
 function viewLogin() {
-  authPage('Welcome back,', 'keep it burning.', `
+  authPage('Sign In to FIRE', '', `
     ${linkError ? `<p class="alert">${esc(linkError)}</p>` : ''}
     <form id="loginForm" class="stack" data-nosave>
       <label>Email<input type="email" name="email" autocomplete="email" required data-need="Enter your email."></label>

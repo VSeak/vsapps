@@ -117,7 +117,7 @@ async function comparePage() {
       <p class="muted">What you have, against the same money put into an S&P 500 index fund on the same dates.</p></div></div>
     ${total ? `<section class="card"><h2>All Accounts</h2>${compareStatsHTML(total)}
         ${hh.length > 1 ? `${compareChart(hh)}<div class="legend"><span><i></i>Actual</span><span><i class="sp"></i>In the S&P 500</span></div>` : ''}
-        <p class="hint" style="margin-top:.6rem">Rates are per year and money-weighted: they count when each dollar went in. Fees, cash and bonds are
+        <p class="hint" style="margin-top:.6rem">Rates are per year and money-weighted: they count when each dollar went in. Fees, cash, and bonds are
           the usual reasons to trail the index; a lucky stock pick or more risk, to beat it.</p>
         ${latest > spEndDate() ? spNote() : ''}</section>
       <section class="card"><h2>By Account</h2>

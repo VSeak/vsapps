@@ -22,7 +22,7 @@ const exFieldsHTML = (x = {}, choices = []) => `<label>Name<input name="name" va
     `<label class="grow" style="min-width:90px">${l}<input name="${f}" value="${esc(x[f])}" placeholder="${EX_EXAMPLES[f]}" autocomplete="off"></label>`).join('')}</div>
   <label>Notes${rich(`<textarea name="notes" rows="2" data-grow placeholder="${EX_EXAMPLES.notes}">${esc(x.notes)}</textarea>`)}</label>
   <fieldset class="picks"><legend>Purpose</legend>
-    <span class="hint field-hint">What the exercise is for. This also helps coaches search and filter through exercises. Students don't see these on their training plans. Add more in the Purposes card.</span>
+    <span class="hint field-hint">What the exercise is for, used to search and filter. Students don't see it. Add more in the Purposes card.</span>
     <div class="pick-row">${exPicksHTML(choices, x.purposes)}</div>
   </fieldset>
   ${trackFieldsHTML(x.track)}`;

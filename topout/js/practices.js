@@ -98,8 +98,7 @@ async function practicesPage() {
     <div class="row between practice-foot"><span class="chips">${practiceAreaChips(p, areas, true)}</span>
       <button type="button" class="small ghost danger" data-del="${p.id}">Delete</button></div></article>`;
   view(`${crumbs([['Home', '#/'], ['Practices']])}
-    <div class="page-head"><div><h1 class="big">Practices</h1>
-      <p class="muted">List of practices to use for team practice. Feel free to create a new practice if it doesn't exist yet!</p></div>
+    <div class="page-head"><div><h1 class="big">Practices</h1></div>
       <a class="button fill" href="#/practice/new">+ New Practice</a></div>
     ${all.length ? `<div class="prac-tools">
       <input type="search" id="pracSearch" class="search" placeholder="Search practices" value="${esc(practiceSearch)}" aria-label="Search practices">

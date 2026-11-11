@@ -59,7 +59,7 @@ async function accountsPage() {
     ${groups.length ? groups.map(([name, list]) => `<div class="group-head"><h2>${esc(name)}</h2>
         ${name === 'Closed' ? '' : `<b>${money(list.reduce((s, a) => s + (a.latest?.balance || 0), 0))}</b>`}</div>
       <div class="acct-list">${list.sort(byBalance).map(row).join('')}</div>`).join('')
-      : `<section class="card empty"><h2>No Accounts Yet</h2><p class="muted">Add each 401(k), IRA, HSA and brokerage account, yours and your partner's.
+      : `<section class="card empty"><h2>No Accounts Yet</h2><p class="muted">Add each 401(k), IRA, HSA, and brokerage account, yours and your partner's.
         Old employer plans too.</p></section>`}
     <div style="margin-top:1.4rem">${limitsCardHTML(accounts, people, jobs, settings)}</div>`);
   wireLimitsCard(accounts, people, jobs, settings);

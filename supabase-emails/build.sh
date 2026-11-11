@@ -9,9 +9,9 @@ cd "$(dirname "$0")/.." || exit 1
 strip() { awk 'done { print; next } /-->/ { done = 1 }' "$1"; }   # drops the file's opening comment
 for name in confirm-signup magic-link reset-password; do
   case $name in
-    confirm-signup) subject='{{ if .Data.topout }}Top Out: You'"'"'re Invited 🧗{{ else }}Sit Start: {{ if .Data.staff }}You'"'"'re Invited{{ else }}Your Training Plan Is Ready{{ end }} 🧗{{ end }}' ;;
-    magic-link) subject='{{ if .Data.topout }}Top Out: Your Sign-In Link 🧗{{ else }}Sit Start: {{ if .Data.email_changed_to }}Your Email Was Changed{{ else }}Your Sign-In Link{{ end }} 🧗{{ end }}' ;;
-    reset-password) subject='{{ if .Data.topout }}Top Out{{ else }}Sit Start{{ end }}: Reset Your Password 🧗' ;;
+    confirm-signup) subject='{{ if .Data.topout }}Top Out: You'"'"'re Invited{{ else }}Sit Start: {{ if .Data.staff }}You'"'"'re Invited{{ else }}Your Training Plan Is Ready{{ end }} 🧗{{ end }}' ;;
+    magic-link) subject='{{ if .Data.topout }}Top Out: Your Sign-In Link{{ else }}Sit Start: {{ if .Data.email_changed_to }}Your Email Was Changed{{ else }}Your Sign-In Link{{ end }} 🧗{{ end }}' ;;
+    reset-password) subject='{{ if .Data.topout }}Top Out: Reset Your Password{{ else }}Sit Start: Reset Your Password 🧗{{ end }}' ;;
   esac
   {
     echo "<!-- Supabase → Authentication → Emails → Templates → $name. Made by supabase-emails/build.sh: edit"

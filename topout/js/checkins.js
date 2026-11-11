@@ -71,7 +71,7 @@ function checkinDetailHTML(c, older, { m, circuits, areas, questions, levels }) 
       <b>${p.show}${delta(p.rank, prevRank(p.key))}</b>${p.sub ? `<small>${p.sub}</small>` : ''}</div>`).join('')}</div>` : ''}
     ${ranked.length ? `<div class="ranked"><small>${esc(m?.first_name || 'Member')}'s Ranking <span class="muted">(strongest first)</span></small>
       <ol>${ranked.map(a => `<li><span>${esc(a.name)}</span>${moved(a)}</li>`).join('')}</ol></div>` : ''}
-    ${!answers.length && !grades.length && !ranked.length && !level ? '<p class="muted">No answers, ranking or grades recorded.</p>' : ''}
+    ${!answers.length && !grades.length && !ranked.length && !level ? '<p class="muted">No answers, ranking, or grades recorded.</p>' : ''}
     ${c.notes ? `<div class="note-body">${para(c.notes)}</div>` : ''}
     <div class="row between wrap check-foot"><span class="hint">Check-in by ${esc(c.author_name || 'staff')}${c.edited_at ? ' · edited' : ''}</span>
       ${canChangeCheckin(c) ? `<span class="row"><button type="button" class="small ghost" data-checkin="edit" data-id="${c.id}">Edit</button>
@@ -93,7 +93,7 @@ function checkinsCardHTML(ctx) {
       ${older.length ? `<h3>History</h3>${older.map((c, i) => `<details class="history"><summary>${summary(c)}</summary>
         ${checkinDetailHTML(c, older.slice(i + 1), ctx)}</details>`).join('')}` : ''}`
     : `<p class="muted">No check-ins yet. A check-in records a chat with them (what they're proud of, what they want to improve),
-      their level, how they rank their focus areas, and their grades, whenever it suits you: monthly, each season or once a year.</p>`}
+      their level, how they rank their focus areas, and their grades, whenever it suits you: monthly, each season, or once a year.</p>`}
   </section>`;
 }
 
@@ -140,7 +140,7 @@ async function checkinForm(c, { m, goals, checkins, circuits, areas, questions, 
       <label>Level<select name="level_id"><option value="">—</option>${levels.map(l =>
         `<option value="${l.id}"${l.id === v.level_id ? ' selected' : ''}>${esc(l.name)}</option>`).join('')}</select>
         <small class="level-about" data-level-about>${esc(levelOf(v.level_id)?.about || '')}</small></label></div>
-      <p class="hint">Record what's useful. Everything below is optional.${!c && last ? ` Level, ranking, grades and notes start from the last check-in (${fmtDate(last.checkin_date)}), so change what's new.` : ''}</p>
+      <p class="hint">Record what's useful. Everything below is optional.${!c && last ? ` Level, ranking, grades, and notes start from the last check-in (${fmtDate(last.checkin_date)}), so change what's new.` : ''}</p>
       ${recap}
       ${shownQs.length ? `<h3 class="sec">Questions</h3>${shownQs.map(q => `<div class="q-block"><label>${esc(q.prompt)}${rich(`<textarea name="a_${q.id}" rows="2"
         placeholder="${esc(q.hint)}">${esc(v.answers[q.id] || '')}</textarea>`)}</label>${tagsOn(q) ? tagPick(q) : ''}</div>`).join('')}` : ''}

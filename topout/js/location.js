@@ -198,7 +198,7 @@ async function notADuplicate(first, last, loc) {
   return !!await ask({ title: 'This Person May Exist on Another Team', ok: 'Add New Person', okClass: 'hover-fill',
     body: `<p>${same.length === 1 ? 'There is already a team member' : `There are already ${same.length} team members`} with this name:</p>
       <ul class="dupes">${same.map(row).join('')}</ul>
-      <p class="hint">If it's the same person, click the button below their name to add them to ${esc(loc.name)}. Click the Add New Person button if it's someone new to Adult Team.</p>`,
+      <p class="hint">If it's the same person, tap the button below their name to add them to ${esc(loc.name)}. Tap the Add New Person button if it's someone new to Adult Team.</p>`,
     onOpen: form => form.addEventListener('click', e => {
       if (e.target.closest('a')) return $('#dlg').close();
       const b = e.target.closest('[data-join]');

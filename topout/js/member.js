@@ -198,7 +198,7 @@ function detailsHTML(m, locs) {
         : `<button type="button" class="ghost" id="leave"${me.isAdmin ? '' : ' disabled'}>Left the Team</button>`}
       <button type="button" class="ghost danger" id="delMember"${me.isAdmin ? '' : ' disabled'}>Delete Member</button>
     </div>
-    <p class="hint">Left the Team keeps their history, makes every team Inactive and moves them to Former. Delete is for someone added by mistake.${me.isAdmin ? '' : ' Only an admin can do either.'}</p>
+    <p class="hint">Left the Team keeps their history, makes every team Inactive, and moves them to Former. Delete is for someone added by mistake.${me.isAdmin ? '' : ' Only an admin can do either.'}</p>
   </section>`;
 }
 
@@ -277,7 +277,7 @@ function bindMember(ctx) {
   $('#leave')?.addEventListener('click', async e => {
     const pr = pronounWords(m.pronouns);
     const f = await ask({ title: 'Left the Team?', ok: 'Mark as Left', wide: true,
-      body: `<p>${esc(m.first_name)} moves to Former and every team ${pr.subj} ${pr.plural ? 'are' : 'is'} on is marked Inactive. ${Cap(pr.pos)} intake, goals, notes and check-ins stay.</p>
+      body: `<p>${esc(m.first_name)} moves to Former and every team ${pr.subj} ${pr.plural ? 'are' : 'is'} on is marked Inactive. ${Cap(pr.pos)} intake, goals, notes, and check-ins stay.</p>
         <label>Last Day<input type="date" name="left_on" value="${today()}" required data-need="Pick the day."></label>
         <h3>Exit Intake</h3>
         <p class="hint">Why ${pr.subj} left, if you know. Every field is optional; you can fill it in later on ${pr.pos} page.</p>
@@ -305,7 +305,7 @@ function bindMember(ctx) {
     });
   });
   $('#delMember').onclick = async e => {
-    if (!await confirmDelete('Delete Member?', `This deletes ${esc(m.name)} and all their goals, notes and check-ins. It can't be undone.
+    if (!await confirmDelete('Delete Member?', `This deletes ${esc(m.name)} and all their goals, notes, and check-ins. It can't be undone.
       If they just left, use Left the Team instead.`)) return;
     busy(e.target, async () => { await sb.from('team_members').delete().eq('id', m.id).then(must); flash('Member deleted.'); goTo(m.backTo); });
   };
@@ -321,7 +321,6 @@ function bindMember(ctx) {
       }
       return busy(g, async () => {
         await sb.from('team_goals').update({ status: act, done_at: null }).eq('id', id).then(must);
-        if (act === 'achieved') flash('Goal achieved. Nice!');
         redraw();
       });
     }

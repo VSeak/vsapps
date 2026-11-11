@@ -182,12 +182,12 @@ $('#signOut').onclick = async () => {
 // ---------- Sign-in pages ----------
 
 function authPage(head, sub, card, note = '') {
-  view(`<section class="auth"><h1 class="hey">${head}<span> ${sub}</span></h1>
+  view(`<section class="auth"><h1 class="hey">${head}${sub ? `<span> ${sub}</span>` : ''}</h1>
     <div class="card auth-card">${card}</div>${note ? `<p class="hint auth-note">${note}</p>` : ''}</section>`);
 }
 
 function viewLogin() {
-  authPage('Welcome back,', 'coach.', `
+  authPage('Sign In to Top Out', '', `
     ${linkError ? `<p class="alert">${esc(linkError)}</p>` : ''}
     <form id="loginForm" class="stack" data-nosave>
       <label>Email<input type="email" name="email" autocomplete="email" required data-need="Enter your email."></label>
@@ -300,15 +300,15 @@ async function homePage() {
         <section class="needs"><span class="eyebrow">Coming Up</span>
           ${up.length ? up.map(e => eventRow(e, { where: locs.length > 1 ? locNames(e) : "",
             href: `#/loc/${locs.find(l => isAt(e, l.id))?.id}/calendar` })).join('')
-            : '<p class="none-up">Nothing coming up. Add competitions, practices and open houses on a location’s calendar.</p>'}
+            : '<p class="none-up">Nothing coming up. Add competitions, practices, and open houses on a location’s calendar.</p>'}
         </section>
         <div class="tiles">
           <a class="card tile" href="#/members"><div><h2>Team Members</h2><p class="muted">Everyone on ${me.isAdmin ? 'a team' : 'your teams'} and which teams they're on.</p></div>${ICON_ARROW}</a>
-          <a class="card tile" href="#/practices"><div><h2>Practices</h2><p class="muted">Practice plans every coach shares, block by block.</p></div>${ICON_ARROW}</a>
-          <a class="card tile" href="#/exits"><div><h2>Why Members Left</h2><p class="muted">Reasons from each exit intake, and who'd come back.</p></div>${ICON_ARROW}</a>
+          <a class="card tile" href="#/practices"><div><h2>Practices</h2><p class="muted">Practice plans all coaches share.</p></div>${ICON_ARROW}</a>
+          <a class="card tile" href="#/exits"><div><h2>Why Members Left</h2><p class="muted">Exit intake reasons, and who'd come back.</p></div>${ICON_ARROW}</a>
         ${me.isAdmin ? `
           <a class="card tile" href="#/staff"><div><h2>Staff</h2><p class="muted">Admins and coaches, and where they coach.</p></div>${ICON_ARROW}</a>
-          <a class="card tile" href="#/settings"><div><h2>Settings</h2><p class="muted">Locations, circuit colors, areas and check-in questions.</p></div>${ICON_ARROW}</a>` : ''}
+          <a class="card tile" href="#/settings"><div><h2>Settings</h2><p class="muted">Locations, circuit colors, focus areas, and check-in questions.</p></div>${ICON_ARROW}</a>` : ''}
         </div>
       </aside>
     </div>`);

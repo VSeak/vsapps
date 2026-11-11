@@ -441,7 +441,7 @@ async function jobDialog(j, people, personId = null) {
     } });
   if (!f) return null;
   if (f.get('button') === 'delete') {
-    if (!await confirmDelete('Delete Job?', `This deletes ${esc(j.employer)} with its pay changes, bonuses and W-2 totals. Accounts linked to it stay.`)) return null;
+    if (!await confirmDelete('Delete Job?', `This deletes ${esc(j.employer)} with its pay changes, bonuses, and W-2 totals. Accounts linked to it stay.`)) return null;
     return busy(null, async () => {
       await sb.from('fire_jobs').delete().eq('id', j.id).then(must);
       flash('Job deleted.');

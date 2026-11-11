@@ -51,8 +51,8 @@ async function staffForm(s, locs) {
         <label>Last Name<input name="last_name" maxlength="60" value="${esc(s?.last_name || '')}" autocomplete="off"></label></div>
       ${pronounsField(s?.pronouns || '')}
       <fieldset data-required><legend>Roles</legend>
-        <label class="check"><input type="checkbox" name="role" value="coach"${roles.includes('coach') ? ' checked' : ''}> Coach <span class="muted">— members, notes, check-ins and the calendar at their locations</span></label>
-        <label class="check"><input type="checkbox" name="role" value="admin"${roles.includes('admin') ? ' checked' : ''}${lockAdmin ? ' disabled' : ''}> Admin <span class="muted">— every location, staff and settings</span></label>
+        <label class="check"><input type="checkbox" name="role" value="coach"${roles.includes('coach') ? ' checked' : ''}> Coach: <span class="muted">members, notes, check-ins, and the calendar at their locations</span></label>
+        <label class="check"><input type="checkbox" name="role" value="admin"${roles.includes('admin') ? ' checked' : ''}${lockAdmin ? ' disabled' : ''}> Admin: <span class="muted">every location, staff, and settings</span></label>
         ${self ? '<p class="hint">You can’t take Admin off yourself.</p>' : ''}
       </fieldset>
       <fieldset><legend>Coaches At</legend>
@@ -168,7 +168,7 @@ async function settingsPage() {
     <div class="settings-grid">
       <div class="col">
       <section class="card"><h2>Locations</h2>
-        <p class="hint">The Location Cards on the Home page display in this order. Shorthand is what people at the gym call it (like MBP); chips and short lines use it. A location with members can't be deleted: take them off that team or delete them first.</p>
+        <p class="hint">Home shows locations in this order. Shorthand is the gym's nickname, like MBP. A location with members can't be deleted.</p>
         ${locs.map(l => `<form class="set-row" data-kind="loc" data-id="${l.id}" data-save>
           ${GRIP}
           <input name="name" maxlength="60" required value="${esc(l.name)}" aria-label="Location name" data-need="Name the location.">
@@ -229,7 +229,7 @@ async function settingsPage() {
 
       <section class="card"><h2>Focus Areas</h2>
         <p class="hint">Members rank the Rated focus areas on a check-in, from their strongest to their weakest. Every focus area can tag an answer
-          (like Want to Improve), a practice or Team Focus; tag-only ones are just for that. The group sorts the Team Summary into Physical, Skill and Mental.
+          (like Want to Improve), a practice or Team Focus; tag-only ones are just for that. The group sorts the Team Summary into Physical, Skill, and Mental.
           Focus Area Levels: what levels 1 to 10 look like for that area, a reference that opens from its name on a check-in.
           Hide one to leave it off new check-ins but keep it on old ones.</p>
         ${areas.map(a => `<div class="area-block" data-kind="area" data-id="${a.id}">${GRIP}
