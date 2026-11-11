@@ -286,8 +286,8 @@ async function homePage() {
       <p class="loc-next">${next ? `<b>Next:</b> ${esc(next.title)} · ${fmtShort(next.event_date)}` : '<span class="muted">Nothing on the calendar yet</span>'}</p></a>`;
   };
   const up = events.slice(0, COMING_UP);
-  const name = me.firstName ? ' ' + esc(me.firstName) : '';
-  view(`<h1 class="hey">Welcome${name},<span> let's send it.</span></h1>
+  const name = me.firstName ? ', ' + esc(me.firstName) : '';
+  view(`<h1 class="hey">Welcome${name}</h1>
     <div class="home-grid">
       <div>
         <div class="row between section-head"><h2 class="eyebrow">Locations</h2>
