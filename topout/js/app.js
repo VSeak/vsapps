@@ -187,7 +187,7 @@ function authPage(head, sub, card, note = '') {
 }
 
 function viewLogin() {
-  authPage('Sign In to Top Out', '', `
+  authPage('Sign In to Top Out', 'Rosters, check-ins, and the team calendar.', `
     ${linkError ? `<p class="alert">${esc(linkError)}</p>` : ''}
     <form id="loginForm" class="stack" data-nosave>
       <label>Email<input type="email" name="email" autocomplete="email" required data-need="Enter your email."></label>

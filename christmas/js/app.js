@@ -122,15 +122,14 @@ function authPage(head, sub, card, note = '') {
 }
 
 function viewLogin() {
-  authPage('Sign In to Kiddo Draw', '', `
+  authPage('Sign In to Kiddo Draw', 'Which adult shops for which kid.', `
     ${linkError ? `<p class="alert">${esc(linkError)}</p>` : ''}
     <form id="loginForm" class="stack" data-nosave>
       <label>Email<input type="email" name="email" autocomplete="email" required data-need="Enter your email."></label>
       <label>Password<input type="password" name="password" autocomplete="current-password" required data-need="Enter your password."></label>
       <button class="fill">Sign In</button>
     </form>
-    <button type="button" id="forgotBtn" class="link">Forgot Password?</button>`,
-    'Private. Sign in with the email and password you use for the other apps.');
+    <button type="button" id="forgotBtn" class="link">Forgot Password?</button>`);
   $('#forgotBtn').onclick = e => forgotPassword(e.target);
   $('#loginForm').onsubmit = e => {
     e.preventDefault();
