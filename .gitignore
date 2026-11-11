@@ -1,0 +1,4 @@
+# This machine's local preview server for the Claude desktop app (paths are personal). .claude/skills/ is shared.
+.claude/launch.json
+.claude/serve.ps1
+.claude/settings.local.json
