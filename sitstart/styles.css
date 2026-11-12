@@ -1098,6 +1098,9 @@ dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background:
 .tm-go button { flex: 1; min-height: 52px; }
 .tm-go .fill { flex: 2; font-size: 1.05rem; }
 .tm-name-field { margin-bottom: 10px; }
+.tm-move { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.tm-move[hidden] { display: none; }
+.tm-move-btns { display: flex; gap: 8px; }
 .tm-del { width: 100%; min-height: 44px; margin-top: 10px; }
 .tm-saved { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
 .tm-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }

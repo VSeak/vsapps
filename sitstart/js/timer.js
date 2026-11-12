@@ -149,10 +149,12 @@ function tmSetup() {
     <p class="tm-sum"></p>
     <p class="tm-err" role="alert"></p>
     ${ed ? `<div class="tm-go"><button type="button" data-stop>Cancel</button><button class="fill">Save Changes</button></div>
+      <div class="tm-move"></div>
       <button type="button" class="ghost danger tm-del" data-tm-del>Delete Timer</button>`
     : '<div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div><section class="tm-saved"></section>'}</form>`;
   tmRows();
   tmDrawSaved();
+  tmDrawMove();
 }
 const tmLoaded = () => tmSaved?.find(s => s.id === tm.savedId) ?? null;
 const tmHeading = () => tmLoaded()?.name || tm.name || TM_TITLE;
@@ -309,20 +311,36 @@ async function tmDelete() {
 }
 tmDlg.addEventListener('input', e => { if (e.target.dataset.tm) tmRows(); });
 
-// Drag a saved timer by its grip to change the order (the user asked). The list moves at once; the new order is saved
-// in one call, and if that fails the list is read again so it shows what is really saved.
+// Saved timers change order by dragging a grip or by Move Up / Move Down on the Edit screen (the user asked for both;
+// the buttons are for keyboards, screen readers, and anyone who can't drag). The list moves at once; the new order is
+// saved in one call, and if that fails the list is read again so it shows what is really saved.
+async function tmReorder(from, to) {
+  if (from < 0 || to < 0 || to >= tmSaved.length || from === to) return;
+  tmSaved.splice(to, 0, ...tmSaved.splice(from, 1));
+  tmDrawSaved(); tmDrawMove();
+  try { await sb.rpc('reorder_saved_timers', { ids: tmSaved.map(s => s.id) }).then(must); }
+  catch (e) { tmFail(e); await tmLoadSaved(); tmDrawMove(); }
+}
 const TM_DRAG = {
   handle: '.tm-list .grip', item: h => h.closest('[data-tm-item]'), lists: el => [el.parentNode], items: '[data-tm-item]',
   axis: 'y', scroller: tmDlg,
-  async drop(el, list, index) {
-    const from = tmSaved.findIndex(s => s.id === el.dataset.tmItem);
-    if (from < 0 || from === index) return;
-    tmSaved.splice(index, 0, ...tmSaved.splice(from, 1));
-    tmDrawSaved();
-    try { await sb.rpc('reorder_saved_timers', { ids: tmSaved.map(s => s.id) }).then(must); }
-    catch (e) { tmFail(e); tmLoadSaved(); }
-  },
+  drop: (el, list, index) => tmReorder(tmSaved.findIndex(s => s.id === el.dataset.tmItem), index),
 };
+// On the Edit screen: where the timer sits, with a button only where it can go. Moving acts at once, like Delete
+// Timer; Cancel only undoes the numbers and name.
+function tmDrawMove() {
+  const box = tm?.editing && tmDlg.querySelector('.tm-move');
+  if (!box) return;
+  const n = tmSaved?.length ?? 0, k = tmSaved?.findIndex(s => s.id === tm.editing.id) ?? -1;
+  if (n < 2 || k < 0) { box.hidden = true; return; }
+  const focused = document.activeElement?.dataset?.tmMove;
+  box.hidden = false;
+  box.innerHTML = `<span class="hint" role="status">${k + 1} of ${n} in your saved timers</span>
+    <span class="tm-move-btns">${k > 0 ? '<button type="button" class="small" data-tm-move="-1">Move Up</button>' : ''}
+    ${k < n - 1 ? '<button type="button" class="small" data-tm-move="1">Move Down</button>' : ''}</span>`;
+  // Keep the focus on a Move button (the other one when this one is gone at the top or bottom).
+  if (focused) (box.querySelector(`[data-tm-move="${focused}"]`) || box.querySelector('[data-tm-move]'))?.focus();
+}
 tmDlg.addEventListener('pointerdown', e => { if (tm && !tm.editing) dragSort(e, TM_DRAG); });
 
 function tmStart() {
@@ -428,6 +446,10 @@ tmDlg.addEventListener('click', e => {
     return;
   }
   if ('stop' in d) return tm.editing ? tmEndEdit() : tmSetup();
+  if (d.tmMove && tm.editing) {
+    const k = tmSaved.findIndex(s => s.id === tm.editing.id);
+    return tmReorder(k, k + +d.tmMove);
+  }
   if ('tmSave' in d) return tmSaveNew(b);
   if (d.tmLoad) return tmPick(d.tmLoad);
   if (d.tmEdit) return tmEdit(d.tmEdit);
