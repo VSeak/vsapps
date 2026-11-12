@@ -75,7 +75,7 @@ document.body.append(tmDlg);
 //   left (ms left, while paused), shown (the second on screen), raf, savedId (the saved timer on the first screen),
 //   editing (the saved timer being edited), before (the first screen's numbers to go back to after editing) }
 let tm = null;
-let tmSaved = null, tmSavedErr = '';   // this person's saved timers, A to Z; null until loaded or if they couldn't be
+let tmSaved = null, tmSavedErr = '';   // this person's saved timers, in their own order; null until loaded or if they couldn't be
 const tmRunning = () => !!tm && ['ready', 'hang', 'gap', 'rest'].includes(tm.phase);
 
 // Beeps on the last three seconds and at each change, since nobody watches a screen mid-hang. Sound On / Off is kept
@@ -207,12 +207,11 @@ function tmRows() {
 const tmNums = t => ({ sets: t.sets, reps: t.reps, hang: t.hang, gap: t.reps > 1 ? t.gap : null, rest: t.sets > 1 ? t.rest : null });
 const tmSame = (a, b) => !!b && JSON.stringify(tmNums(a)) === JSON.stringify(tmNums(b));
 const TM_COLS = 'id,name,sets,reps,hang,gap,rest';
-const tmSortSaved = () => tmSaved.sort((a, b) => a.name.localeCompare(b.name));
 // Loading can fail at a gym with no signal. The timer itself needs no server, so it just says so and keeps working.
+// They come in the order the person dragged them into (position; a new one is last).
 async function tmLoadSaved() {
   try {
-    tmSaved = await sb.from('saved_timers').select(TM_COLS).then(must);
-    tmSortSaved();
+    tmSaved = await sb.from('saved_timers').select(TM_COLS).order('position').order('created_at').then(must);
   } catch (e) {
     msgOf(e);
     tmSavedErr = "Couldn't load your saved timers. The timer still works.";
@@ -229,7 +228,7 @@ function tmDrawSaved() {
     : !n ? '<p class="hint">None yet. Fill in the numbers above, then save them here to use them again.</p>'
     : `<ul class="tm-list">${tmSaved.map(s => {
       const w = tmWords(s), on = s.id === tm.savedId;
-      return `<li class="tm-item${on ? ' on' : ''}"><button type="button" class="tm-load" data-tm-load="${s.id}" aria-pressed="${on}">
+      return `<li class="tm-item${on ? ' on' : ''}" data-tm-item="${s.id}">${n > 1 ? `<span class="grip" title="Drag to Reorder">${GRIP}</span>` : ''}<button type="button" class="tm-load" data-tm-load="${s.id}" aria-pressed="${on}">
           <b>${esc(s.name)}</b><span>${w.top} · ${w.total}</span></button>
         <button type="button" class="small" data-tm-edit="${s.id}" aria-label="Edit ${esc(s.name)}">Edit</button></li>`;
     }).join('')}</ul>`}
@@ -265,7 +264,7 @@ async function tmSaveNew(btn) {
   btn.disabled = true;
   try {
     const row = await sb.from('saved_timers').insert({ name: f.get('name').trim(), ...tmNums(tm) }).select(TM_COLS).single().then(must);
-    tmSaved.push(row); tmSortSaved();
+    tmSaved.push(row);
     tm.savedId = row.id;
     tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
     tmDrawSaved();
@@ -294,7 +293,7 @@ async function tmSaveEdit() {
   btn.disabled = true;
   try {
     const row = await sb.from('saved_timers').update({ name: input.value.trim(), ...tmNums(tm) }).eq('id', tm.editing.id).select(TM_COLS).single().then(must);
-    tmSaved[tmSaved.findIndex(s => s.id === row.id)] = row; tmSortSaved();
+    tmSaved[tmSaved.findIndex(s => s.id === row.id)] = row;
     tmEndEdit(row);
   } catch (e) { tmFail(e); btn.disabled = false; }
 }
@@ -309,6 +308,22 @@ async function tmDelete() {
   } catch (e) { tmFail(e); }
 }
 tmDlg.addEventListener('input', e => { if (e.target.dataset.tm) tmRows(); });
+
+// Drag a saved timer by its grip to change the order (the user asked). The list moves at once; the new order is saved
+// in one call, and if that fails the list is read again so it shows what is really saved.
+const TM_DRAG = {
+  handle: '.tm-list .grip', item: h => h.closest('[data-tm-item]'), lists: el => [el.parentNode], items: '[data-tm-item]',
+  axis: 'y', scroller: tmDlg,
+  async drop(el, list, index) {
+    const from = tmSaved.findIndex(s => s.id === el.dataset.tmItem);
+    if (from < 0 || from === index) return;
+    tmSaved.splice(index, 0, ...tmSaved.splice(from, 1));
+    tmDrawSaved();
+    try { await sb.rpc('reorder_saved_timers', { ids: tmSaved.map(s => s.id) }).then(must); }
+    catch (e) { tmFail(e); tmLoadSaved(); }
+  },
+};
+tmDlg.addEventListener('pointerdown', e => { if (tm && !tm.editing) dragSort(e, TM_DRAG); });
 
 function tmStart() {
   tmRead();

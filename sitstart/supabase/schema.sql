@@ -1348,6 +1348,7 @@ create table public.saved_timers (
   hang int not null check (hang between 1 and 3600),
   gap int check (gap between 1 and 3600),    -- the rest between a set's reps; empty at 1 rep a set
   rest int check (rest between 1 and 3600),  -- the rest between sets; empty at 1 set
+  position int not null default 0,           -- the order the person dragged them into; a new one goes last (the trigger)
   created_at timestamptz not null default now()
 );
 create unique index saved_timers_name on public.saved_timers (user_id, lower(trim(name)));
@@ -1368,10 +1369,20 @@ begin
   if (select count(*) from public.saved_timers where user_id = new.user_id) >= most then
     raise exception 'You can save up to % timers. Delete one to save another.', most;
   end if;
+  new.position := coalesce((select max(position) from public.saved_timers where user_id = new.user_id), 0) + 1;
   return new;
 end $$;
 create trigger saved_timers_limit before insert on public.saved_timers
   for each row execute function public.saved_timers_limit();
+-- Saves a new order in one call: ids in the order wanted. Runs as the caller, so RLS keeps it to their own timers.
+create function public.reorder_saved_timers(ids uuid[]) returns void
+language sql set search_path = '' as $$
+  update public.saved_timers t set position = o.n
+  from unnest(ids) with ordinality as o(id, n)
+  where t.id = o.id;
+$$;
+revoke execute on function public.reorder_saved_timers(uuid[]) from public, anon;
+grant execute on function public.reorder_saved_timers(uuid[]) to authenticated;
 
 -- 8. Make yourself an admin, a coach and the owner. Change this to the email you'll sign in with.
 insert into public.staff (email, roles, owner) values (lower('you@example.com'), '{admin,coach}', true);

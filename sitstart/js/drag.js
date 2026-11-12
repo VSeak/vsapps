@@ -7,7 +7,8 @@
 // scrolls, or after a small move on a handle made for dragging (touch-action: none in styles.css).
 // opts: handle (selector), item(handle) → what moves, lists(el) → where it may go, items (selector for a list's
 // children), end(list) → what the gap goes before at the end (or nothing), zone(list) → the area that counts as over
-// that list, axis 'y' (a column) or 'x' (a row that wraps). True when the press was on a handle.
+// that list, axis 'y' (a column) or 'x' (a row that wraps), scroller (what scrolls near the edges, if not the page,
+// e.g. a full-screen dialog). True when the press was on a handle.
 let dragging = false;
 app.addEventListener('touchmove', e => { if (dragging) e.preventDefault(); }, { passive: false });
 
@@ -54,7 +55,7 @@ function dragSort(e, opts) {
   };
   const tick = () => {
     const edge = 70, dy = y < edge ? y - edge : y > innerHeight - edge ? y - innerHeight + edge : 0;
-    if (dy) { window.scrollBy(0, Math.round(dy / 3)); place(); }
+    if (dy) { (opts.scroller || window).scrollBy(0, Math.round(dy / 3)); place(); }
     frame = requestAnimationFrame(tick);
   };
   const move = ev => {
