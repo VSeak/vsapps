@@ -72,8 +72,8 @@ tmDlg.setAttribute('aria-labelledby', 'tmTitle');
 document.body.append(tmDlg);
 // { name, sets, reps (hangs a set), hang, gap (the rest between a set's hangs), rest (between sets; seconds, as the
 //   fields say), phase ('setup', 'ready', 'hang', 'gap', 'rest', 'done'), set, rep, len (the phase's seconds), endsAt,
-//   left (ms left, while paused), shown (the second on screen), raf, savedId (the saved timer on the first screen),
-//   editing (the saved timer being edited), before (the first screen's numbers to go back to after editing) }
+//   left (ms left, while paused), shown (the second on screen), raf, savedId (the saved timer on the first screen,
+//   kept while its numbers are changed, so Save Changes can update it) }
 let tm = null;
 let tmSaved = null, tmSavedErr = '';   // this person's saved timers, in their own order; null until loaded or if they couldn't be
 const tmRunning = () => !!tm && ['ready', 'hang', 'gap', 'rest'].includes(tm.phase);
@@ -139,30 +139,39 @@ function tmSetup() {
   tm.phase = 'setup'; tm.left = null;
   tmDlg.dataset.phase = 'setup';
   tmDlg.classList.remove('paused');
-  const ed = tm.editing;
-  tmDlg.innerHTML = `${tmTopHTML(!!ed)}<form class="tm-setup" novalidate><div class="tm-head">${tmHeadHTML()}</div>
-    ${ed ? `<label class="tm-name-field">Name<input data-tm-name required maxlength="${TM_NAME_MAX}" value="${esc(ed.name)}" autocomplete="off"></label>` : ''}
+  tmDlg.innerHTML = `${tmTopHTML(false)}<form class="tm-setup" novalidate><div class="tm-head">${tmHeadHTML()}</div>
     ${tmStepHTML('sets', 'Sets', tm.sets || 1, 'sets')}${tmTimeHTML('rest', 'Rest Between Sets', tm.rest)}
     <span class="eyebrow tm-group">Each Set</span>
     ${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap)}
     <p class="tm-sum"></p>
+    <div class="tm-changes" hidden></div>
     <p class="tm-err" role="alert"></p>
-    ${ed ? `<div class="tm-go"><button type="button" data-stop>Cancel</button><button class="fill">Save Changes</button></div>
-      <div class="tm-move"></div>
-      <button type="button" class="ghost danger tm-del" data-tm-del>Delete Timer</button>`
-    : '<div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div><section class="tm-saved"></section>'}</form>`;
+    <div class="tm-go"><button type="button" data-clear>Clear</button><button class="fill">Start</button></div><section class="tm-saved"></section></form>`;
   tmRows();
   tmDrawSaved();
-  tmDrawMove();
 }
 const tmLoaded = () => tmSaved?.find(s => s.id === tm.savedId) ?? null;
 const tmHeading = () => tmLoaded()?.name || tm.name || TM_TITLE;
+// A loaded saved timer whose numbers were changed here and not saved yet.
+const tmChanged = () => !!tmLoaded() && !tmSame(tm, tmLoaded());
+// A loaded saved timer gets Rename and Delete under its name (the user asked: no separate Edit screen).
 function tmHeadHTML() {
-  if (tm.editing) return '<h2 id="tmTitle">Edit Timer</h2>';
-  const from = !tmLoaded() && tm.name;
-  return `${tmLoaded() || tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}<h2 id="tmTitle">${esc(tmHeading())}</h2>
+  const s = tmLoaded(), from = !s && tm.name;
+  return `${s || tm.name ? '<span class="eyebrow">Hang Timer</span>' : ''}<h2 id="tmTitle">${esc(tmHeading())}</h2>
+    ${s ? `<div class="tm-own"><button type="button" class="small ghost" data-tm-rename>Rename</button>
+      <button type="button" class="small ghost danger" data-tm-del>Delete</button></div>` : ''}
     ${from ? '<p class="hint">Filled in from the exercise where it could be. Change anything you need.</p>' : ''}`;
+}
+// Under the summary while a loaded timer is changed: save the change into it, or keep it as a new one.
+function tmDrawChanges() {
+  const box = tmDlg.querySelector('.tm-changes');
+  if (!box) return;
+  const on = tmChanged(), room = tmSaved && tmSaved.length < tmSavesMax();
+  box.hidden = !on;
+  box.innerHTML = on ? `<p class="hint"><span class="tag warn">Unsaved</span> You changed ${esc(tmLoaded().name)}.</p>
+    <div class="tm-change-btns"><button type="button" class="small fill" data-tm-update>Save Changes</button>
+    ${room ? '<button type="button" class="small" data-tm-save>Save as New</button>' : ''}</div>` : '';
 }
 function tmRead() {
   const n = k => { const v = parseInt(tmDlg.querySelector(`[data-tm="${k}"]`).value, 10); return v > 0 ? v : 0; };
@@ -189,19 +198,15 @@ function tmSummary() {
   const w = tmWords(tm);
   return `<b>${w.top}</b>${w.between}${w.total}`;
 }
-// After any change on the first screen: which rests show, and the summary. Changing a loaded timer's numbers makes it
-// no longer that timer (changing the saved one is what Edit is for), so its name comes off the heading.
+// After any change on the first screen: which rests show, the summary, and Save Changes once a loaded timer's numbers
+// differ from what is saved (its name stays: this is how a saved timer is edited).
 function tmRows() {
   tmRead();
   tmDlg.querySelector('[data-row="gap"]').hidden = !(tm.reps > 1);
   tmDlg.querySelector('[data-row="rest"]').hidden = tm.sets === 1;
   tmDlg.querySelector('.tm-sum').innerHTML = tmSummary();
   if (!tmProblem()) tmDlg.querySelector('.tm-err').textContent = '';
-  if (tm.savedId && !tm.editing && !tmSame(tm, tmLoaded())) {
-    tm.savedId = null;
-    tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
-    tmDrawSaved();
-  }
+  tmDrawChanges();
 }
 
 // ---------- Saved timers (saved_timers): the list under Start, a person's own, on every device ----------
@@ -221,22 +226,28 @@ async function tmLoadSaved() {
   tmDrawSaved();
 }
 function tmDrawSaved() {
-  const box = tm && !tm.editing && tm.phase === 'setup' ? tmDlg.querySelector('.tm-saved') : null;
+  const box = tm && tm.phase === 'setup' ? tmDlg.querySelector('.tm-saved') : null;
   if (!box) return;
+  tmDrawChanges();
   const max = tmSavesMax(), n = tmSaved?.length ?? 0, room = tmSaved && n < max;
+  const arrow = (s, dir, ok) => `<button type="button" class="tm-arrow" data-tm-move="${dir}" data-id="${s.id}"${ok ? '' : ' disabled'}
+    aria-label="Move ${esc(s.name)} ${dir < 0 ? 'Up' : 'Down'}">${dir < 0 ? TM_UP : TM_DOWN}</button>`;
+  // + Save This Timer is for numbers that aren't a saved timer yet; a loaded one saves through Save Changes / Save as New.
   box.innerHTML = `<div class="tm-saved-head"><div><h3>Saved Timers</h3>${tmSaved ? `<span class="hint">${n} of ${max}</span>` : ''}</div>
-      ${room ? '<button type="button" class="small" data-tm-save>+ Save This Timer</button>' : ''}</div>
+      ${room && !tmLoaded() ? '<button type="button" class="small" data-tm-save>+ Save This Timer</button>' : ''}</div>
     ${!tmSaved ? `<p class="hint">${tmSavedErr ? esc(tmSavedErr) : 'Loading…'}</p>`
     : !n ? '<p class="hint">None yet. Fill in the numbers above, then save them here to use them again.</p>'
-    : `<ul class="tm-list">${tmSaved.map(s => {
+    : `<ul class="tm-list">${tmSaved.map((s, k) => {
       const w = tmWords(s), on = s.id === tm.savedId;
       return `<li class="tm-item${on ? ' on' : ''}" data-tm-item="${s.id}">${n > 1 ? `<span class="grip" title="Drag to Reorder">${GRIP}</span>` : ''}<button type="button" class="tm-load" data-tm-load="${s.id}" aria-pressed="${on}">
           <b>${esc(s.name)}</b><span>${w.top} · ${w.total}</span></button>
-        <button type="button" class="small" data-tm-edit="${s.id}" aria-label="Edit ${esc(s.name)}">Edit</button></li>`;
+        ${n > 1 ? `<span class="tm-arrows">${arrow(s, -1, k > 0)}${arrow(s, 1, k < n - 1)}</span>` : ''}</li>`;
     }).join('')}</ul>`}
     ${tmSaved && !room ? `<p class="hint">You've saved ${max}, the most you can. Delete one to save another.</p>` : ''}`;
 }
-// Why a name won't do, or ''. skip: the timer being edited, which may keep its own name.
+const tmChevron = d => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`;
+const TM_UP = tmChevron('M6 15l6-6 6 6'), TM_DOWN = tmChevron('M6 9l6 6 6-6');
+// Why a name won't do, or ''. skip: the timer being renamed, which may keep its own name.
 function tmNameProblem(name, skip) {
   const key = String(name ?? '').trim().toLowerCase();
   if (!key) return 'Give it a name.';
@@ -272,76 +283,73 @@ async function tmSaveNew(btn) {
     tmDrawSaved();
   } catch (e) { tmFail(e); btn.disabled = false; }
 }
-// Editing uses the first screen itself, with a Name box and Save Changes, so it looks like what it sets up.
-function tmEdit(id) {
+// Editing a saved timer happens on the first screen (the user asked; there was an Edit screen): load it, change the
+// numbers, then Save Changes. Its name stays on the heading the whole time.
+async function tmUpdate(btn) {
   tmRead();
-  const s = tmSaved.find(x => x.id === id);
-  tm.before = { sets: tm.sets, reps: tm.reps, hang: tm.hang, gap: tm.gap, rest: tm.rest, savedId: tm.savedId };
-  Object.assign(tm, tmNums(s), { editing: s });
-  tmSetup();
-  tmDlg.scrollTo({ top: 0 });
-}
-// Back to the first screen as it was, or (after Save Changes) with the timer just saved loaded.
-function tmEndEdit(row) {
-  Object.assign(tm, tm.before, { editing: null, before: null }, row ? { ...tmNums(row), savedId: row.id } : {});
-  tmSetup();
-}
-async function tmSaveEdit() {
-  tmRead();
-  const input = tmDlg.querySelector('[data-tm-name]'), err = tmProblem('save'), bad = tmNameProblem(input.value, tm.editing.id);
-  if (bad) { fieldError(input, bad); input.focus(); return; }
+  const err = tmProblem('save'), s = tmLoaded();
   if (err) { tmDlg.querySelector('.tm-err').textContent = err; return; }
-  const btn = tmDlg.querySelector('.tm-go .fill');
+  if (!s) return;
   btn.disabled = true;
   try {
-    const row = await sb.from('saved_timers').update({ name: input.value.trim(), ...tmNums(tm) }).eq('id', tm.editing.id).select(TM_COLS).single().then(must);
-    tmSaved[tmSaved.findIndex(s => s.id === row.id)] = row;
-    tmEndEdit(row);
+    const row = await sb.from('saved_timers').update(tmNums(tm)).eq('id', s.id).select(TM_COLS).single().then(must);
+    tmSaved[tmSaved.findIndex(x => x.id === row.id)] = row;
+    tmDrawSaved();
   } catch (e) { tmFail(e); btn.disabled = false; }
 }
-async function tmDelete() {
-  const { id, name } = tm.editing;
-  if (!await ask({ title: 'Delete Timer?', body: `<p>${esc(name)} will be gone from your saved timers.</p>`, ok: 'Delete Timer', warn: true })) return;
+// Rename (under the loaded timer's name) changes only the name, so unsaved number changes stay on screen.
+async function tmRename() {
+  const s = tmLoaded();
+  if (!s) return;
+  const f = await ask({ title: 'Rename Timer', ok: 'Save', fill: true,
+    body: `<label>Name<input name="name" required maxlength="${TM_NAME_MAX}" value="${esc(s.name)}" autocomplete="off"></label>`,
+    check: d => { const bad = tmNameProblem(d.get('name'), s.id); return bad ? ['name', bad] : null; } });
+  if (!f || !tm) return;
   try {
-    await sb.from('saved_timers').delete().eq('id', id).then(must);
-    tmSaved = tmSaved.filter(s => s.id !== id);
-    if (tm.before.savedId === id) tm.before.savedId = null;
-    tmEndEdit();
+    const { name } = await sb.from('saved_timers').update({ name: f.get('name').trim() }).eq('id', s.id).select('name').single().then(must);
+    s.name = name;
+    tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
+    tmDrawSaved();
+  } catch (e) { tmFail(e); }
+}
+// Delete keeps the numbers on screen, just no longer a saved timer.
+async function tmDelete() {
+  const s = tmLoaded();
+  if (!s || !await ask({ title: 'Delete Timer?', body: `<p>${esc(s.name)} will be gone from your saved timers.</p>`, ok: 'Delete Timer', warn: true })) return;
+  try {
+    await sb.from('saved_timers').delete().eq('id', s.id).then(must);
+    tmSaved = tmSaved.filter(x => x.id !== s.id);
+    if (tm.savedId === s.id) tm.savedId = null;
+    tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
+    tmDrawSaved();
   } catch (e) { tmFail(e); }
 }
 tmDlg.addEventListener('input', e => { if (e.target.dataset.tm) tmRows(); });
 
-// Saved timers change order by dragging a grip or by Move Up / Move Down on the Edit screen (the user asked for both;
-// the buttons are for keyboards, screen readers, and anyone who can't drag). The list moves at once; the new order is
-// saved in one call, and if that fails the list is read again so it shows what is really saved.
+// Saved timers change order by dragging a grip or with the up and down arrows on each row (the user asked for both;
+// the arrows also serve keyboards, screen readers, and anyone who can't drag). The list moves at once; the new order
+// is saved in one call, and if that fails the list is read again so it shows what is really saved.
 async function tmReorder(from, to) {
   if (from < 0 || to < 0 || to >= tmSaved.length || from === to) return;
   tmSaved.splice(to, 0, ...tmSaved.splice(from, 1));
-  tmDrawSaved(); tmDrawMove();
+  tmDrawSaved();
   try { await sb.rpc('reorder_saved_timers', { ids: tmSaved.map(s => s.id) }).then(must); }
-  catch (e) { tmFail(e); await tmLoadSaved(); tmDrawMove(); }
+  catch (e) { tmFail(e); await tmLoadSaved(); }
 }
 const TM_DRAG = {
   handle: '.tm-list .grip', item: h => h.closest('[data-tm-item]'), lists: el => [el.parentNode], items: '[data-tm-item]',
   axis: 'y', scroller: tmDlg,
   drop: (el, list, index) => tmReorder(tmSaved.findIndex(s => s.id === el.dataset.tmItem), index),
 };
-// On the Edit screen: where the timer sits, with a button only where it can go. Moving acts at once, like Delete
-// Timer; Cancel only undoes the numbers and name.
-function tmDrawMove() {
-  const box = tm?.editing && tmDlg.querySelector('.tm-move');
-  if (!box) return;
-  const n = tmSaved?.length ?? 0, k = tmSaved?.findIndex(s => s.id === tm.editing.id) ?? -1;
-  if (n < 2 || k < 0) { box.hidden = true; return; }
-  const focused = document.activeElement?.dataset?.tmMove;
-  box.hidden = false;
-  box.innerHTML = `<span class="hint" role="status">${k + 1} of ${n} in your saved timers</span>
-    <span class="tm-move-btns">${k > 0 ? '<button type="button" class="small" data-tm-move="-1">Move Up</button>' : ''}
-    ${k < n - 1 ? '<button type="button" class="small" data-tm-move="1">Move Down</button>' : ''}</span>`;
-  // Keep the focus on a Move button (the other one when this one is gone at the top or bottom).
-  if (focused) (box.querySelector(`[data-tm-move="${focused}"]`) || box.querySelector('[data-tm-move]'))?.focus();
+// An arrow moves its timer one place. The list redraws, so the focus goes to the same arrow on the moved timer, or
+// its other arrow once it reaches the top or bottom (a disabled button can't hold focus).
+function tmArrow(id, dir) {
+  const k = tmSaved.findIndex(s => s.id === id);
+  tmReorder(k, k + dir);
+  const q = d => tmDlg.querySelector(`[data-tm-move="${d}"][data-id="${id}"]:not(:disabled)`);
+  (q(dir) || q(-dir))?.focus();
 }
-tmDlg.addEventListener('pointerdown', e => { if (tm && !tm.editing) dragSort(e, TM_DRAG); });
+tmDlg.addEventListener('pointerdown', e => { if (tm) dragSort(e, TM_DRAG); });
 
 function tmStart() {
   tmRead();
@@ -415,7 +423,7 @@ function tmTick() {
   tm.raf = requestAnimationFrame(tmTick);
 }
 
-tmDlg.addEventListener('submit', e => { e.preventDefault(); tm.editing ? tmSaveEdit() : tmStart(); });
+tmDlg.addEventListener('submit', e => { e.preventDefault(); tmStart(); });
 tmDlg.addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b || !tm) return;
@@ -433,6 +441,8 @@ tmDlg.addEventListener('click', e => {
     return tmRows();
   }
   if ('clear' in d) {
+    // Clearing starts over, so a loaded timer is let go (nothing to save into it).
+    if (tm.savedId) { tm.savedId = null; tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML(); tmDrawSaved(); }
     tmDlg.querySelectorAll('[data-tm]').forEach(i => { i.value = ''; });
     tmDlg.querySelector('.tm-err').textContent = '';
     tmRows();
@@ -445,14 +455,12 @@ tmDlg.addEventListener('click', e => {
     b.textContent = tm.left != null ? 'Resume' : 'Pause';
     return;
   }
-  if ('stop' in d) return tm.editing ? tmEndEdit() : tmSetup();
-  if (d.tmMove && tm.editing) {
-    const k = tmSaved.findIndex(s => s.id === tm.editing.id);
-    return tmReorder(k, k + +d.tmMove);
-  }
+  if ('stop' in d) return tmSetup();
+  if (d.tmMove) return tmArrow(d.id, +d.tmMove);
   if ('tmSave' in d) return tmSaveNew(b);
+  if ('tmUpdate' in d) return tmUpdate(b);
+  if ('tmRename' in d) return tmRename();
   if (d.tmLoad) return tmPick(d.tmLoad);
-  if (d.tmEdit) return tmEdit(d.tmEdit);
   if ('tmDel' in d) return tmDelete();
   // Go Again: the same numbers, straight into the countdown.
   if ('again' in d) { tmSetup(); tmStart(); }
@@ -460,8 +468,7 @@ tmDlg.addEventListener('click', e => {
 // Esc matches the top button: back to the first screen while counting, closed from there.
 tmDlg.addEventListener('cancel', e => {
   if (!tm) return;
-  if (tm.editing) { e.preventDefault(); tmEndEdit(); }
-  else if (tm.phase !== 'setup') { e.preventDefault(); tmSetup(); }
+  if (tm.phase !== 'setup') { e.preventDefault(); tmSetup(); }
 });
 // Closing it (Close, or Esc) stops everything.
 tmDlg.addEventListener('close', () => {

@@ -1097,11 +1097,13 @@ dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background:
 .tm-go { display: flex; gap: 10px; margin-top: 18px; }
 .tm-go button { flex: 1; min-height: 52px; }
 .tm-go .fill { flex: 2; font-size: 1.05rem; }
-.tm-name-field { margin-bottom: 10px; }
-.tm-move { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
-.tm-move[hidden] { display: none; }
-.tm-move-btns { display: flex; gap: 8px; }
-.tm-del { width: 100%; min-height: 44px; margin-top: 10px; }
+.tm-own { display: flex; gap: 6px; margin: 2px 0 .6rem -10px; }
+.tm-own button { min-height: 36px; padding: 0 10px; }
+.tm-changes { margin-top: 14px; padding: 12px; border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); border-radius: 14px; }
+.tm-changes[hidden] { display: none; }
+.tm-changes .hint { margin: 0 0 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tm-change-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.tm-change-btns button { min-height: 44px; }
 .tm-saved { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
 .tm-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .tm-saved-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; }
@@ -1114,6 +1116,10 @@ dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background:
 .tm-item button { flex: none; }
 .tm-item .tm-load { flex: 1; min-width: 0; min-height: 52px; padding: 8px 4px 8px 12px; text-align: left; background: none; border: 0; border-radius: 14px; }
 .tm-item .grip { flex: none; margin-left: 4px; }
+.tm-arrows { flex: none; display: flex; gap: 2px; }
+.tm-arrow { width: 40px; height: 44px; min-height: 0; padding: 0; display: grid; place-items: center; background: none; border: 0; border-radius: 10px; color: var(--muted); }
+.tm-arrow:hover:not(:disabled) { background: var(--chip); color: var(--ink); }
+.tm-arrow:disabled { opacity: .3; }
 .tm-item:has(.grip) .tm-load { padding-left: 2px; }
 .tm-load b { display: block; overflow-wrap: anywhere; }
 .tm-load span { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); }
