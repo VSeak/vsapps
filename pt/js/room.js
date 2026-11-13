@@ -40,7 +40,8 @@ function placeRoom() {
   const feedEl = $('.feed'), fire = $('#fire');
   roomWatch?.disconnect();
   if (!feedEl || !fire) return;
-  const place = () => feedEl.style.setProperty('--floor-y', `${fire.getBoundingClientRect().bottom - feedEl.getBoundingClientRect().top}px`);
+  // 7px up: the baseboard runs behind the fireplace's foot, so it stands on the floor instead of floating above the trim.
+  const place = () => feedEl.style.setProperty('--floor-y', `${fire.getBoundingClientRect().bottom - feedEl.getBoundingClientRect().top - 7}px`);
   roomWatch = new ResizeObserver(place);
   roomWatch.observe(feedEl);
   roomWatch.observe($('.status'));

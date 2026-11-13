@@ -146,7 +146,7 @@ function sparkle(delay = 0) {
   const s = document.createElement('span');
   s.className = 'sparkle' + (Math.random() < .5 ? ' gold' : '');
   s.style.cssText = `left:${Math.min(L.width - 12, Math.max(12, x))}px; top:${Math.min(L.height - 12, Math.max(12, y))}px;
-    --s:${10 + Math.random() * 10}px; animation-delay:${delay}ms`;
+    --sz:${10 + Math.random() * 10}px; animation-delay:${delay}ms`;
   s.onanimationend = () => s.remove();
   setTimeout(() => s.remove(), 3000 + delay);   // in case the browser stops drawing before it ends
   layer.append(s);
