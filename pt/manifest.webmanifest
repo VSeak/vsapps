@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "PT Pal",
+  "short_name": "PT Pal",
+  "description": "Feed your pal a berry after every PT set",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1A1219",
+  "theme_color": "#1A1219",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

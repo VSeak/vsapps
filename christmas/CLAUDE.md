@@ -11,7 +11,7 @@ The owner's Christmas draw: each year, every kid is given to one adult to shop f
   - `people.js`: `#/people`, Adults and Kids. A tick = in this year's draw (`active`); adding takes several names with commas; Edit renames, changes Adult/Kid, or deletes (only someone never in a saved year; Adult/Kid is locked once they are).
 - **Same Supabase project as the other apps** (same URL and key). Tables are all `xmas_*`; `supabase/schema.sql` creates them. Every table's rule is `xmas_is_owner()`: the signed-in email is in `xmas_owner` (one row, set in the SQL Editor; the same email as `fire_owner`). Any other login sees "No Access". No sign-up or invite.
 - **Names live only in Supabase**, never in the code: the vsapps repo is public (the user chose this). Don't hardcode names, even as examples or seed data.
-- `login_in_other_app()` is replaced here to answer for `team_staff`, `fire_owner` and `xmas_owner`. If Top Out's or FIRE's schema is ever re-run, re-run that function from this schema after it.
+- `login_in_other_app()` is replaced here to answer for `team_staff`, `fire_owner` and `xmas_owner`. PT Pal's schema (`pt/supabase/schema.sql`) replaces it again, adding `pt_owner`, and is now the one to run last.
 - Errors go to the shared `app_errors` with `app = 'christmas'` (the schema widens its check).
 - The root home page hides its card unless `localStorage` `vsapps.xmasOwner` is set (`loadMe` sets or clears it, Sign Out clears it). On a new device, tapping Welcome 5 times shows it along with FIRE's. Looks only; the tables are what keep it private.
 

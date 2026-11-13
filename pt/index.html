@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PT Pal</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFF6EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A1219" media="(prefers-color-scheme: dark)">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/" aria-label="PT Pal"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 14V8" stroke="#3E7A48" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M24 11c2.5-5.5 8-7.5 13-6.5-1.2 5-6.5 8.5-13 6.5z" fill="#4E9A5B"/><circle cx="24" cy="29" r="15" fill="#D93A55"/><path d="M9.4 32.5a15 15 0 0 0 29.2 0 17 12 0 0 1-29.2 0z" fill="#A9243D"/><ellipse cx="18" cy="23" rx="4.2" ry="2.6" transform="rotate(-35 18 23)" fill="#fff" opacity=".6"/></svg><b class="brand-name">PT Pal</b></a>
+  <nav class="nav" hidden><a href="#/">Feed</a><a href="#/history">History</a><a href="#/settings">Settings</a></nav>
+  <button id="signOut" class="ghost small" hidden>Sign Out</button>
+</header>
+<div id="installBar" hidden><img src="apple-touch-icon.png" alt=""><p></p>
+  <div class="install-btns"><button type="button" class="ghost small" data-install="later">Not Now</button><button type="button" class="primary small" data-install="go" hidden>Install</button></div></div>
+<main id="app"></main>
+<div id="undo" role="status" hidden><span></span><button type="button" class="link">Undo</button></div>
+<div id="flash" role="status" hidden></div>
+<dialog id="dlg"></dialog>
+
+<!-- Plain scripts, not modules: they share one global scope, in this order. boot() runs after the last one. -->
+<script src="js/core.js"></script>
+<script src="js/app.js"></script>
+<script src="js/pal.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/history.js"></script>
+<script src="js/settings.js"></script>
+<script>boot();</script>
+</body>
+</html>

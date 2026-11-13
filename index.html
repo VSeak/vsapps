@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&family=Outfit:wght@700&family=IBM+Plex+Sans:wght@400&family=DM+Serif+Display&family=Karla:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500&family=DM+Sans:opsz,wght@9..40,400;9..40,700&family=Sora:wght@600&family=Space+Grotesk:wght@700&family=Figtree:wght@400;700&family=Outfit:wght@700&family=IBM+Plex+Sans:wght@400&family=DM+Serif+Display&family=Karla:wght@400&family=Fredoka:wght@600&family=Nunito:wght@400&display=swap" rel="stylesheet">
 <style>
 /* Home: midnight blue and crimson. Each card wears its own app's colors. */
 :root {
@@ -19,6 +19,8 @@
   --to-card: #F7F5F0; --to-ink: #1B2340; --to-muted: #5E6680; --to-line: #E2DED3; --to-accent: #E8622C; --to-accent-text: #B8431A;
   /* FIRE: ink and ember */
   --fi-card: #171A21; --fi-ink: #F6F3EE; --fi-muted: #A6AAB4; --fi-line: #2A2E36; --fi-accent: #FF6B35; --fi-gold: #FFC857;
+  /* PT Pal: plum and berry */
+  --pt-card: #3A2230; --pt-ink: #FFF6EE; --pt-muted: #D9C3CC; --pt-line: #4E3242; --pt-accent: #FF6B83; --pt-gold: #F4BF45;
   /* Kiddo Draw: pine and cranberry */
   --xm-card: #1E3B2F; --xm-ink: #F7F3EC; --xm-muted: #AFC2B7; --xm-line: #2C4E3F; --xm-accent: #E5566B; --xm-gold: #F2C14E;
   color-scheme: light;
@@ -84,6 +86,19 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
 .xmas .brand .ribbon { fill: var(--xm-gold); }
 .xmas .brand h2 { font: 400 1.4rem/1 "DM Serif Display", serif; }
 .xmas .sub { color: var(--xm-gold); }
+/* A row's second (and third) line, under the name and lined up with it (past the grip). */
+.set-line { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding-left: calc(10px + 1rem); }
+.set-line > input { flex: 1 1 10rem; }
+.circuit-row > input[name="name"] { flex: 1 1 4rem; min-width: 4rem; }
+.circuit-row .vrange input { width: 3.2rem; }
+.set-btns { display: inline-flex; gap: .4rem; margin-left: auto; }
+.add-row input.short-in { flex: none; width: 7rem; min-width: 0; }
+/* PT Pal: a plum card in both themes, a berry-to-gold line on top */
+.pt { --card: var(--pt-card); --ink: var(--pt-ink); --muted: var(--pt-muted); --line: var(--pt-line); --accent: var(--pt-accent);
+  font-family: Nunito, Inter, sans-serif; position: relative; overflow: hidden; }
+.pt::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: linear-gradient(90deg, var(--pt-accent), var(--pt-gold)); }
+.pt .brand h2 { font: 600 1.35rem/1 Fredoka, sans-serif; }
+.pt .sub { color: var(--pt-gold); }
 </style>
 </head>
 <body>
@@ -118,11 +133,18 @@ h1::after { content: ""; display: block; width: 100%; height: 4px; border-radius
         <div><h2>Kiddo Draw</h2><span class="sub">Christmas</span></div>
       </div>
     </a>
+    <!-- PT Pal is private too: hidden unless its app has seen the owner sign in on this device (pt/js/app.js sets the flag). -->
+    <a class="app pt" href="pt/" hidden>
+      <div class="brand">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 14V8" stroke="#3E7A48" stroke-width="2.5" stroke-linecap="round" fill="none"/><path d="M24 11c2.5-5.5 8-7.5 13-6.5-1.2 5-6.5 8.5-13 6.5z" fill="#4E9A5B"/><circle cx="24" cy="29" r="15" fill="#D93A55"/><path d="M9.4 32.5a15 15 0 0 0 29.2 0 17 12 0 0 1-29.2 0z" fill="#A9243D"/><ellipse cx="18" cy="23" rx="4.2" ry="2.6" transform="rotate(-35 18 23)" fill="#fff" opacity=".6"/></svg>
+        <div><h2>PT Pal</h2><span class="sub">Feed After PT</span></div>
+      </div>
+    </a>
   </div>
 </main>
 <script>
   // Private cards, each with the flag its app sets on a device where the owner has signed in.
-  const privateCards = [['.app.fire', 'vsapps.fireOwner'], ['.app.xmas', 'vsapps.xmasOwner']].map(([sel, flag]) => {
+  const privateCards = [['.app.fire', 'vsapps.fireOwner'], ['.app.xmas', 'vsapps.xmasOwner'], ['.app.pt', 'vsapps.ptOwner']].map(([sel, flag]) => {
     const card = document.querySelector(sel);
     try { if (localStorage.getItem(flag)) card.hidden = false; } catch {}
     return card;
