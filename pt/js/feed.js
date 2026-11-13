@@ -65,10 +65,12 @@ function renderStatus() {
   setFire(flame.level, fx.egg);
   const monthStart = today().slice(0, 8) + '01';
   const climbMonth = feeds.filter(f => f.kind === 'climb' && dayOf(f.fed_at) >= monthStart).length;
-  const dots = Array.from({ length: Math.max(goal, Math.min(t.daily, 10)) }, (_, i) =>
-    `<span class="dot ${i < t.daily ? 'on' : ''} ${i >= goal ? 'extra' : ''}"></span>`).join('');
-  $('#todayRow').innerHTML = `<span class="label">Sweetberries today</span><span class="dots" role="img" aria-label="${t.daily} of ${goal}">${dots}</span>
-    <span class="count">${t.daily}/${goal}</span>`;
+  // Today's goal counts both berries (the user asked): red dots for Sweetberries, then a gold one for the Cragberry.
+  const n = berriesOn(t);
+  const dots = Array.from({ length: Math.max(goal, Math.min(n, 10)) }, (_, i) =>
+    `<span class="dot ${i < t.daily ? 'on' : i < n ? 'on crag' : ''} ${i >= goal ? 'extra' : ''}"></span>`).join('');
+  $('#todayRow').innerHTML = `<span class="label">Berries today</span><span class="dots" role="img" aria-label="${n} of ${goal}">${dots}</span>
+    <span class="count">${n}/${goal}</span>`;
   // One Cragberry a day (the user asked): it greys out once used, until Undo takes it back or the day turns.
   const crag = $('.berry-btn.climb');
   crag.disabled = t.climb > 0;
@@ -76,8 +78,8 @@ function renderStatus() {
   $('#climbRow').innerHTML = `${berrySvg('climb', 'tiny')} Cragberries this month: <b>${climbMonth}</b>${t.climb ? ` <span class="muted">(${t.climb} today)</span>` : ''}`;
   const name = esc(settings.name);
   $('#mood').innerHTML = fx.passed ? `${name} is stuffed!`
-    : t.daily === goal ? `${name} is full and happy.`
-    : t.daily ? `${name} would love ${plural(goal - t.daily, 'more berry', 'more berries')}.`
+    : n === goal ? `${name} is full and happy.`
+    : n ? `${name} would love ${plural(goal - n, 'more berry', 'more berries')}.`
     : `${name} would love a berry.`;
 }
 

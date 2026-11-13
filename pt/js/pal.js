@@ -69,13 +69,13 @@ function bestStreak(days) {
 }
 
 // The flame (the user asked): 0 = grey ember, 1 = yellow core lit, 2 = all lit, then bigger each step up to 7 = full size.
-// Each finished day since the first berry: goal met OR a Cragberry → up one step (at most one a day: the user asked for a
-// Cragberry to grow it when the goal hasn't already); some Sweetberries short of the goal → holds; none → down a step, never below 0.
-// Today counts only once it grows (goal met or a Cragberry): an unfinished day can't drop it.
+// Each finished day since the first berry: goal met (Sweetberries and the Cragberry both count, berriesOn) → up one step;
+// some berries short of the goal → holds; none → down a step, never below 0. A day grows it at most once.
+// Today counts only once its goal is met: an unfinished day can't drop it.
 // full = days in a row it ended at full size; a week of that (7) sets off the sparks.
 const FLAME_TOP = 7;
 function flameOf(days, goal) {
-  const grows = e => !!e && (e.daily >= goal || e.climb > 0);
+  const grows = e => berriesOn(e) >= goal;
   let level = 0, full = 0;
   const first = [...days.keys()].sort()[0];
   if (!first) return { level, full };
@@ -122,6 +122,7 @@ const foxSvg = `<svg class="pal-pic" viewBox="40 60 190 210" aria-hidden="true">
 
 const palPic = url => url ? `<img class="pal-pic" src="${url}" alt="">` : foxSvg;
 
-// Stuffed (the goal-passed sparkles, "is stuffed!", and History's sparkle): past the goal on Sweetberries, or at the goal
-// plus that day's Cragberry (the user asked: always having to go past the goal on Sweetberries was too strict).
-const isStuffed = (e, goal) => !!e && (e.daily > goal || (e.daily >= goal && e.climb > 0));
+// The daily goal counts every berry: Sweetberries and the day's Cragberry (the user asked). Stuffed (the goal-passed
+// sparkles, "is stuffed!", and History's sparkle) is going past it, so the goal plus a Cragberry is stuffed too.
+const berriesOn = e => (e?.daily || 0) + (e?.climb || 0);
+const isStuffed = (e, goal) => berriesOn(e) > goal;
