@@ -14,15 +14,15 @@ async function feedPage() {
   const [rows, url] = await Promise.all([loadFeeds(), photoUrl()]);
   if (tok !== navToken) return;
   feeds = rows;
-  view(`<section class="feed">
+  view(`<section class="feed">${roomSvg}
     <div class="sparkles" id="sparkles" aria-hidden="true"></div>
     <div class="status">
-      <div class="streak" id="flameChip" role="img">${flameSvg}<span class="embers" id="embers"></span></div>
       <div class="today" id="todayRow"></div>
       <div class="climbs" id="climbRow"></div>
     </div>
     <div class="stage">
-      <div class="pal" id="pal">${palPic(url)}
+      ${fireplaceSvg}
+      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span>${palPic(url)}
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
@@ -33,7 +33,9 @@ async function feedPage() {
       <span class="sr-only" id="undoMsg" role="status"></span>
     </div>
   </section>`);
+  shownLevel = null;   // the first draw sets the fire without a whoosh
   renderStatus();
+  placeRoom();
   startFx();
   app.onclick = e => {
     const b = e.target.closest('.berry-btn');
@@ -42,16 +44,14 @@ async function feedPage() {
 }
 
 // What the effects need, worked out in renderStatus: passed = today's goal is passed (sparkles for the rest of the day),
-// egg = a week at full flame (sparks off the flame).
+// egg = a week at full fire (sparks out of the fireplace).
 let fx = { day: null, passed: false, egg: false };
 
 function renderStatus() {
   const days = byDay(feeds), t = days.get(today()) || { daily: 0, climb: 0 };
   const goal = settings.daily_goal, flame = flameOf(days, goal);
   fx = { day: today(), passed: t.daily > goal, egg: flame.full >= 7 };
-  const chip = $('#flameChip');
-  chip.className = `streak lvl-${flame.level} ${fx.egg ? 'egg' : ''}`;
-  chip.setAttribute('aria-label', `Flame: ${flame.level} of ${FLAME_TOP}`);
+  setFire(flame.level, fx.egg);
   const monthStart = today().slice(0, 8) + '01';
   const climbMonth = feeds.filter(f => f.kind === 'climb' && dayOf(f.fed_at) >= monthStart).length;
   const dots = Array.from({ length: Math.max(goal, Math.min(t.daily, 10)) }, (_, i) =>
@@ -162,7 +162,7 @@ function ember() {
   if (!box) return;
   const e = document.createElement('span');
   e.className = 'ember';
-  e.style.cssText = `--dx:${(Math.random() * 16 - 8).toFixed(1)}px; --x:${(Math.random() * 8 - 4).toFixed(1)}px;
+  e.style.cssText = `--dx:${(Math.random() * 28 - 14).toFixed(1)}px; --x:${(Math.random() * 20 - 10).toFixed(1)}px;
     --t:${(1 + Math.random() * .6).toFixed(2)}s; --c:${Math.random() < .5 ? 'var(--gold)' : '#FF8A2B'}`;
   e.onanimationend = () => e.remove();
   setTimeout(() => e.remove(), 2500);
@@ -189,7 +189,7 @@ function showUndo(kind, row, saving) {
       await saving;
       await sb.from('pt_feeds').delete().eq('id', row.id).then(must);
       feeds = feeds.filter(f => f !== row);
-      if (!$('#flameChip')) return;
+      if (!$('#fire')) return;
       renderStatus();
       $('#undoMsg').textContent = 'Berry taken back.';   // not flash(): it would sit over the berries
     });
