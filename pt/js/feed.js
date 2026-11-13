@@ -14,7 +14,7 @@ async function feedPage() {
   const [rows, url] = await Promise.all([loadFeeds(), photoUrl()]);
   if (tok !== navToken) return;
   feeds = rows;
-  view(`<section class="feed">${roomSvg}
+  view(`<section class="feed">${roomSvg}<div class="wall-name" id="wallName"></div>
     <div class="sparkles" id="sparkles" aria-hidden="true"></div>
     <div class="dust" id="dust" aria-hidden="true"></div>
     <!-- Rim light (the user asked for the pal's edge lit, not the whole pal): a thin band just inside the outline,
@@ -47,7 +47,7 @@ async function feedPage() {
   shownOrn = null;     // and hangs the ornaments without the pop
   shownFruit = null;   // and sets the Thanksgiving table the same way
   shownHb = null;      // and the Chinese New Year envelopes
-  $('#mantelName').innerHTML = mantelNameSvg(settings.name);
+  $('#wallName').innerHTML = wallNameSvg(settings.name);
   renderStatus();
   placeRoom();
   setSky();

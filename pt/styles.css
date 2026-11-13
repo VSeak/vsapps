@@ -126,7 +126,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   padding: 1rem 16px; flex: 1; width: 100%; background: var(--floor); }
 @media (min-width: 800px) { .feed { margin: 1.2rem auto; border-radius: 28px; } }
 @media (max-width: 799px) { html:has(.feed), html:has(.feed) body { background: var(--floor); } }
-.feed > :not(.sparkles, .room, .dust, .fx-defs) { position: relative; z-index: 1; }
+.feed > :not(.sparkles, .room, .dust, .fx-defs, .wall-name) { position: relative; z-index: 1; }
 /* Dust floats in front of everything (not behind the fireplace: the user saw specks rise out from behind it) */
 .dust { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
 .fx-defs { position: absolute; }
@@ -176,10 +176,12 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   transition: --s .8s cubic-bezier(.3, 1.6, .5, 1), --sl .8s cubic-bezier(.3, 1.6, .5, 1), --sr .8s cubic-bezier(.3, 1.6, .5, 1), --g 1.2s ease; }
 .fire.down { transition: --s .6s ease-in, --sl .6s ease-in, --sr .6s ease-in, --g 1s ease; }
 .fire svg { display: block; width: 100%; position: relative; overflow: visible; }   /* the hearth reaches onto the floor below the drawing */
-/* The pal's name standing on the mantel (mantelNameSvg); its shadow up the wall and the warm bottoms grow with the fire */
-.mantel-name text { font-family: Fredoka, system-ui, sans-serif; font-weight: 600; letter-spacing: .06em; }
-.mantel-name .ml-wall { fill: #000; opacity: calc(.06 + .12 * var(--rim, 0)); }
-.mantel-name .ml-warm { opacity: calc(.08 + .4 * var(--rim, 0)); }
+/* The pal's name hung on the wall above the mantel (wallNameSvg; placeWallName sets its box); its shadow up the wall and the warm bottoms grow with the fire */
+.wall-name { position: absolute; z-index: 1; pointer-events: none; }
+.wall-name svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.wall-name text { font-family: Fredoka, system-ui, sans-serif; font-weight: 600; letter-spacing: .06em; }
+.wall-name .ml-wall { fill: #000; opacity: calc(.06 + .12 * var(--rim, 0)); }
+.wall-name .ml-warm { opacity: calc(.08 + .4 * var(--rim, 0)); }
 .fire .fo { fill: #E8442C; transform-box: fill-box; transform-origin: 50% 100%; transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity 0s; }
 .fire .fi { fill: #F5B428; fill: url(#flIn); }
 .fire .fo { fill: url(#flOut); }

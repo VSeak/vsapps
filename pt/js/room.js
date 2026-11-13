@@ -37,7 +37,8 @@ const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="flo
          seat-cushion seams, a shadow along the bottom, and a second leg. Black/white at low opacity, so it works in both themes. -->
     <defs><pattern id="couchWeave" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
       <path d="M0 .5h3" stroke="#000" stroke-opacity=".07" stroke-width=".8"/></pattern></defs>
-    <rect x="-200" y="95.5" width="332" height="6" rx="3" fill="#000" opacity=".16"/><rect x="-200" y="97" width="330" height="3" rx="1.5" fill="#000" opacity=".12"/>
+    <!-- The shadow on the floor stops under the arm's rounded end (it ran 4 units past it, the user saw it) -->
+    <rect x="-200" y="95.5" width="325" height="6" rx="3" fill="#000" opacity=".16"/><rect x="-200" y="97" width="322" height="3" rx="1.5" fill="#000" opacity=".12"/>
     <rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/><rect x="38" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
     <path d="M106 92v8M40 92v8" stroke="#000" stroke-opacity=".2" stroke-width="1.2"/>
     <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/><rect x="-200" width="306" height="74" rx="18" fill="url(#couchWeave)"/>
@@ -71,7 +72,8 @@ const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="flo
     <!-- The arm's lit top follows its rounded corners (a straight bar stuck out past them, the user saw it) -->
     <path d="M103.2 39.4A10 10 0 0 1 112 34h4a10 10 0 0 1 8.8 5.4" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3.6" stroke-linecap="round"/>
     <rect x="103.5" y="38" width="21" height="52" rx="9" fill="none" stroke="#000" stroke-opacity=".12" stroke-width=".9"/>
-    <path d="M104 87.5h20" stroke="#000" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/></svg>
+    <!-- The shade along the arm's bottom follows its rounded corners too, the top's arc mirrored (it was a straight bar, the user saw it) -->
+    <path d="M103.2 86.6A10 10 0 0 0 112 92h4a10 10 0 0 0 8.8-5.4" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="3.6" stroke-linecap="round"/></svg>
   <svg class="side-table" viewBox="0 0 50 74">
     <!-- Texture (the user found it flat): a turned leg with a ring and shading, grain rings and a lit rim on the top, a
          shadow on the floor; the mug gets a glaze highlight, shading, a berry-red band, and a lip -->
@@ -204,24 +206,38 @@ const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="v
     <rect x="9" y="13" width="132" height="2.6" rx="1.3" fill="#000" opacity=".18"/>
     <path d="M12 9.2c16-1.2 30 .8 48-.2s34-1 50 .4 22-.4 28-.6M18 11.8c22 .8 40-.8 62 .2s32-.6 52 .2M30 7.4c14-.5 22 .3 36-.2" fill="none" stroke="#000" stroke-opacity=".14" stroke-width=".55"/>
     <ellipse cx="104" cy="9.8" rx="2.4" ry="1" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".55"/>`;
-// The pal's name in standing letters on the mantel, all caps (the user asked: "like a form of home decor"): painted
-// wood letters. A darker copy up and right is their thickness, the fire throws a faint shadow of them up the wall, a
-// shade lights them from above, faint grain runs across, and the fire warms their bottoms (--rim). Names are up to 10
-// characters (Settings). Each name grows to fill the shelf's width, up to 28 units tall for short ones (the user found
-// "CYNDA" small at a size set for 10 letters); a longer one from before the cap shrinks to fit. The thickness and the
-// wall shadow grow with the letters. Fireplace units: the mantel's top is y 4.
-function mantelNameSvg(name) {
-  const n = [...name].length, fs = Math.min(28, 126 / (n * .76)), half = n * fs * .38, d = (fs * .05).toFixed(2);
-  const txt = (attrs) => `<text x="75" y="4.1" text-anchor="middle" font-size="${fs.toFixed(2)}" ${attrs}>${esc(name.toUpperCase())}</text>`;
-  return `<defs><linearGradient id="ltShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+// The pal's name in all caps, wooden letters hung on the wall above the mantel (the user asked: "like a form of home
+// decor"; they first stood on the mantel, but the shelf kept long names small on a phone). Painted wood: a darker copy
+// up and right is their thickness, the fire throws a faint shadow of them up the wall, a shade lights them from above,
+// faint grain runs across, and the fire warms their bottoms (--rim). Drawn at size 20 around (0, 0); placeRoom fits the
+// viewBox to the letters and sizes #wallName to the bare wall, so any name fills it (names are up to 10 characters).
+function wallNameSvg(name) {
+  const txt = (attrs) => `<text x="0" y="0" text-anchor="middle" font-size="20" ${attrs}>${esc(name.toUpperCase())}</text>`;
+  return `<svg preserveAspectRatio="xMidYMax meet" aria-hidden="true"><defs><linearGradient id="ltShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/>
       <stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
     <linearGradient id="ltWarm" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgb(255,150,60)"/><stop offset=".6" stop-color="rgb(255,150,60)" stop-opacity="0"/></linearGradient>
     <pattern id="ltGrain" width="9" height="2.4" patternUnits="userSpaceOnUse"><path d="M0 .8c3-.3 5 .3 9 0M0 1.9c2 .2 6-.2 9 .1" fill="none" stroke="#000" stroke-opacity=".13" stroke-width=".3"/></pattern></defs>
-    ${txt(`class="ml-wall" transform="translate(0 -${(d * 2.6).toFixed(2)})"`)}
-    <ellipse cx="75" cy="4.3" rx="${half.toFixed(1)}" ry=".9" fill="#000" opacity=".25"/>
-    ${txt(`fill="var(--letters-2)" transform="translate(${d} -${d})"`)}
-    ${txt('fill="var(--letters)" stroke="#000" stroke-opacity=".28" stroke-width=".35" paint-order="stroke"')}
-    ${txt('fill="url(#ltShade)"')}${txt('fill="url(#ltGrain)"')}${txt('class="ml-warm" fill="url(#ltWarm)"')}`;
+    ${txt('class="ml-wall" transform="translate(0 -2.6)"')}
+    ${txt('fill="var(--letters-2)" transform="translate(1 -1)"')}
+    ${txt('fill="var(--letters)" stroke="#000" stroke-opacity=".28" stroke-width=".4" paint-order="stroke"')}
+    ${txt('fill="url(#ltShade)"')}${txt('fill="url(#ltGrain)"')}${txt('class="ml-warm" fill="url(#ltWarm)"')}</svg>`;
+}
+// Fits the wall name to the bare wall between the Berries Today row and the mantel, and between the window and the
+// picture (whichever is closer to the middle, so the letters stay centered on the fire), at most 300 × 56px.
+function placeWallName(F, top) {
+  const box = $('#wallName'), svg = box?.querySelector('svg');
+  if (!svg) return;
+  const b = svg.getBBox();
+  if (!b.width) return;
+  svg.setAttribute('viewBox', `${(b.x - 1).toFixed(1)} ${(b.y - 3).toFixed(1)} ${(b.width + 3).toFixed(1)} ${(b.height + 3).toFixed(1)}`);
+  const cx = F.left + F.width / 2, mantelTop = F.top + F.width * 4 / 150;
+  const status = $('.status').getBoundingClientRect(), win = $('.win-wrap')?.getBoundingClientRect(), pic = $('.wall-pic')?.getBoundingClientRect();
+  const y0 = status.bottom + 8, y1 = mantelTop - 6;
+  let half = 150;
+  if (win && win.top < y1) half = Math.min(half, cx - win.right - 10);
+  if (pic && pic.top < y1) half = Math.min(half, pic.left - cx - 10);
+  Object.assign(box.style, { left: `${cx - half - top.left}px`, width: `${2 * half}px`,
+    top: `${Math.max(y0, y1 - 56) - top.top}px`, height: `${Math.max(16, y1 - Math.max(y0, y1 - 56))}px` });
 }
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
@@ -250,7 +266,7 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <path d="M9 166h29M112 166h29" stroke="#000" stroke-opacity=".25"/>
     <rect x="4" y="177" width="142" height="6.6" rx="1" fill="var(--stone)"/><rect x="4" y="177" width="142" height="6.6" rx="1" fill="#000" opacity=".2"/>
     <path d="M4.5 177.2h141" stroke="#fff" stroke-opacity=".2"/><path d="M39.6 177.6v5.6M75 177.6v5.6M110.4 177.6v5.6" stroke="var(--mortar)" stroke-width="1" opacity=".7"/>
-    <g class="mantel-name" id="mantelName"></g>${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
+    ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
     <ellipse cx="75" cy="165" rx="30" ry="2" fill="#000" opacity=".45"/>
     ${flamePair(52, 'fl f-side l', 6)}${flamePair(98, 'fl f-side r', 6)}
@@ -320,11 +336,13 @@ function placeRoom() {
     feedEl.style.setProperty('--fire-x', `${F.left - top.left + F.width / 2}px`);
     feedEl.style.setProperty('--fire-gy', `${F.top - top.top + F.height * .6}px`);
     drawFloor(feedEl.clientWidth, feedEl.clientHeight - (F.bottom - top.top), F.left - top.left + F.width / 2);
+    placeWallName(F, top);
   };
   roomWatch = new ResizeObserver(place);
   roomWatch.observe(feedEl);
   roomWatch.observe($('.status'));
   place();
+  document.fonts?.ready.then(() => { if (feedEl.isConnected) place(); });   // the letters' width changes once Fredoka loads
 }
 
 // The fire's step, with a whoosh (a flash of glow) when it goes up while you watch. Going down (an Undo) eases
