@@ -45,6 +45,7 @@ async function feedPage() {
   shownOrn = null;     // and hangs the ornaments without the pop
   shownFruit = null;   // and sets the Thanksgiving table the same way
   shownHb = null;      // and the Chinese New Year envelopes
+  $('#mantelName').innerHTML = mantelNameSvg(settings.name);
   renderStatus();
   placeRoom();
   setSky();

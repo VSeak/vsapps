@@ -204,6 +204,23 @@ const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="v
     <rect x="9" y="13" width="132" height="2.6" rx="1.3" fill="#000" opacity=".18"/>
     <path d="M12 9.2c16-1.2 30 .8 48-.2s34-1 50 .4 22-.4 28-.6M18 11.8c22 .8 40-.8 62 .2s32-.6 52 .2M30 7.4c14-.5 22 .3 36-.2" fill="none" stroke="#000" stroke-opacity=".14" stroke-width=".55"/>
     <ellipse cx="104" cy="9.8" rx="2.4" ry="1" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".55"/>`;
+// The pal's name in standing letters on the mantel, all caps (the user asked: "like a form of home decor"): painted
+// wood letters. A darker copy up and right is their thickness, the fire throws a faint shadow of them up the wall, a
+// shade lights them from above, faint grain runs across, and the fire warms their bottoms (--rim). Long names get
+// smaller letters so they stay on the shelf (names are up to 24 characters). Fireplace units: the mantel's top is y 4.
+function mantelNameSvg(name) {
+  const n = [...name].length, fs = Math.min(15, 128 / (n * .76)), half = n * fs * .38;
+  const txt = (attrs) => `<text x="75" y="4.1" text-anchor="middle" font-size="${fs.toFixed(2)}" ${attrs}>${esc(name.toUpperCase())}</text>`;
+  return `<defs><linearGradient id="ltShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
+    <linearGradient id="ltWarm" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgb(255,150,60)"/><stop offset=".6" stop-color="rgb(255,150,60)" stop-opacity="0"/></linearGradient>
+    <pattern id="ltGrain" width="9" height="2.4" patternUnits="userSpaceOnUse"><path d="M0 .8c3-.3 5 .3 9 0M0 1.9c2 .2 6-.2 9 .1" fill="none" stroke="#000" stroke-opacity=".13" stroke-width=".3"/></pattern></defs>
+    ${txt('class="ml-wall" transform="translate(0 -2.2)"')}
+    <ellipse cx="75" cy="4.3" rx="${half.toFixed(1)}" ry=".9" fill="#000" opacity=".25"/>
+    ${txt('fill="var(--letters-2)" transform="translate(.8 -.8)"')}
+    ${txt('fill="var(--letters)" stroke="#000" stroke-opacity=".28" stroke-width=".35" paint-order="stroke"')}
+    ${txt('fill="url(#ltShade)"')}${txt('fill="url(#ltGrain)"')}${txt('class="ml-warm" fill="url(#ltWarm)"')}`;
+}
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
     <defs><linearGradient id="flOut" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF8A30"/><stop offset=".55" stop-color="#E8442C"/><stop offset="1" stop-color="#B8232A"/></linearGradient>
@@ -231,7 +248,7 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <path d="M9 166h29M112 166h29" stroke="#000" stroke-opacity=".25"/>
     <rect x="4" y="177" width="142" height="6.6" rx="1" fill="var(--stone)"/><rect x="4" y="177" width="142" height="6.6" rx="1" fill="#000" opacity=".2"/>
     <path d="M4.5 177.2h141" stroke="#fff" stroke-opacity=".2"/><path d="M39.6 177.6v5.6M75 177.6v5.6M110.4 177.6v5.6" stroke="var(--mortar)" stroke-width="1" opacity=".7"/>
-    ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
+    <g class="mantel-name" id="mantelName"></g>${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
     <ellipse cx="75" cy="165" rx="30" ry="2" fill="#000" opacity=".45"/>
     ${flamePair(52, 'fl f-side l', 6)}${flamePair(98, 'fl f-side r', 6)}
