@@ -24,11 +24,12 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <rect x="15" y="12" width="120" height="158" rx="5" fill="var(--stone)"/>
     <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>
-    <g class="ash"><ellipse cx="75" cy="160" rx="22" ry="6" fill="#6B5E62"/><ellipse cx="72" cy="156" rx="12" ry="4.5" fill="#7D7074"/>
-      <circle class="coal" cx="67" cy="158" r="2.2"/><circle class="coal c2" cx="83" cy="159" r="1.8"/></g>
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
-    ${flamePair(61, 'fl f-side l')}${flamePair(89, 'fl f-side r')}${flamePair(75, 'fl f-main')}
+    <!-- Step 0's ash and coals sit on top of the logs, in front of them (the user saw the logs hiding them) -->
+    <g class="ash"><ellipse cx="75" cy="153" rx="25" ry="7" fill="#6B5E62"/><ellipse cx="73" cy="148" rx="15" ry="6" fill="#7D7074"/>
+      <circle class="coal" cx="65" cy="151" r="2.6"/><circle class="coal c2" cx="83" cy="152" r="2.2"/><circle class="coal c3" cx="75" cy="146" r="1.8"/></g>
+    ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
   </svg>
   <span class="embers" id="embers"></span>
 </div>`;
@@ -46,13 +47,14 @@ function placeRoom() {
   place();
 }
 
-// The fire's step, with a whoosh (a flash of glow) when it goes up while you watch.
+// The fire's step, with a whoosh (a flash of glow) when it goes up while you watch. Going down (an Undo) eases
+// without the bounce: a bouncy shrink overshoots past zero and the flame flipped upside down for a moment.
 let shownLevel = null;
 function setFire(level, egg) {
   const fire = $('#fire');
   if (!fire) return;
-  const up = shownLevel !== null && level > shownLevel;
-  fire.className = `fire lvl-${level} ${egg ? 'egg' : ''}`;
+  const up = shownLevel !== null && level > shownLevel, down = shownLevel !== null && level < shownLevel;
+  fire.className = `fire lvl-${level} ${egg ? 'egg' : ''} ${down ? 'down' : ''}`;
   fire.setAttribute('aria-label', level ? `Fire: step ${level} of ${FLAME_TOP}` : `Fire: cold, step 0 of ${FLAME_TOP}`);
   if (up && !reducedMotion()) { void fire.offsetWidth; fire.classList.add('whoosh'); }
   shownLevel = level;
