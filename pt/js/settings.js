@@ -7,6 +7,7 @@ async function settingsPage() {
   await loadSettings();
   const url = await photoUrl();
   if (tok !== navToken) return;
+  const xmas = xmasNow().on;   // the Santa Hat card only shows at Christmas (the user asked)
   view(`<div class="page-head"><h1 class="big">Settings</h1></div>
     <div class="card">
       <h2>Photo</h2>
@@ -32,15 +33,15 @@ async function settingsPage() {
         <div class="row end"><button class="primary">Save</button></div>
       </form>
     </div>
-    <div class="card">
+    ${xmas ? `<div class="card">
       <h2>Santa Hat</h2>
-      <p class="hint">At Christmas (the day after Thanksgiving through January 7), ${esc(settings.name)} wears a Santa hat on Feed.
+      <p class="hint">Through January 7, ${esc(settings.name)} wears a Santa hat on Feed.
         ${url ? (settings.hat ? 'Move it, or take it off.' : 'Place it on your photo to put it on.') : 'The fox wears it between its ears; you can move it.'}</p>
       <div class="row wrap">
         <button type="button" class="fill" id="placeHat">${settings.hat ? 'Move Hat' : 'Place Hat'}</button>
         ${settings.hat ? `<button type="button" class="ghost ${url ? 'danger' : ''}" id="rmHat">${url ? 'Take Off Hat' : 'Reset Hat'}</button>` : ''}
       </div>
-    </div>
+    </div>` : ''}
     <div class="card">
       <h2>Window</h2>
       <p class="hint">The window on Feed shows the real sky outside: sunrise, sunset, and the moon where you are.
@@ -91,8 +92,8 @@ async function settingsPage() {
       redraw();
     });
   };
-  $('#placeHat').onclick = () => placeHat(url);
-  if (settings.hat) $('#rmHat').onclick = e => busy(e.target, async () => {
+  if (xmas) $('#placeHat').onclick = () => placeHat(url);
+  if (xmas && settings.hat) $('#rmHat').onclick = e => busy(e.target, async () => {
     await sb.from('pt_settings').update({ hat: null }).eq('id', true).then(must);
     flash(url ? 'Hat off.' : 'Hat back in its spot.');
     redraw();
