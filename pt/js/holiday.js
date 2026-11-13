@@ -47,15 +47,16 @@ function ornamentSvg(i, gold) {
     ${kind === 'gold' ? `<path class="orn-spark" d="M${x + 4.2} ${y - 5.5}l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#FFE7A0"/>` : ''}</g>`;
 }
 
-// Presents in the order they arrive: tucked under the tree first, then spilling out left toward the pal and down
-// the floor toward you (the user asked for both), a few stacked on top. [left, width, height, bottom] in tree units.
+// Presents in the order they arrive: a heap that grows from under the tree out to the left (toward the pal) and down
+// the floor toward you (the user asked for both). Five rows, back to front, each one only 7–8 units in front of the
+// one behind and staggered like bricks, so every box hides the lower half of the ones behind it (the user saw loose
+// boxes with floor between them). Each row fills from the middle out. [left, width, height, bottom] in tree units.
 const GIFT_SPOTS = [
-  [8, 14, 12, 108], [58, 15, 14, 108], [-6, 13, 10, 110], [24, 12, 9, 114], [44, 14, 11, 114], [66, 10, 8, 114],
-  [-20, 14, 13, 111], [4, 11, 8, 116], [-34, 12, 9, 113], [-12, 9, 7, 117], [34, 9, 7, 119], [56, 12, 7, 119],
-  // Going down: two rows of bigger boxes packed edge to edge, each row overlapping the one behind it (the user saw
-  // too much floor between them).
-  [5, 18, 15, 130], [38, 18, 14, 130], [-10, 16, 12, 131], [66, 13, 13, 131], [22, 17, 12, 132], [14, 19, 14, 144],
-  [-26, 17, 13, 128], [55, 13, 11, 132], [33, 17, 12, 143], [10, 10, 8, 96], [-4, 17, 12, 143], [51, 16, 13, 144]];
+  [13, 17, 16, 110], [-5, 19, 14, 110], [29, 20, 13, 110], [-21, 17, 15, 110], [48, 18, 15, 110], [-38, 18, 13, 110], [65, 15, 14, 110],
+  [5, 17, 13, 118], [21, 20, 15, 118], [-13, 19, 15, 118], [40, 18, 14, 118], [-30, 18, 14, 118], [57, 19, 13, 118],
+  [14, 18, 13, 126], [-5, 20, 15, 126], [31, 19, 15, 126], [-22, 18, 14, 126], [49, 18, 14, 126],
+  [5, 19, 15, 134], [23, 18, 14, 134], [-12, 18, 13, 134], [40, 19, 13, 134],
+  [2, 18, 12, 141], [20, 19, 13, 141]];
 const GIFT_COLORS = [['#C7334F', '#F2C14E'], ['#4E9A5B', '#FFF6EE'], ['#F2EDE4', '#C7334F'], ['#E0A21B', '#7A3A5A'],
   ['#7A4A8A', '#F2C14E'], ['#4A7EC2', '#FFF6EE']];
 function giftSvg(i) {
