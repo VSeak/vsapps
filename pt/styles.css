@@ -499,7 +499,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 }
 
 /* ---------- Christmas (holiday.js; the user asked): the day after Thanksgiving through January 7 ---------- */
-.feed:not(.xmas) .xmas-only, .feed.xmas .plant, .feed.xmas .wall-pic { display: none; }   /* at Christmas the big tree takes their corner */
+.feed:not(.xmas) .xmas-only, .feed.xmas .plant { display: none; }   /* at Christmas the big tree takes the plant's spot; the picture stays above it (the user asked) */
 /* The advent tree stands in the corner where the picture and plant were (both put away; the user asked), big; its presents spill left toward the pal */
 .room .xmas-tree { width: 206px; right: -2px; top: calc(var(--floor-y, 50%) - 107px); }   /* tree part 110px wide; stands a little forward on the floor (the user asked it lower) */
 @media (min-width: 520px) { .room .xmas-tree { width: 281px; right: 16px; top: calc(var(--floor-y, 50%) - 150px); } }
