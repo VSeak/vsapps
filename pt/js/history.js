@@ -51,9 +51,8 @@ async function historyPage() {
       <div class="cal">${week.map(w => `<span class="wk">${w}</span>`).join('')}${cells.join('')}</div>
       <!-- A legend of the calendar's marks, instead of a paragraph (the user asked) -->
       <ul class="legend">
-        <li><span class="cal-dots"><i></i></span>Sweetberry</li>
+        <li>${berrySvg('daily', 'lg-berry')}Sweetberry</li>
         <li>${berrySvg('climb', 'lg-berry')}Cragberry</li>
-        <li><span class="lg-met"></span>Goal Met</li>
         <li><span class="cal-spark lg-spark"></span>Stuffed</li>
       </ul>
     </div>`, { keepScroll: true });
