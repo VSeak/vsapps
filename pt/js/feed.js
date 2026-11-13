@@ -70,6 +70,7 @@ function renderStatus() {
   setXmas(days, goal);
   setFall(days, goal);
   setCny(days, goal);
+  setHalloween(days, goal);
   // Today's goal counts both berries (the user asked): red dots for Sweetberries, then a gold one for the Cragberry.
   const n = berriesOn(t);
   const dots = Array.from({ length: Math.max(goal, Math.min(n, 10)) }, (_, i) =>
@@ -81,7 +82,7 @@ function renderStatus() {
   crag.disabled = t.climb > 0;
   $('small', crag).textContent = t.climb ? 'Done for today' : BERRY.climb[1];
   const name = esc(settings.name);
-  $('#mood').innerHTML = fx.passed ? `${name} is stuffed${fallNow().tday ? ' like a turkey' : cnyNow().feast ? ' with dumplings' : ''}!`   // on Thanksgiving Day (the user asked), Chinese New Year's Eve and Day
+  $('#mood').innerHTML = fx.passed ? `${name} is stuffed${fallNow().tday ? ' like a turkey' : cnyNow().feast ? ' with dumplings' : halloweenNow().hday ? ' on candy' : ''}!`   // on Thanksgiving Day (the user asked), Chinese New Year's Eve and Day, and Halloween
     : n === goal ? `${name} is full and happy.`
     : n ? `${name} would love ${plural(goal - n, 'more berry', 'more berries')}.`
     : `${name} would love a berry.`;
@@ -202,7 +203,7 @@ function boop() {
   if (n === goal) return heartBurst();
   bubble(!n ? `${berrySvg('daily', 'tiny')}<b>?</b>`
     : n < goal ? 'More berries please!'
-    : `So full…${fallNow().tday ? ' 🦃' : cnyNow().feast ? ' 🥟' : ''}`);
+    : `So full…${fallNow().tday ? ' 🦃' : cnyNow().feast ? ' 🥟' : halloweenNow().hday ? ' 🍬' : ''}`);
   if (n > goal && !reducedMotion()) for (let i = 0; i < 4; i++) sparkle(i * 120);
 }
 

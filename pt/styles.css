@@ -679,6 +679,46 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
   .cny-corner .smoke path { animation: none; opacity: .4; }
   .fireworks i { animation: none; opacity: .9; transform: scale(.8); }   /* still bursts, frozen open */
 }
+/* ---------- Halloween (holiday.js; the user asked): all of October ---------- */
+/* A dark table with a cobwebby runner and the big pumpkin takes the plant's corner (the picture stays), placed like the
+   harvest table; jack-o'-lanterns stand on the floor under it; the candy bowl only on the 31st */
+.feed:not(.halloween) .halloween-only, .feed:not(.hday) .hday-only, .feed.halloween .plant { display: none; }
+.room .hw-table { width: 140px; right: 0; top: calc(var(--floor-y, 50%) - 38px); }
+@media (min-width: 520px) { .room .hw-table { width: 200px; top: calc(var(--floor-y, 50%) - 54px); } }
+@media (max-height: 760px) { .room .hw-table { width: 126px; top: calc(var(--floor-y, 50%) - 34px); } }
+.hw-table:not(.lit) .pk-halo { display: none; }
+.jack, .cut { transform-box: fill-box; transform-origin: 50% 100%; }
+.cut { transform-origin: 50% 50%; }
+.jack.pop, .cut.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+/* Candlelight flickers: in every jack-o'-lantern's face, and in the big pumpkin once its candle is lit */
+.jack-face, .carving.lit, .hw-table.lit .pk-halo { animation: flicker 2.6s ease-in-out infinite; }
+@keyframes flicker { 0%, 100% { opacity: 1; } 30% { opacity: .78; } 36% { opacity: .95; } 62% { opacity: .82; } 70% { opacity: 1; } }
+/* The spider bobs on its thread; the thread (19 units) stretches with it, so it stays tied to the mantel */
+.spider { animation: spider-bob 3.4s ease-in-out infinite alternate; }
+.spider-thread { transform-box: fill-box; transform-origin: 50% 0; animation: spider-thread 3.4s ease-in-out infinite alternate; }
+@keyframes spider-bob { to { transform: translateY(6px); } }
+@keyframes spider-thread { to { transform: scaleY(1.316); } }
+/* Bats flap across the window at dusk and after dark, past an orange moon */
+.batty .moon { background: #F2A54A; box-shadow: 0 0 6px rgb(242 165 74 / .6); }
+.bats { inset: 0; z-index: 2; }
+.batty.sky-night .bats, .batty.sky-dusk .bats { opacity: 1; }
+.bats i { position: absolute; left: -14px; width: 11px; animation: batfly var(--dur, 7s) linear var(--del, 0s) infinite; }
+.window .bats svg { position: static; display: block; width: 100%; fill: #1A1424; }
+.bats .wings { transform-box: fill-box; transform-origin: 50% 70%; animation: flap .22s ease-in-out infinite alternate; }
+.bats i:nth-child(1) { top: 20%; --del: -1.5s; }
+.bats i:nth-child(2) { top: 50%; width: 8px; --del: -4.6s; --dur: 8.5s; }
+.bats i:nth-child(2) .wings { animation-duration: .18s; }
+.bats i:nth-child(3) { top: 34%; width: 9px; --del: -6.2s; --dur: 9.5s; }
+@keyframes flap { to { transform: scaleY(-.55); } }
+@keyframes batfly {
+  0% { transform: translate(0, 0); } 20% { transform: translate(22px, -7px); } 40% { transform: translate(44px, 3px); }
+  60% { transform: translate(66px, -5px); } 80% { transform: translate(88px, 4px); } 100% { transform: translate(112px, -3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jack.pop, .cut.pop, .jack-face, .carving.lit, .hw-table.lit .pk-halo, .spider, .spider-thread, .bats .wings { animation: none; }
+  .bats i { animation: none; left: calc(18% + var(--n, 0) * 1%); }
+  .bats i:nth-child(2) { left: 62%; } .bats i:nth-child(3) { left: 40%; }
+}
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
 .hat-stage { display: flex; justify-content: center; padding: 3.2rem 0 .6rem; background: var(--sunk); border-radius: 16px; overflow: hidden; }
 .pal.placing { --pal: min(60vw, 230px); }

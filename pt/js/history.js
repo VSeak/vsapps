@@ -174,7 +174,8 @@ function yearStats(days, goal, year) {
   }
   return { sweet: sum('daily'), crag: sum('climb'), full: inYear.filter(([, e]) => berriesOn(e) >= goal).length,
     stuffed: inYear.filter(([, e]) => isStuffed(e, goal)).length, best, ornaments: ornamentDays(days, goal, year).length,
-    harvest: harvestDays(days, goal, year).length, harvestOf: thanksgiving(year), envelopes: cnyDays(days, goal, year).length };
+    harvest: harvestDays(days, goal, year).length, harvestOf: thanksgiving(year), envelopes: cnyDays(days, goal, year).length,
+    spooky: halloweenDays(days, goal, year).length };
 }
 function yearHtml(days, goal, year) {
   const s = yearStats(days, goal, year);
@@ -187,6 +188,7 @@ function yearHtml(days, goal, year) {
       <div class="stat">${flameSvg}<b>${s.best}</b><span>Best Streak</span></div>
     </div>
     ${s.envelopes ? `<p class="yr-tree">Chinese New Year tree: ${s.envelopes} of ${CNY_DAYS} red envelopes.</p>` : ''}
+    ${s.spooky ? `<p class="yr-tree">Halloween pumpkin: ${s.spooky} of 31 days.</p>` : ''}
     ${s.harvest ? `<p class="yr-tree">Thanksgiving table: ${s.harvest} of ${s.harvestOf} days.</p>` : ''}
     ${s.ornaments ? `<p class="yr-tree">Christmas tree: ${s.ornaments} of 24 ornaments.</p>` : ''}`;
 }

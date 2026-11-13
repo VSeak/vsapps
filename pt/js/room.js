@@ -10,7 +10,7 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
   <svg class="wall-pic" viewBox="0 0 46 58"><rect width="46" height="58" rx="4" fill="var(--frame)"/><rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
     <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/></svg>
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
-    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span><span class="leaves">${'<i></i>'.repeat(6)}</span><span class="fireworks"><i></i><i></i><i></i></span></div><span class="sill"></span>
+    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span><span class="leaves">${'<i></i>'.repeat(6)}</span><span class="fireworks"><i></i><i></i><i></i></span><span class="bats">${batSvg.repeat(3)}</span></div><span class="sill"></span>
     <svg class="win-wreath" viewBox="6 12 34 36" aria-hidden="true">${wreathSvg}${fuSvg}</svg></div>
   <svg class="couch" viewBox="0 0 130 100"><rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
     <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/>
@@ -25,12 +25,12 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
     <path d="M31 18.5h2.5a3.2 3.2 0 0 1 0 6.4H31" fill="none" stroke="var(--mug)" stroke-width="2"/>
-    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}
+    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}${ghostSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}${candyBowlSvg}
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>
     <path d="M7 44h30l-4 34H11z" fill="var(--pot)"/></svg>
-  ${xmasTreeSvg}${harvestTableSvg}${cnyCornerSvg}
+  ${xmasTreeSvg}${harvestTableSvg}${cnyCornerSvg}${hwTableSvg}
 </div>`;
 
 // ---------- The window: the real sky outside (the user asked) ----------
@@ -71,7 +71,8 @@ function setSky() {
   // Brown leaves blow past from November 1 through Thanksgiving (the user asked).
   // Fireworks after dark on Chinese New Year's Eve, New Year's Day, and the Lantern Festival (the user asked for the holiday).
   const boom = cnyNow().boom && (phase === 'night' || phase === 'dusk');
-  win.className = `window sky-${phase} ${snowy ? 'snowy' : ''} ${fallNow().on ? 'leafy' : ''} ${boom ? 'boom' : ''}`;
+  // In October bats flap past an orange moon after dark (the user asked).
+  win.className = `window sky-${phase} ${snowy ? 'snowy' : ''} ${fallNow().on ? 'leafy' : ''} ${boom ? 'boom' : ''} ${halloweenNow().on ? 'batty' : ''}`;
   // The moon's shadow: a sky-colored disc sliding across it. Waxing, the lit side grows from the right; waning, it shrinks to the left.
   const k = moonPhase(now);
   $('#moonShade').style.transform = `translateX(${(k < .5 ? -k : 1 - k) * 200}%)`;
@@ -84,7 +85,7 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
     <rect x="15" y="12" width="120" height="158" rx="5" fill="var(--stone)"/>
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>
-    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>${garlandSvg}${lanternsSvg}
+    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
