@@ -48,21 +48,17 @@ function ornamentSvg(i, gold) {
 }
 
 // Presents in the order they arrive: a heap that grows from under the tree out to the left (toward the pal) and down
-// the floor toward you (the user asked for both). Big boxes at the back, then rows of smaller and smaller ones in
-// front, each row only 8–10 units ahead of the last and staggered like bricks, so the smaller boxes cover the bottoms
-// of the bigger ones (the user saw loose boxes, then boxes all one size). Three small ones sit stacked on the big
-// ones (the user liked those). [left, width, height, bottom] in tree units.
+// the floor toward you (the user asked for both). Big boxes at the back, then rows of smaller ones in front, staggered
+// like bricks so they cover the bottoms of the bigger ones (the user saw loose boxes, then boxes all one size), and
+// three small ones stacked on top (the user liked those). The biggest stand behind the tree (back = 1) and peek out
+// around it; in front, nothing over the tree reaches above its lowest branches (y 89), so no ornament is covered
+// (the user saw the big boxes hide them). [left, width, height, bottom, back] in tree units.
 const GIFT_SPOTS = [
-  [10, 24, 20, 110], [33, 28, 26, 110], [-15, 26, 24, 110], [60, 22, 19, 110], [-36, 22, 18, 110],   // big, at the back
-  [9, 19, 16, 120], [29, 18, 13, 120], [-9, 17, 14, 120], [48, 17, 15, 120],                         // medium
-  [39, 14, 9, 84],                                                                                     // stacked on the tallest
-  [-28, 18, 15, 120], [66, 15, 14, 120],
-  [11, 13, 10, 129], [25, 15, 12, 129], [-5, 15, 12, 129],                                             // small
-  [-11, 15, 10, 86],                                                                                   // stacked
-  [41, 14, 11, 129], [-20, 14, 11, 129], [56, 13, 10, 129],
-  [3, 12, 10, 137], [17, 10, 8, 137],                                                                  // smallest, in front
-  [63, 12, 8, 91],                                                                                     // stacked
-  [-10, 11, 9, 137], [30, 11, 9, 137]];
+  [8, 20, 18, 112], [30, 24, 20, 112], [14, 30, 16, 106, 1], [-13, 22, 18, 112], [55, 20, 19, 112],   // first, under the tree
+  [-18, 26, 24, 106, 1], [9, 19, 16, 121], [56, 22, 22, 106, 1], [-34, 22, 20, 112], [28, 18, 13, 121],
+  [-8, 17, 14, 121], [-10, 11, 8, 94], [46, 17, 15, 121], [-14, 13, 9, 82, 1], [-26, 18, 15, 121], [63, 15, 14, 121],
+  [12, 13, 10, 130], [-30, 14, 10, 92], [26, 15, 12, 130], [-3, 15, 12, 130], [42, 14, 11, 130], [-18, 14, 11, 130],
+  [6, 12, 10, 138], [19, 10, 8, 138]];                                                                      // last, smallest, in front
 const GIFT_COLORS = [['#C7334F', '#F2C14E'], ['#4E9A5B', '#FFF6EE'], ['#F2EDE4', '#C7334F'], ['#E0A21B', '#7A3A5A'],
   ['#7A4A8A', '#F2C14E'], ['#4A7EC2', '#FFF6EE']];
 function giftSvg(i) {
@@ -73,11 +69,12 @@ function giftSvg(i) {
     <ellipse cx="${cx - bw * .9}" cy="${y - bh * .75}" rx="${bw}" ry="${bh}" fill="${rib}"/><ellipse cx="${cx + bw * .9}" cy="${y - bh * .75}" rx="${bw}" ry="${bh}" fill="${rib}"/>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx=".8" fill="none" stroke="rgb(0 0 0 / .12)" stroke-width=".5"/></g>`;
 }
-// Drawn back to front, so a present in front overlaps the one behind it.
+// Drawn back to front, so a present in front overlaps the one behind it. The ones behind the tree go in their own
+// group, drawn before it.
 const GIFT_DRAW = GIFT_SPOTS.map((s, i) => i).sort((a, b) => GIFT_SPOTS[a][3] - GIFT_SPOTS[b][3]);
 
 const xmasTreeSvg = `<svg class="xmas-tree xmas-only" viewBox="-70 0 150 150">
-  <rect x="36" y="86" width="8" height="8" fill="#6B4128"/>
+  <g id="giftsBack"></g><rect x="36" y="86" width="8" height="8" fill="#6B4128"/>
   <path d="M40 44 8 88h64z" fill="var(--plant)"/><path d="M40 24 16 60h48z" fill="var(--plant-2)"/><path d="M40 8 24 36h32z" fill="var(--plant)"/>
   <path d="M40 44 8 88h18zM40 24 16 60h14zM40 8 24 36h9z" fill="rgb(0 0 0 / .08)"/>
   <path d="M24 92h32l-4 18H28z" fill="var(--pot)"/>
@@ -152,7 +149,9 @@ function setXmas(days, goal) {
   if (!x.on) { shownOrn = null; return; }
   const orn = ornamentDays(days, goal, x.treeYear);
   $('#ornaments').innerHTML = orn.map((o, i) => ornamentSvg(i, o.gold)).join('');
-  $('#gifts').innerHTML = x.presents ? GIFT_DRAW.filter(i => i < orn.length).map(giftSvg).join('') : '';
+  const gifts = back => x.presents ? GIFT_DRAW.filter(i => i < orn.length && !GIFT_SPOTS[i][4] === !back).map(giftSvg).join('') : '';
+  $('#giftsBack').innerHTML = gifts(true);
+  $('#gifts').innerHTML = gifts(false);
   if (shownOrn && !reducedMotion()) orn.forEach((o, i) => {
     if (i < shownOrn.length && o.gold === shownOrn[i].gold) return;
     pop($(`.orn[data-i="${i}"]`), 0);

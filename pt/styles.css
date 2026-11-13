@@ -501,8 +501,8 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 /* ---------- Christmas (holiday.js; the user asked): the day after Thanksgiving through January 7 ---------- */
 .feed:not(.xmas) .xmas-only, .feed.xmas .plant, .feed.xmas .wall-pic { display: none; }   /* at Christmas the big tree takes their corner */
 /* The advent tree stands in the corner where the picture and plant were (both put away; the user asked), big; its presents spill left toward the pal */
-.room .xmas-tree { width: 206px; right: -2px; top: calc(var(--floor-y, 50%) - 121px); }   /* tree part 110px wide; pot foot on the floor */
-@media (min-width: 520px) { .room .xmas-tree { width: 281px; right: 16px; top: calc(var(--floor-y, 50%) - 168px); } }
+.room .xmas-tree { width: 206px; right: -2px; top: calc(var(--floor-y, 50%) - 107px); }   /* tree part 110px wide; stands a little forward on the floor (the user asked it lower) */
+@media (min-width: 520px) { .room .xmas-tree { width: 281px; right: 16px; top: calc(var(--floor-y, 50%) - 150px); } }
 .orn, .gift { transform-box: fill-box; transform-origin: 50% 50%; }
 .gift { transform-origin: 50% 100%; }
 .orn.pop, .gift.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
@@ -517,7 +517,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .hat { position: absolute; left: calc(var(--hx) * 100%); top: calc(var(--hy) * 100%); width: calc(var(--hw) * 100%); overflow: visible;
   translate: -50% -82.2%; rotate: calc(var(--hr) * 1deg); transform-origin: 50% 82.2%; pointer-events: none; display: block; }
 @media (prefers-reduced-motion: reduce) { .lights > g, .orn-spark, .orn.pop, .gift.pop { animation: none; } }
-@media (max-height: 760px) { .room .xmas-tree { width: 165px; top: calc(var(--floor-y, 50%) - 91px); } }
+@media (max-height: 760px) { .room .xmas-tree { width: 165px; top: calc(var(--floor-y, 50%) - 80px); } }
 /* The wreath hangs on the window now (the picture is put away at Christmas) */
 .room .win-wreath { position: absolute; left: 50%; top: 50%; width: 62%; translate: -50% -50%; z-index: 4; }
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
