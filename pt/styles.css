@@ -451,6 +451,19 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .snow i:nth-child(7) { left: 76%; animation-delay: -6s; animation-duration: 8s; } .snow i:nth-child(8) { left: 86%; animation-delay: -2s; }
 .snow i:nth-child(9) { left: 94%; animation-delay: -4.5s; animation-duration: 7s; }
 @keyframes snowfall { to { transform: translate(6px, 96px); } }
+/* November 1 through Thanksgiving (the user asked): brown leaves blow across, tumbling */
+.leaves { inset: 0; }
+.leafy .leaves { opacity: 1; }
+.leaves i { position: absolute; left: -8px; width: 5px; height: 3.5px; border-radius: 0 80% 0 80%; background: #8A5A2B; animation: leafblow 6s linear infinite; }
+.leaves i:nth-child(2n) { background: #A0672E; } .leaves i:nth-child(3n) { background: #6E4422; } .leaves i:nth-child(5) { background: #9C4F25; }
+.leaves i:nth-child(1) { --n: 1; top: 12%; animation-delay: -1s; } .leaves i:nth-child(2) { --n: 4; top: 34%; animation-delay: -3.4s; animation-duration: 7s; }
+.leaves i:nth-child(3) { --n: 2; top: 55%; animation-delay: -5.2s; animation-duration: 5.5s; } .leaves i:nth-child(4) { --n: 5; top: 22%; animation-delay: -2.2s; animation-duration: 8s; }
+.leaves i:nth-child(5) { --n: 3; top: 66%; animation-delay: -.3s; animation-duration: 6.5s; } .leaves i:nth-child(6) { --n: 6; top: 44%; animation-delay: -4.4s; animation-duration: 7.5s; }
+@keyframes leafblow {
+  0% { transform: translate(0, 0) rotate(0); } 25% { transform: translate(28px, 9px) rotate(140deg); }
+  50% { transform: translate(55px, 3px) rotate(250deg); } 75% { transform: translate(82px, 14px) rotate(390deg); }
+  100% { transform: translate(112px, 8px) rotate(500deg); }
+}
 
 /* The side table and mug, in front of the couch's end; steam curls up and fades */
 .side-table { width: 46px; left: 4px; top: calc(var(--floor-y, 50%) - 4px); }
@@ -490,6 +503,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .pal-breathe, .sky-night .stars, .cloud, .snow i, .steam path { animation: none; }
+  .leaves i { animation: none; left: calc(var(--n) * 14%); rotate: 40deg; }   /* still, spread across the glass */
   .steam path { opacity: .5; }
 }
 /* Short phones: a smaller window, lower, so it clears the status pills above it */
@@ -520,6 +534,15 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 @media (max-height: 760px) { .room .xmas-tree { width: 165px; top: calc(var(--floor-y, 50%) - 80px); } }
 /* The wreath hangs on the window now (the picture is put away at Christmas) */
 .room .win-wreath { position: absolute; left: 50%; top: 50%; width: 62%; translate: -50% -50%; z-index: 4; }
+/* ---------- Thanksgiving (holiday.js; the user asked): November 1 through Thanksgiving Day ---------- */
+/* A long harvest table takes the plant's corner (the picture stays), running off the right edge; pie only on the day itself */
+.feed:not(.fall) .fall-only, .feed:not(.tday) .tday-only, .feed.fall .plant { display: none; }
+.room .harvest { width: 140px; right: 0; top: calc(var(--floor-y, 50%) - 38px); }   /* its food clears the fireplace on a 360px phone */
+@media (min-width: 520px) { .room .harvest { width: 200px; top: calc(var(--floor-y, 50%) - 54px); } }
+@media (max-height: 760px) { .room .harvest { width: 126px; top: calc(var(--floor-y, 50%) - 34px); } }
+.fruit { transform-box: fill-box; transform-origin: 50% 100%; }
+.fruit.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+@media (prefers-reduced-motion: reduce) { .fruit.pop { animation: none; } }
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
 .hat-stage { display: flex; justify-content: center; padding: 3.2rem 0 .6rem; background: var(--sunk); border-radius: 16px; overflow: hidden; }
 .pal.placing { --pal: min(60vw, 230px); }

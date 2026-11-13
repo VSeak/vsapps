@@ -173,7 +173,8 @@ function yearStats(days, goal, year) {
     best = Math.max(best, run);
   }
   return { sweet: sum('daily'), crag: sum('climb'), full: inYear.filter(([, e]) => berriesOn(e) >= goal).length,
-    stuffed: inYear.filter(([, e]) => isStuffed(e, goal)).length, best, ornaments: ornamentDays(days, goal, year).length };
+    stuffed: inYear.filter(([, e]) => isStuffed(e, goal)).length, best, ornaments: ornamentDays(days, goal, year).length,
+    harvest: harvestDays(days, goal, year).length, harvestOf: thanksgiving(year) };
 }
 function yearHtml(days, goal, year) {
   const s = yearStats(days, goal, year);
@@ -185,6 +186,7 @@ function yearHtml(days, goal, year) {
       <div class="stat"><span class="cal-spark" aria-hidden="true"></span><b>${s.stuffed}</b><span>Stuffed Days</span></div>
       <div class="stat">${flameSvg}<b>${s.best}</b><span>Best Streak</span></div>
     </div>
+    ${s.harvest ? `<p class="yr-tree">Thanksgiving table: ${s.harvest} of ${s.harvestOf} days.</p>` : ''}
     ${s.ornaments ? `<p class="yr-tree">Christmas tree: ${s.ornaments} of 24 ornaments.</p>` : ''}`;
 }
 

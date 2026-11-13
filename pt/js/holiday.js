@@ -14,6 +14,27 @@ function xmasNow(now = new Date()) {
   return { on, treeYear: m === 0 ? y - 1 : y, presents: on && (m === 10 || (m === 11 && d <= 25)) };
 }
 
+// ---------- Thanksgiving (the user asked): November 1 through Thanksgiving Day ----------
+// Brown leaves blow past the window (setSky), the mug holds cider with a cinnamon stick, the plant is put away for a
+// long harvest table with a cornucopia, and the pal wears an autumn beanie. Each November day up to Thanksgiving that
+// meets the goal sets one piece of food on the table (gold on a stuffed day). On Thanksgiving Day itself a slice of
+// pie sits on the side table and a stuffed pal is "stuffed like a turkey!". Christmas starts the next day.
+function fallNow(now = new Date()) {
+  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate(), tg = thanksgiving(y);
+  return { on: m === 10 && d <= tg, tday: m === 10 && d === tg, year: y };
+}
+// The days that put food on the table: November 1 to Thanksgiving of that year, goal met, up to today.
+function harvestDays(days, goal, year) {
+  const out = [];
+  for (let i = 1; i <= thanksgiving(year); i++) {
+    const d = iso(new Date(year, 10, i));
+    if (d > today()) break;
+    const e = days.get(d);
+    if (berriesOn(e) >= goal) out.push({ day: d, gold: isStuffed(e, goal) });
+  }
+  return out;
+}
+
 // The days that hang an ornament: December 1–24 of that year, goal met, up to today. Today counts once its goal is met.
 function ornamentDays(days, goal, year) {
   const out = [];
@@ -134,8 +155,100 @@ const hatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <rect x="6" y="63" width="88" height="22" rx="11" fill="#FFF6EE"/>
   <path d="M14 78h72" stroke="#EDE3D6" stroke-width="5" stroke-linecap="round"/>
 </svg>`;
+// The autumn beanie, drawn on the same 100 × 90 with its cuff's middle at (50, 74), so it sits where the Santa hat
+// was placed: one placement (settings.hat) for both, no SQL. Rust knit, ribbed cuff, a mustard pompom, a gold leaf.
+const beanieSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
+  <circle cx="50" cy="15" r="10" fill="#F2C14E"/><circle cx="53" cy="18" r="5.5" fill="#E0A21B" opacity=".55"/>
+  <path d="M12 68C12 34 29 21 50 21s38 13 38 47z" fill="#C2602E"/>
+  <path d="M30 66c-2-18 3-32 12-41M50 66V22M70 66c2-18-3-32-12-41" fill="none" stroke="#A84F24" stroke-width="2"/>
+  <rect x="8" y="63" width="84" height="22" rx="8" fill="#9C4A22"/>
+  <path d="${Array.from({ length: 11 }, (_, i) => `M${15 + i * 7} 66v16`).join('')}" stroke="#80391A" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M74 67c3-3 5-1 6 1 2-2 5-1 5 1-2 1-2 3-1 5-2 0-4 0-5-1 0 2-2 3-3 3 0-2-1-3-2-4-1 1-3 0-3-1 2-1 3-2 3-4z" fill="#E0A21B"/>
+</svg>`;
+// Which hat the pal wears now, if any: the Santa hat at Christmas, the beanie through Thanksgiving.
+function hatSeason() {
+  if (xmasNow().on) return { title: 'Santa Hat', what: 'a Santa hat', thru: 'Through January 7', svg: hatSvg };
+  if (fallNow().on) return { title: 'Autumn Beanie', what: 'an autumn beanie', thru: 'Through Thanksgiving', svg: beanieSvg };
+  return null;
+}
 // The fox drawing's own spot: between its ears, tilted a little.
 const FOX_HAT = { x: .42, y: .2, w: .5, r: -8 };
+
+// ---------- The Thanksgiving table ----------
+// A long table in the plant's corner, running off the right edge, with a wicker cornucopia at its right end. Food
+// spills out of the horn's mouth and heaps to the left: 28 spots (Thanksgiving falls by November 28), in rows that
+// sit in the dips of the row below, filled so the heap grows out of the horn and never floats. Table units: 148 × 72.
+const HARVEST_SPOTS = (() => {
+  const s = [];
+  [9, 8, 7, 4].forEach((n, r) => { for (let i = 0; i < n; i++) s.push({ x: 107 - 4 * r - 8 * i, y: 35 - 7.6 * r, k: i + 1.5 * r, r }); });
+  return s.sort((a, b) => a.k - b.k || a.r - b.r).map(p => [p.x, p.y]);
+})();
+// Drawn bottom row first, so food on top sits over what's under it.
+const FRUIT_DRAW = HARVEST_SPOTS.map((s, i) => i).sort((a, b) => HARVEST_SPOTS[b][1] - HARVEST_SPOTS[a][1] || a - b);
+// In turn: apple, mini pumpkin, pear, grapes, corn, and a Sweetberry. A stuffed day's piece is gold, whatever it is (the user asked).
+const FRUIT_KINDS = ['apple', 'pumpkin', 'pear', 'grapes', 'corn', 'berry'];
+function fruitSvg(i, gold) {
+  const [x, y] = HARVEST_SPOTS[i], c = (plain, g) => gold ? g : plain;
+  const stem = (sx, sy) => `<path d="M${sx} ${sy}q.3-1.8 1.5-2.5" fill="none" stroke="#6B4128" stroke-width=".9" stroke-linecap="round"/>`;
+  const leaf = `<path d="M${x + .8} ${y - 4.4}c1.2-1.5 3.1-1.5 3.8-.6-1 1-2.6 1.3-3.8.6z" fill="#4E9A5B"/>`;
+  const shine = `<circle cx="${x - 2}" cy="${y - 1.2}" r=".9" fill="#fff" opacity=".55"/>`;
+  const body = {
+    apple: `<path d="M${x - 5} ${y - 1}c0-3.6 2.6-5.2 5-3.7 2.4-1.5 5 .1 5 3.7 0 3.6-2.5 6-5 6s-5-2.4-5-6z" fill="${c('#C7334F', '#F2B630')}"/>${stem(x, y - 4)}${leaf}${shine}`,
+    pumpkin: `<ellipse cx="${x - 2.5}" cy="${y + 1}" rx="3.2" ry="4" fill="${c('#D9682A', '#E0A21B')}"/><ellipse cx="${x + 2.5}" cy="${y + 1}" rx="3.2" ry="4" fill="${c('#D9682A', '#E0A21B')}"/>
+      <ellipse cx="${x}" cy="${y + 1}" rx="2.8" ry="4" fill="${c('#E8843A', '#F2B630')}"/><path d="M${x - .7} ${y - 2.6}l.4-2.2h1.5l-.3 2.2z" fill="#5C7A34"/>`,
+    pear: `<path d="M${x} ${y - 6}c1.6 0 2 1.8 2 3 0 1.2 2.6 2.2 2.6 5 0 1.9-2 3-4.6 3s-4.6-1.1-4.6-3c0-2.8 2.6-3.8 2.6-5 0-1.2.4-3 2-3z" fill="${c('#B5B04A', '#F2B630')}"/>${stem(x, y - 5.6)}${shine}`,
+    grapes: `${[[-3.2, -1.8], [0, -1.8], [3.2, -1.8], [-1.6, .9], [1.6, .9], [0, 3.4]].map(([dx, dy]) =>
+      `<circle cx="${x + dx}" cy="${y + dy}" r="1.8" fill="${c('#7A4A8A', '#F2B630')}"/>`).join('')}${stem(x, y - 3.4)}${leaf}`,
+    corn: `<path d="M${x - 3.5} ${y + .4}q-3-1.6-5-.6 2.4.6 4.4 3.6zM${x - 3.5} ${y + 4}q-3 1.6-5 .6 2.4-.6 4.4-3.6z" fill="#A79A55"/>
+      <ellipse cx="${x + 1}" cy="${y + 2.2}" rx="5.6" ry="2.8" fill="${c('#F2C14E', '#F2B630')}"/>
+      <path d="M${x - 2} ${y}v4.4M${x + .8} ${y - .5}v5.4M${x + 3.6} ${y}v4.4" stroke="${c('#D9A230', '#C98A12')}" stroke-width=".6"/>`,
+    berry: `<circle cx="${x}" cy="${y + .6}" r="4.4" fill="${c('#D93A55', '#F2B630')}"/><path d="M${x} ${y - 3.8}c.9-2 2.9-2.7 4.7-2.3-.4 1.9-2.4 3.1-4.7 2.3z" fill="#4E9A5B"/>${shine}`,
+  }[FRUIT_KINDS[i % FRUIT_KINDS.length]];
+  const spark = gold ? `<path class="orn-spark" d="M${x + 5} ${y - 7}l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#FFE7A0"/>` : '';
+  return `<g class="fruit" data-i="${i}">${body}${spark}</g>`;
+}
+const harvestTableSvg = `<svg class="harvest fall-only" viewBox="0 0 148 72">
+  <rect x="10" y="48" width="4" height="24" fill="var(--table-2)"/><rect x="118" y="48" width="4" height="24" fill="var(--table-2)"/>
+  <path d="M2 39h180v12H2z" fill="#EADCC2"/><path d="M2 39h180v1.4H2z" fill="rgb(0 0 0 / .06)"/>
+  <path d="M2 46.5h180v1.8H2z" fill="#B5562E"/><path d="M2 50h180v1H2z" fill="rgb(0 0 0 / .1)"/>
+  <path d="M112 14C126 15 137 23 141 34l.5 4.5c-8 2-20 2-29.5 1.5z" fill="#C4914F"/>
+  <path d="M119 15.5c2 7 2 16 0 24.5M126 18c1.8 6 1.8 14 0 21.8M133 23c1.2 4.6 1.2 10.6 0 16" fill="none" stroke="#9C6B35" stroke-width="1.6"/>
+  <path d="M141.5 37c4-1 5.6-6 3.4-9.4-1.6-2.4-4.6-2.2-5.6 0" fill="none" stroke="#C4914F" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="112" cy="27" rx="4.2" ry="13" fill="#6B4128"/><ellipse cx="112" cy="27" rx="4.2" ry="13" fill="none" stroke="#9C6B35" stroke-width="2"/>
+  <g id="fruits"></g>
+</svg>`;
+
+// Cider with a cinnamon stick in the mug (no orange slice; the user asked). The stick is drawn before the mug so the
+// mug hides its foot; the cider is drawn over the cocoa.
+const cinnamonSvg = `<g class="fall-only" transform="rotate(-18 24.5 26)">
+  <rect x="23.3" y="6.5" width="2.4" height="19.5" rx=".9" fill="#8A4A24"/><path d="M24.1 7v18.5" stroke="#5E3017" stroke-width=".5"/>
+</g>`;
+const ciderSvg = `<ellipse class="fall-only" cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#B8732C"/>`;
+// Thanksgiving Day only: a slice of pumpkin pie with a dollop of cream on a plate beside the mug.
+const pieSvg = `<g class="tday-only">
+  <ellipse cx="42" cy="28.4" rx="5.2" ry="1.3" fill="#FFF6EE"/><path d="M37.8 28h8.4v-4.2z" fill="#D2782E"/>
+  <rect x="45.4" y="23.2" width="1.8" height="5" rx=".7" fill="#E3B26B"/><path d="M38 28.2h8.6" stroke="#E3B26B" stroke-width=".9"/>
+  <circle cx="42.6" cy="24.9" r="1.2" fill="#FFF6EE"/>
+</g>`;
+
+// Sets the table and the Thanksgiving classes; renderStatus calls it with setXmas. A new piece pops in, and so does a
+// piece turning gold (a day going stuffed); one losing its gold (an Undo) just changes.
+let shownFruit = null;
+function setFall(days, goal) {
+  const feedEl = $('.feed');
+  if (!feedEl) return;
+  const f = fallNow();
+  feedEl.classList.toggle('fall', f.on);
+  feedEl.classList.toggle('tday', f.tday);
+  if (!f.on) { shownFruit = null; return; }
+  const got = harvestDays(days, goal, f.year);
+  $('#fruits').innerHTML = FRUIT_DRAW.filter(i => i < got.length).map(i => fruitSvg(i, got[i].gold)).join('');
+  if (shownFruit && !reducedMotion()) got.forEach((o, i) => {
+    if (i < shownFruit.length && (o.gold === shownFruit[i].gold || !o.gold)) return;
+    pop($(`.fruit[data-i="${i}"]`), 0);
+  });
+  shownFruit = got;
+}
 
 // ---------- Hanging them ----------
 // renderStatus calls this after every berry and at midnight. An ornament (and its present) that's new since the last
@@ -154,7 +267,7 @@ function setXmas(days, goal) {
   $('#giftsBack').innerHTML = gifts(true);
   $('#gifts').innerHTML = gifts(false);
   if (shownOrn && !reducedMotion()) orn.forEach((o, i) => {
-    if (i < shownOrn.length && o.gold === shownOrn[i].gold) return;
+    if (i < shownOrn.length && (o.gold === shownOrn[i].gold || !o.gold)) return;   // turning gold pops; losing it (an Undo) doesn't
     pop($(`.orn[data-i="${i}"]`), 0);
     if (i >= shownOrn.length) pop($(`.gift[data-i="${i}"]`), 220);
   });

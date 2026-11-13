@@ -7,7 +7,9 @@ async function settingsPage() {
   await loadSettings();
   const url = await photoUrl();
   if (tok !== navToken) return;
-  const xmas = xmasNow().on;   // the Santa Hat card only shows at Christmas (the user asked)
+  // The hat card only shows in a hat season (the user asked): Santa Hat at Christmas, Autumn Beanie through Thanksgiving.
+  // Both use the same placement, so a hat placed in November is already on at Christmas.
+  const hs = hatSeason(), xmas = !!hs;
   view(`<div class="page-head"><h1 class="big">Settings</h1></div>
     <div class="card">
       <h2>Photo</h2>
@@ -34,8 +36,8 @@ async function settingsPage() {
       </form>
     </div>
     ${xmas ? `<div class="card">
-      <h2>Santa Hat</h2>
-      <p class="hint">Through January 7, ${esc(settings.name)} wears a Santa hat on Feed.
+      <h2>${hs.title}</h2>
+      <p class="hint">${hs.thru}, ${esc(settings.name)} wears ${hs.what} on Feed.
         ${url ? (settings.hat ? 'Move it, or take it off.' : 'Place it on your photo to put it on.') : 'The fox wears it between its ears; you can move it.'}</p>
       <div class="row wrap">
         <button type="button" class="fill" id="placeHat">${settings.hat ? 'Move Hat' : 'Place Hat'}</button>
@@ -127,7 +129,7 @@ async function placeHat(url) {
       let grab = null;
       hat.tabIndex = 0;
       hat.setAttribute('role', 'img');
-      hat.setAttribute('aria-label', 'Santa hat: drag it, or move it with the arrow keys');
+      hat.setAttribute('aria-label', `${hatSeason()?.title ?? 'Hat'}: drag it, or move it with the arrow keys`);
       body.addEventListener('pointerdown', e => {
         e.preventDefault();
         const [px, py] = at(e);

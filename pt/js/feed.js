@@ -30,7 +30,7 @@ async function feedPage() {
     </div>
     <div class="stage">
       ${fireplaceSvg}
-      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, xmasNow().on ? palHat(url) : null)}</span>
+      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
@@ -43,6 +43,7 @@ async function feedPage() {
   </section>`);
   shownLevel = null;   // the first draw sets the fire without a whoosh
   shownOrn = null;     // and hangs the ornaments without the pop
+  shownFruit = null;   // and sets the Thanksgiving table the same way
   renderStatus();
   placeRoom();
   setSky();
@@ -65,6 +66,7 @@ function renderStatus() {
   $('.feed').style.setProperty('--rim', (flame.level / FLAME_TOP).toFixed(2));   // the warm glow around the pal grows with the fire
   setFire(flame.level, fx.egg);
   setXmas(days, goal);
+  setFall(days, goal);
   // Today's goal counts both berries (the user asked): red dots for Sweetberries, then a gold one for the Cragberry.
   const n = berriesOn(t);
   const dots = Array.from({ length: Math.max(goal, Math.min(n, 10)) }, (_, i) =>
@@ -76,7 +78,7 @@ function renderStatus() {
   crag.disabled = t.climb > 0;
   $('small', crag).textContent = t.climb ? 'Done for today' : BERRY.climb[1];
   const name = esc(settings.name);
-  $('#mood').innerHTML = fx.passed ? `${name} is stuffed!`
+  $('#mood').innerHTML = fx.passed ? `${name} is stuffed${fallNow().tday ? ' like a turkey' : ''}!`   // on Thanksgiving Day (the user asked)
     : n === goal ? `${name} is full and happy.`
     : n ? `${name} would love ${plural(goal - n, 'more berry', 'more berries')}.`
     : `${name} would love a berry.`;

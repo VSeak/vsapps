@@ -124,8 +124,8 @@ const foxSvg = `<svg class="pal-pic" viewBox="40 60 190 210" aria-hidden="true">
 // placed as fractions of the photo and stays on its head at any size. hat: {x, y, w, r} (holiday.js), or none.
 const palPic = (url, hat = null) => `<span class="pal-body" style="--ar:${url ? 1 : 190 / 210}">${url
   ? `<img class="pal-pic" src="${url}" alt="" onload="this.parentNode.style.setProperty('--ar', this.naturalWidth / this.naturalHeight)">` : foxSvg}${hat ? hatAt(hat) : ''}</span>`;
-const hatAt = h => hatSvg.replace('class="hat"', `class="hat" style="--hx:${+h.x}; --hy:${+h.y}; --hw:${+h.w}; --hr:${+h.r || 0}"`);
-// Where the hat goes this Christmas: where the owner placed it, or the fox's own spot. A photo with no placement has none.
+const hatAt = h => (hatSeason()?.svg ?? hatSvg).replace('class="hat"', `class="hat" style="--hx:${+h.x}; --hy:${+h.y}; --hw:${+h.w}; --hr:${+h.r || 0}"`);
+// Where the hat goes (the Santa hat or the autumn beanie, hatSeason): where the owner placed it, or the fox's own spot. A photo with no placement has none.
 const palHat = url => settings.hat ?? (url ? null : FOX_HAT);
 
 // The daily goal counts every berry: Sweetberries and the day's Cragberry (the user asked). Stuffed (the goal-passed
