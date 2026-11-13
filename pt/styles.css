@@ -637,10 +637,10 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .hb { transform-box: fill-box; transform-origin: 50% 0; }
 .hb.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
 /* The mantel's lanterns sway a little, out of step; their glow grows with the fire (--rim, 0–1) */
-.lantern { transform-box: view-box; animation: sway 4s ease-in-out infinite alternate; }
+.lantern { transform-box: view-box; animation: lantern-sway 4s ease-in-out infinite alternate; }
 .lantern + .lantern { animation-delay: -2.3s; }
 .lantern .halo { fill: #FF7A4D; opacity: calc(.12 + .35 * var(--rim, 0)); }
-@keyframes sway { from { rotate: -4deg; } to { rotate: 4deg; } }
+@keyframes lantern-sway { from { rotate: -4deg; } to { rotate: 4deg; } }   /* not "sway": the flames use that name (the user saw the fire break) */
 /* Fireworks in the window after dark on Eve, New Year's Day, and the Lantern Festival: rings of dots that burst and fade */
 .fireworks { inset: 0; z-index: 2; }
 .boom .fireworks { opacity: 1; }
