@@ -6,7 +6,7 @@
   --gold: #E0A21B; --gold-soft: #FCEFCB; --gold-text: #845A00; --leaf: #4E9A5B; --ember: #C9B3A8;
   --warn-soft: #FBEFD5; --warn-line: #EFC577; --danger: #B3263E;
   --panel: #3A2230; --panel-ink: #FFF6EE;
-  --wall: #F7E6D6; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mortar: #E3C9AE; --mantel: #8A5A3C; --hole: #3A2230;
+  --wall: #F7E6D6; --wall-2: #EDD6C1; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mortar: #E3C9AE; --mantel: #8A5A3C; --hole: #3A2230;
   --couch: #8FA88A; --couch-2: #7E9879; --pillow: #F2C14E; --plant: #4E9A5B; --plant-2: #5FAE6C; --pot: #C46A4A; --rug: #E9A7A0; --rug-2: #FFF6EE;
   --frame: #8A5A3C; --pic: #A8C7D8; --pic-2: #7FA88A; --pic-sun: #F2C14E; --glow: 255 150 60; --glow-k: .55; --veil: rgb(255 246 238 / .82);
   --blanket: #C9603F; --blanket-2: #F2C14E; --blanket-3: rgb(90 30 20 / .22); --table: #A86B45; --table-2: #8A5A3C; --mug: #F2EDE4; --steam: rgb(120 100 100 / .4);
@@ -20,7 +20,7 @@
     --gold: #F4BF45; --gold-soft: #3A2E12; --gold-text: #F4BF45; --leaf: #7CC488; --ember: #6B5560;
     --warn-soft: #33270F; --warn-line: #6A4E1A; --danger: #FF7B88;
     --panel: #30222D; --panel-ink: #F8ECEF;
-  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
+  --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
   --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
@@ -34,7 +34,7 @@
   --gold: #F4BF45; --gold-soft: #3A2E12; --gold-text: #F4BF45; --leaf: #7CC488; --ember: #6B5560;
   --warn-soft: #33270F; --warn-line: #6A4E1A; --danger: #FF7B88;
   --panel: #30222D; --panel-ink: #F8ECEF;
-  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
+  --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
   --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
@@ -138,10 +138,24 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .flame .inner { fill: var(--gold); }
 
 /* Wall, baseboard, and floorboards. --floor-y (placeRoom) is where the fireplace stands. */
-.room { position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: linear-gradient(var(--wall) 0 var(--floor-y, 50%), var(--base) var(--floor-y, 50%) calc(var(--floor-y, 50%) + 7px), transparent 0); }
-.room::after { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--floor-y, 50%) + 7px); bottom: 0;
-  background: repeating-linear-gradient(transparent 0 44px, var(--plank) 44px 46px); }
+/* Texture (the user found the room flat): the wall is pinstriped wallpaper (pairs of --wall-2 lines with a small dot
+   between), shaded a little toward the ceiling and just above the baseboard; the baseboard gets a lit top edge and a
+   shadow under it; the floorboards get end joints, grain, a knot, and a shade per board (an SVG tile, two boards tall),
+   and a soft shadow where they meet the wall. Shading is black/white at low opacity, so it works in both themes. */
+.room { --fy: var(--floor-y, 50%); position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    linear-gradient(transparent calc(var(--fy) - 10px), rgb(0 0 0 / .07) var(--fy), rgb(255 255 255 / .22) var(--fy) calc(var(--fy) + 1.5px),
+      transparent 0 calc(var(--fy) + 5px), rgb(0 0 0 / .16) 0 calc(var(--fy) + 7px), transparent 0),
+    linear-gradient(var(--wall) 0 var(--fy), var(--base) var(--fy) calc(var(--fy) + 7px), transparent 0); }
+/* The wallpaper is its own layer, only as tall as the wall, so its dots don't run onto the floor. Both pseudo-elements
+   stay see-through around their pattern: the firelight glow on the floor (.glow-floor) is painted under the floorboards' lines. */
+.room::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: var(--fy);
+  background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+    radial-gradient(circle, var(--wall-2) 1.3px, transparent 1.9px) 20px 6px / 40px 26px,
+    repeating-linear-gradient(90deg, var(--wall-2) 0 2px, transparent 2px 6px, var(--wall-2) 6px 8px, transparent 8px 40px) -24px 0; }
+.room::after { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--fy) + 7px); bottom: 0;
+  background-image:linear-gradient(rgb(0 0 0 / .14), transparent 26px), repeating-linear-gradient(transparent 0 44px, var(--plank) 44px 46px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='92'%3E%3Crect width='128' height='44' fill='rgba(255,255,255,.05)'/%3E%3Crect x='60' y='46' width='140' height='44' fill='rgba(0,0,0,.04)'/%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M128 0v44M58 46v44' stroke='rgba(0,0,0,.16)' stroke-width='2'/%3E%3Cpath d='M130 0v44M60 46v44' stroke='rgba(255,255,255,.12)'/%3E%3Cpath d='M6 12c30-3 60 3 100-1M140 30c20 2 40-2 58 0M10 33c25 2 50-1 90 1M70 58c40-3 80 3 126-1M4 74c18 2 34-1 48 0M70 80c30 1 60-2 90 0' stroke='rgba(0,0,0,.07)' stroke-width='1.2'/%3E%3Cellipse cx='160' cy='14' rx='5' ry='2' stroke='rgba(0,0,0,.1)'/%3E%3C/g%3E%3C/svg%3E"); }
 .room svg { position: absolute; display: block; z-index: 1; overflow: visible; }   /* the plant's leaves reach past its box (the user saw them cut off) */
 .couch { width: 132px; left: -30px; top: calc(var(--floor-y, 50%) - 64px); }
 .plant { width: 46px; right: 8px; top: calc(var(--floor-y, 50%) - 52px); }
@@ -245,7 +259,12 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 /* The pal stands on the rug just in front of the hearth, the fire showing above it (the user asked to keep its size) */
 .pal { --pal: min(62vw, 260px); position: relative; width: var(--pal); height: var(--pal); display: grid; place-items: center; }
 .fire + .pal { margin-top: 6px; }
-.rug { position: absolute; left: 50%; bottom: 3%; width: 128%; height: 26%; transform: translateX(-50%); border-radius: 50%; background: var(--rug); z-index: -1; }
+/* The rug: bigger (the user asked; it was 128% × 26%) and braided like an oval rag rug (the user found it flat): rings
+   of light and shadow out from the middle, short stitches all the way round, a darker edge, and a soft shadow on the floor */
+.rug { position: absolute; left: 50%; bottom: 1%; width: 150%; height: 31%; transform: translateX(-50%); border-radius: 50%; z-index: -1;
+  background: repeating-conic-gradient(rgb(0 0 0 / .05) 0 1.5deg, transparent 1.5deg 3deg),
+    repeating-radial-gradient(closest-side, transparent 0 5%, rgb(0 0 0 / .09) 5% 6%, rgb(255 255 255 / .1) 6% 7.2%, transparent 7.2% 10%), var(--rug);
+  box-shadow: inset 0 0 0 3px rgb(0 0 0 / .12), inset 0 0 0 5px rgb(255 255 255 / .08), 0 3px 6px rgb(0 0 0 / .14); }
 .rug::after { content: ""; position: absolute; inset: 12% 7%; border: 3px dashed var(--rug-2); border-radius: 50%; }
 .pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; }
 /* The pal in a box its own shape (--ar), standing bottom middle: the Santa hat is placed in fractions of it */
@@ -509,9 +528,15 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .window { position: relative; height: 84px; border: 5px solid var(--frame); border-radius: 8px 8px 3px 3px; overflow: hidden;
   background-color: #9FD0F0; background-image: linear-gradient(rgb(255 255 255 / 0), rgb(255 255 255 / .28)); transition: background-color 3s; }
 .window::before, .window::after { content: ""; position: absolute; background: var(--frame); z-index: 3; }
-.window::before { left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; }
-.window::after { top: 50%; left: 0; right: 0; height: 3px; margin-top: -1.5px; }
-.sill { display: block; height: 6px; margin: 0 -6px; border-radius: 2px; background: var(--mantel); }
+.window::before { left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; box-shadow: -1px 0 rgb(255 255 255 / .14), 1px 0 rgb(0 0 0 / .2); }
+.window::after { top: 50%; left: 0; right: 0; height: 3px; margin-top: -1.5px; box-shadow: 0 -1px rgb(255 255 255 / .14), 0 1px rgb(0 0 0 / .2); }
+/* Texture (the user found it flat): the frame casts a shadow on the glass, a lit outer edge, two streaks of glare
+   across the panes (over the sky and what's in it, under the bars), and a sill with a lit top and a shadow on the wall */
+.window { box-shadow: inset 0 0 0 1px rgb(0 0 0 / .18), inset 2px 2px 3px rgb(0 0 0 / .22), 0 0 0 1px rgb(0 0 0 / .1), 0 -1px 0 1px rgb(255 255 255 / .1); }
+.window > .glare { opacity: 1; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(120deg, transparent 22%, rgb(255 255 255 / .16) 22% 31%, transparent 31% 36%, rgb(255 255 255 / .1) 36% 39%, transparent 39%); }
+.sill { display: block; height: 6px; margin: 0 -6px; border-radius: 2px; background: linear-gradient(rgb(255 255 255 / .2) 0 1.5px, transparent 1.5px 4px, rgb(0 0 0 / .18) 4px), var(--mantel);
+  box-shadow: 0 3px 3px -1px rgb(0 0 0 / .16); }
 .window.sky-night { background-color: #1E2648; }
 .window.sky-dawn { background-color: #F2BFA8; }
 .window.sky-day { background-color: #9FD0F0; }

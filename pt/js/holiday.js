@@ -151,19 +151,36 @@ const cocoaSvg = `<g class="xmas-only">
 const hatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <path d="M14 70C18 38 40 13 64 10c15-2 25 8 27 24l-8 3c-3-9-9-12-15-8 6 13 12 26 16 41z" fill="#C7334F"/>
   <path d="M68 29c6 13 12 26 16 41H62C66 56 68 42 68 29z" fill="#A82A43"/>
+  <path d="M33 66c3-16 10-30 22-44M52 64c1-12 4-24 10-33" fill="none" stroke="#000" stroke-opacity=".14" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M20 62c4-20 16-38 34-47" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="2.6" stroke-linecap="round"/>
   <circle cx="88" cy="38" r="9" fill="#FFF6EE"/><circle cx="91" cy="41" r="4.5" fill="#EDE3D6"/>
+  ${[[82, 33], [86, 30.5], [91, 31], [94.5, 35], [95.5, 40], [80.5, 38], [83, 43.5], [88, 46]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#FFF6EE"/>`).join('')}
+  <path d="M84 36l1.2 1.4M89 34.5l.6 1.6M86 41l1.4-.6" stroke="#D8CBBB" stroke-width=".8" stroke-linecap="round"/>
   <rect x="6" y="63" width="88" height="22" rx="11" fill="#FFF6EE"/>
+  ${Array.from({ length: 12 }, (_, i) => `<circle cx="${12 + i * 6.9}" cy="${64.4 + (i % 2) * .8}" r="2.8" fill="#FFF6EE"/>`).join('')}
   <path d="M14 78h72" stroke="#EDE3D6" stroke-width="5" stroke-linecap="round"/>
+  <path d="${Array.from({ length: 13 }, (_, i) => `M${13 + i * 6} ${70 + (i % 3)}l1.2 1.6`).join('')}" stroke="#D8CBBB" stroke-width=".9" stroke-linecap="round"/>
 </svg>`;
 // The autumn beanie, drawn on the same 100 × 90 with its cuff's middle at (50, 74), so it sits where the Santa hat
 // was placed: one placement (settings.hat) for both, no SQL. Rust knit, ribbed cuff, a mustard pompom, a gold leaf.
 const beanieSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <circle cx="50" cy="15" r="10" fill="#F2C14E"/><circle cx="53" cy="18" r="5.5" fill="#E0A21B" opacity=".55"/>
   <path d="M12 68C12 34 29 21 50 21s38 13 38 47z" fill="#C2602E"/>
+  <path d="${(() => {
+    let d = '';
+    for (let y = 27; y < 63; y += 4.4) for (let x = 14; x < 87; x += 4.2) {
+      const xx = x + (Math.round((y - 27) / 4.4) % 2) * 2.1;
+      if (((xx - 50) / 35) ** 2 + ((y + 1 - 68) / 44) ** 2 < 1) d += `M${(xx - 1.5).toFixed(1)} ${y.toFixed(1)}l1.5 2 1.5-2`;
+    }
+    return d;
+  })()}" fill="none" stroke="#A84F24" stroke-opacity=".75" stroke-width=".8" stroke-linecap="round"/>
   <path d="M30 66c-2-18 3-32 12-41M50 66V22M70 66c2-18-3-32-12-41" fill="none" stroke="#A84F24" stroke-width="2"/>
+  <path d="M20 58c0-14 8-26 20-31" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="3" stroke-linecap="round"/>
+  <path d="M44 12c3 2 4 5 4 8M48 8c1 3 4 5 7 5M55 10c-1 3 0 6 2 8M46 18c3-1 6 0 8 2" fill="none" stroke="#C9900F" stroke-width=".9" stroke-linecap="round"/>
   <rect x="8" y="63" width="84" height="22" rx="8" fill="#9C4A22"/>
   <path d="${Array.from({ length: 11 }, (_, i) => `M${15 + i * 7} 66v16`).join('')}" stroke="#80391A" stroke-width="1.6" stroke-linecap="round"/>
   <path d="M74 67c3-3 5-1 6 1 2-2 5-1 5 1-2 1-2 3-1 5-2 0-4 0-5-1 0 2-2 3-3 3 0-2-1-3-2-4-1 1-3 0-3-1 2-1 3-2 3-4z" fill="#E0A21B"/>
+  <path d="M75 73.5l6-4.5M78 71l-.6-2.4M80 69.6l2 .4" fill="none" stroke="#A86E12" stroke-width=".6" stroke-linecap="round"/>
 </svg>`;
 // Which hat the pal wears now, if any: the Santa hat at Christmas, the beanie through Thanksgiving, the dragon hat at
 // Chinese New Year, the witch hat in October.
@@ -212,7 +229,10 @@ function fruitSvg(i, gold) {
 }
 const harvestTableSvg = `<svg class="harvest fall-only" viewBox="0 0 148 72">
   <rect x="10" y="48" width="4" height="24" fill="var(--table-2)"/><rect x="118" y="48" width="4" height="24" fill="var(--table-2)"/>
-  <path d="M2 39h180v12H2z" fill="#EADCC2"/><path d="M2 39h180v1.4H2z" fill="rgb(0 0 0 / .06)"/>
+  <path d="M12.8 50v20M120.8 50v20" stroke="#000" stroke-opacity=".18"/>
+  <path d="M2 39h180v12H2z" fill="#EADCC2"/>
+  <path d="${Array.from({ length: 30 }, (_, i) => `M${4 + i * 5} 40.5v10`).join('')}" stroke="#000" stroke-opacity=".035" stroke-width="1.6"/>
+  <path d="M20 42v9M46 41.5v9.5M74 42v9M100 41.5v9.5M130 42v9" stroke="#000" stroke-opacity=".08" stroke-width="2.4" stroke-linecap="round"/><path d="M2 39h180v1.4H2z" fill="rgb(0 0 0 / .06)"/>
   <path d="M2 46.5h180v1.8H2z" fill="#B5562E"/><path d="M2 50h180v1H2z" fill="rgb(0 0 0 / .1)"/>
   <path d="M112 14C126 15 137 23 141 34l.5 4.5c-8 2-20 2-29.5 1.5z" fill="#C4914F"/>
   <path d="M119 15.5c2 7 2 16 0 24.5M126 18c1.8 6 1.8 14 0 21.8M133 23c1.2 4.6 1.2 10.6 0 16" fill="none" stroke="#9C6B35" stroke-width="1.6"/>
@@ -366,6 +386,8 @@ const cnyCornerSvg = `<svg class="cny-corner cny-only" viewBox="0 -30 170 190">
   <g transform="translate(68 -37.5) scale(1.25)">${kumquatTree}</g>
   <rect x="52" y="104" width="250" height="5" rx="1.5" fill="#B3263E"/><rect x="52" y="109" width="250" height="8" rx="1" fill="#8E1B30"/>
   <path d="M53 113h250" stroke="#E0A21B" stroke-width=".9"/>
+  <path d="M54 105.2h120" stroke="#fff" stroke-opacity=".3" stroke-linecap="round"/><path d="M60 111h80" stroke="#fff" stroke-opacity=".12" stroke-linecap="round"/>
+  <path d="M59 120v32M148 120v32" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
   <path d="M57 117h7v37c0 2 2 3 4 3h-11zM146 117h7v40h-11c2 0 4-1 4-3z" fill="#7A1628"/>
   <g transform="translate(46 0)">${incense.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9C3A26" stroke-width="1.1"/>
     <circle class="ember-tip" cx="${x2}" cy="${y2}" r="1.2" fill="#FF8A3D"/>`).join('')}
@@ -414,7 +436,10 @@ const dumplingsSvg = `<g class="feast-only">
 const dragonHatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <path d="M35 32C30 22 26 14 21 4M28 18l-9 1M65 32c5-10 9-18 14-28M72 18l9 1" fill="none" stroke="#E0A21B" stroke-width="4.5" stroke-linecap="round"/>
   <path d="M18 52l-6-12 10 2-3-14 11 6 1-14 9 9 10-14 10 14 9-9 1 14 11-6-3 14 10-2-6 12z" fill="#F2B630"/>
+  <path d="M30 18l-3 1.5M33 26l-3 1M70 18l3 1.5M67 26l3 1" stroke="#B07A12" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M30 36l-6-6M38 30l-2-8M50 29v-10M62 30l2-8M70 36l6-6" fill="none" stroke="#D9981C" stroke-width="1.2" stroke-linecap="round"/>
   <path d="M12 68C12 40 29 26 50 26s38 14 38 42z" fill="#C7233A"/>
+  <path d="M19 58c1-14 10-24 22-28" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="3" stroke-linecap="round"/>
   <path d="M26 58a5 5 0 0 1 10 0M42 58a5 5 0 0 1 10 0M58 58a5 5 0 0 1 10 0M34 48a5 5 0 0 1 10 0M50 48a5 5 0 0 1 10 0M42 38a5 5 0 0 1 10 0"
     fill="none" stroke="#A11B2F" stroke-width="1.4"/>
   <path d="M26 39c3-4 9-4 12 0M62 39c3-4 9-4 12 0" fill="none" stroke="#F2C14E" stroke-width="2.6" stroke-linecap="round"/>
@@ -424,6 +449,8 @@ const dragonHatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <path d="M9 72c-7-3-11 3-7 7s8-1 4-3M91 72c7-3 11 3 7 7s-8-1-4-3" fill="none" stroke="#E0A21B" stroke-width="1.8" stroke-linecap="round"/>
   <path d="M20 84l3 5.5 3-5.5zM74 84l3 5.5 3-5.5zM36 84l2 3.5 2-3.5zM60 84l2 3.5 2-3.5z" fill="#FFFDF8"/>
   <rect x="8" y="64" width="84" height="20" rx="10" fill="#F2B630"/><path d="M14 80h72" stroke="#D9981C" stroke-width="2" stroke-linecap="round"/>
+  <path d="M16 67.4h68" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M24 71v6M32 70v8M68 70v8M76 71v6" stroke="#D9981C" stroke-width=".9" stroke-linecap="round"/>
   <ellipse cx="42" cy="72" rx="3" ry="2.2" fill="#A86E12"/><ellipse cx="58" cy="72" rx="3" ry="2.2" fill="#A86E12"/>
 </svg>`;
 
@@ -535,6 +562,8 @@ const hwTableSvg = `<svg class="hw-table halloween-only" viewBox="0 0 148 72">
   <path d="M51 43.6h14M51 43.6l13 6M51 43.6l9 10.6M51 43.6v14M53.6 43.6q-.6 2.2-2.6 2.6M57.4 43.6q-1 4.2-6.4 5M61.6 43.6q-1.6 6.6-10.6 7.4"
     fill="none" stroke="#D9D4CC" stroke-width=".35" opacity=".85"/>
   <rect x="40" y="37" width="160" height="7" rx="1" fill="#4A3328"/><path d="M40 37.4h160" stroke="#6B4C3A" stroke-width=".8"/>
+  <path d="M42 40c14-.8 26 .6 40-.2M44 42.4c10 .4 18-.4 30 .2M40 41.2c4 0 7-.3 9-.1" fill="none" stroke="#2E1F18" stroke-width=".5"/>
+  <path d="M49.6 44v28" stroke="#000" stroke-opacity=".25" stroke-width="1.4"/>
   <path d="M56 37h150v9.5l-3 2.6-2.4-2.4-3.2 3.4-2-2.8-3 3.6-2.6-3.4-2.4 2.4-3-2.8-3.2 4-2.2-3.4-3 2.6-2.6-2.8-2.6 3.4-3.2-3-2.4 2.4-2.6-3.2-3 3.8-2.4-3.4-2.8 2.4-3-2.6-2.4 3.4-3-3.2-2.6 2.6-2.4-2.4-3.2 3.2-2.2-3.2-3 2.8-2.6-2.4-2.8 3.6-2.4-3.6-3.2 2.4-2.4-2.6-2.6 3.2-3-3z"
     fill="#C9C3BA" opacity=".88"/>
   <path d="M66 49.2q.6 4-.8 7M83 50.4q-.4 3.4.8 5.6M101 49.6q.8 3.6 0 6.4M126 50.2q-.6 3 .4 5" fill="none" stroke="#D9D4CC" stroke-width=".35" opacity=".8"/>
@@ -598,9 +627,15 @@ const ghostSvg = `<g class="halloween-only">
 const witchHatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
   <path d="M26 70C32 50 40 32 52 18c4-5 11-9 19-10-4 4-6 8-7 13 2 16 6 32 10 49z" fill="#3B2A4F"/>
   <path d="M64 21c2 16 6 32 10 49H62c2-16 2-33 2-49z" fill="#2E2040"/>
+  <path d="M38 52c4-2 8-1 11 1M44 38c3-1 6 0 8 2M54 26c2 0 4 1 5 3" fill="none" stroke="#1F1530" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M33 62c5-18 13-34 24-46" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M46 42l9-1.4 1.2 8.6-9 1.2z" fill="#5A4372"/><path d="M47.2 43.2l7-1.1M48.4 49l7-1M47.6 43.6l.8 5.2M54.4 42.4l.8 5.4" fill="none" stroke="#C9A6E8" stroke-width=".5" stroke-dasharray="1 .8"/>
   <ellipse cx="50" cy="74" rx="47" ry="9" fill="#2E2040"/><ellipse cx="50" cy="72.6" rx="38" ry="5.4" fill="#3B2A4F"/>
+  <path d="M5 75.4c16 5 74 5 90 0" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="1.2" stroke-linecap="round"/>
   <path d="M27.4 62h46.2l1.8 9.2C64 73.6 36 73.6 25.4 71.2z" fill="#E07A24"/>
+  <path d="M28 63.6h45M26.6 69.6c11 2.4 37 2.4 48 0" fill="none" stroke="#9C4A12" stroke-width=".6" stroke-dasharray="1.6 1.2"/>
   <rect x="43.5" y="61" width="13" height="11" rx="1.5" fill="none" stroke="#F2C14E" stroke-width="2.6"/>
+  <path d="M44.4 62.6h4" stroke="#fff" stroke-opacity=".6" stroke-width="1" stroke-linecap="round"/>
 </svg>`;
 
 // Carves the pumpkin, sets out the jack-o'-lanterns, and sets the classes; renderStatus calls it with setXmas. A new cut

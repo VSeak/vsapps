@@ -7,10 +7,20 @@
 // The floor starts where the fireplace stands, wherever the layout puts it: placeRoom measures it into --floor-y.
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
 const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></span><span class="glow-floor"></span>
-  <svg class="wall-pic" viewBox="0 0 46 58"><rect width="46" height="58" rx="4" fill="var(--frame)"/><rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
-    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/></svg>
+  <svg class="wall-pic" viewBox="0 0 46 58"><path d="M13 .5L23-7l10 7.5" fill="none" stroke="#000" stroke-opacity=".3" stroke-width=".6"/><circle cx="23" cy="-7" r="1" fill="#000" opacity=".35"/>
+    <rect width="46" height="58" rx="4" fill="var(--frame)"/>
+    <!-- Texture (the user found it flat): a bevelled frame with grain, a shadow inside its top and left, brushy sky, hill, and sun strokes -->
+    <rect x="1" y="1" width="44" height="56" rx="3.4" fill="none" stroke="#fff" stroke-opacity=".16"/><rect x="4.5" y="4.5" width="37" height="49" rx="2.4" fill="none" stroke="#000" stroke-opacity=".22"/>
+    <path d="M2.6 12v34M43.4 10v30M10 2.6h22M14 55.4h24" stroke="#000" stroke-opacity=".12" stroke-width=".5"/>
+    <rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
+    <path d="M9 12c6-1.4 10 1 15-.4M10 24c5-1 9 .8 13-.2M27 28c3-.8 6 .4 9-.2" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/>
+    <path d="M16 32l3 12M24 40l-2 7M30 34l2 9M10 47c6-1 12 0 18-1" fill="none" stroke="#000" stroke-opacity=".14" stroke-width=".9" stroke-linecap="round"/>
+    <path d="M16 32l-6 7M30 34l-3 3" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width=".9" stroke-linecap="round"/>
+    <circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/><path d="M29.3 15.6a2.4 2.4 0 0 1 2.6-1.2" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".8" stroke-linecap="round"/>
+    <path d="M6 6h34v2.2H8.2V52H6z" fill="#000" opacity=".16"/></svg>
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
-    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span><span class="leaves">${'<i></i>'.repeat(6)}</span><span class="fireworks"><i></i><i></i><i></i></span><span class="bats">${batSvg.repeat(3)}</span></div><span class="sill"></span>
+    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span><span class="leaves">${'<i></i>'.repeat(6)}</span><span class="fireworks"><i></i><i></i><i></i></span><span class="bats">${batSvg.repeat(3)}</span><span class="glare"></span></div><span class="sill"></span>
     <svg class="win-wreath" viewBox="6 12 34 36" aria-hidden="true">${wreathSvg}${fuSvg}</svg></div>
   <svg class="couch" viewBox="0 0 130 100">
     <!-- Detail (the user found it flat): a fine diagonal weave over the fabric, piping highlights, tufted buttons,
@@ -43,10 +53,23 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <rect x="103.5" y="38" width="21" height="52" rx="9" fill="none" stroke="#000" stroke-opacity=".12" stroke-width=".9"/>
     <path d="M104 87.5h20" stroke="#000" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/></svg>
   <svg class="side-table" viewBox="0 0 50 74">
-    <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
-    <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
+    <!-- Texture (the user found it flat): a turned leg with a ring and shading, grain rings and a lit rim on the top, a
+         shadow on the floor; the mug gets a glaze highlight, shading, a berry-red band, and a lip -->
+    <ellipse cx="25" cy="71" rx="17" ry="2.6" fill="#000" opacity=".14"/>
+    <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><path d="M13 67.6a12 3 0 0 0 24 0" fill="none" stroke="#000" stroke-opacity=".18"/>
+    <rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/><rect x="26" y="32" width="2" height="35" fill="#000" opacity=".16"/>
+    <rect x="22.8" y="34" width="1" height="31" fill="#fff" opacity=".12"/>
+    <rect x="20.5" y="47" width="9" height="3.2" rx="1.6" fill="var(--table-2)"/><rect x="20.5" y="47" width="9" height="1.2" rx=".6" fill="#fff" opacity=".16"/>
+    <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><path d="M4 33.2h42" stroke="#000" stroke-opacity=".2"/>
+    <ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
+    <g fill="none" stroke="#000" stroke-opacity=".1" stroke-width=".5"><ellipse cx="27" cy="30.4" rx="15" ry="3.3"/><ellipse cx="27" cy="30.6" rx="8" ry="1.7"/></g>
+    <path d="M4 28.6c6-3.2 14-4 21-4s15 .8 21 4" fill="none" stroke="#fff" stroke-opacity=".2" stroke-width=".8"/>
+    <ellipse cx="25" cy="29.4" rx="8" ry="1.4" fill="#000" opacity=".14"/>
     <path d="M31 18.5h2.5a3.2 3.2 0 0 1 0 6.4H31" fill="none" stroke="var(--mug)" stroke-width="2"/>
-    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}${ghostSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}
+    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/>
+    <rect x="18" y="21" width="13" height="2.2" fill="#C7334F" opacity=".8"/><path d="M28 16.5v11" stroke="#000" stroke-opacity=".1" stroke-width="3"/>
+    <path d="M20 17.5v9" stroke="#fff" stroke-opacity=".5" stroke-width="1.2" stroke-linecap="round"/>
+    <ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/><path d="M19.2 15.9a5.3 1.3 0 0 0 10.6 0" fill="none" stroke="#000" stroke-opacity=".25" stroke-width=".4"/>${cocoaSvg}${ghostSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>
@@ -161,8 +184,17 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <rect x="9" y="164" width="132" height="6" rx="2" fill="var(--stone)"/><rect x="9" y="164" width="132" height="6" rx="2" fill="#fff" opacity=".1"/>
     <rect x="9" y="164" width="132" height="1.4" rx=".7" fill="#fff" opacity=".18"/>
     ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
+    <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
-    <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
+    <path d="M52 158.4h18M76 157.8h20M56 161.2h12M73 162h22M51 163.2h9" stroke="#3A2214" stroke-opacity=".55" stroke-width=".7" stroke-linecap="round"/>
+    <path d="M51 156.9h45" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
+    <ellipse cx="99" cy="160.5" rx="3.6" ry="4.3" fill="#C49A6C"/><ellipse cx="99" cy="160.5" rx="2.2" ry="2.7" fill="none" stroke="#8A5A3C" stroke-width=".5"/>
+    <circle cx="99" cy="160.5" r=".7" fill="#8A5A3C"/>
+    <g transform="rotate(-8 75 154)"><rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C"/>
+      <path d="M58 152.3h14M76 152h16M62 155.4h20" stroke="#3A2214" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>
+      <path d="M58 150.9h34" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
+      <ellipse cx="57.5" cy="154" rx="3.3" ry="3.9" fill="#C9A275"/><ellipse cx="57.5" cy="154" rx="1.9" ry="2.3" fill="none" stroke="#8A5A3C" stroke-width=".5"/>
+      <circle cx="57.5" cy="154" r=".6" fill="#8A5A3C"/></g>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
   </svg>
   <span class="embers" id="embers"></span>
