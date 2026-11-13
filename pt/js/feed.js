@@ -151,7 +151,7 @@ function celebrate() {
 
 // ---------- Touching the pal (the user's partner asked) ----------
 // Tap = boop: a squish and a bubble that depends on today (hungry: a Sweetberry and ?, partway: "More berries please!",
-// goal met: hearts pop out, stuffed: "So full…", with a turkey on Thanksgiving Day). Press and hold = pet: the pal rocks
+// goal met: hearts pop out, stuffed: "So stuffed…", with a turkey on Thanksgiving Day). Press and hold = pet: the pal rocks
 // and hearts float up until you let go. Five taps in 2 seconds = dizzy: a hop and a spin, then a wobble with stars and
 // swirls circling its head. Taps wait while a berry is flying in or the pal is bouncing or dizzy.
 let palBusy = 0, taps = [], holdTimer, petTimer;
@@ -206,7 +206,7 @@ function boop() {
   if (n === goal) return heartBurst();
   bubble(!n ? `${berrySvg('daily', 'tiny')}<b>?</b>`
     : n < goal ? 'More berries please!'
-    : `So full…${fallNow().tday ? ' 🦃' : cnyNow().feast ? ' 🥟' : halloweenNow().hday ? ' 🍬' : ''}`);
+    : `So stuffed…${fallNow().tday ? ' 🦃' : cnyNow().feast ? ' 🥟' : halloweenNow().hday ? ' 🍬' : ''}`);
   if (n > goal && !reducedMotion()) for (let i = 0; i < 4; i++) sparkle(i * 120);
 }
 
