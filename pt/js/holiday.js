@@ -284,12 +284,12 @@ function fruitSvg(i, gold) {
   return `<g class="fruit" data-i="${i}">${body}${spark}</g>`;
 }
 const harvestTableSvg = `<svg class="harvest fall-only" viewBox="0 0 148 72">
-  <rect x="10" y="48" width="4" height="24" fill="var(--table-2)"/><rect x="118" y="48" width="4" height="24" fill="var(--table-2)"/>
-  <path d="M12.8 50v20M120.8 50v20" stroke="#000" stroke-opacity=".18"/>
-  <path d="M2 39h180v12H2z" fill="#EADCC2"/>
-  <path d="${Array.from({ length: 30 }, (_, i) => `M${4 + i * 5} 40.5v10`).join('')}" stroke="#000" stroke-opacity=".035" stroke-width="1.6"/>
-  <path d="M20 42v9M46 41.5v9.5M74 42v9M100 41.5v9.5M130 42v9" stroke="#000" stroke-opacity=".08" stroke-width="2.4" stroke-linecap="round"/><path d="M2 39h180v1.4H2z" fill="rgb(0 0 0 / .06)"/>
-  <path d="M2 46.5h180v1.8H2z" fill="#B5562E"/><path d="M2 50h180v1H2z" fill="rgb(0 0 0 / .1)"/>
+  <rect x="34" y="48" width="4" height="24" fill="var(--table-2)"/><rect x="118" y="48" width="4" height="24" fill="var(--table-2)"/>
+  <path d="M36.8 50v20M120.8 50v20" stroke="#000" stroke-opacity=".18"/>
+  <path d="M30 39h152v12H30z" fill="#EADCC2"/><path d="M30.5 39v12" stroke="#000" stroke-opacity=".12"/>
+  <path d="${Array.from({ length: 25 }, (_, i) => `M${32 + i * 5} 40.5v10`).join('')}" stroke="#000" stroke-opacity=".035" stroke-width="1.6"/>
+  <path d="M46 41.5v9.5M74 42v9M100 41.5v9.5M130 42v9" stroke="#000" stroke-opacity=".08" stroke-width="2.4" stroke-linecap="round"/><path d="M30 39h152v1.4H30z" fill="rgb(0 0 0 / .06)"/>
+  <path d="M30 46.5h152v1.8H30z" fill="#B5562E"/><path d="M30 50h152v1H30z" fill="rgb(0 0 0 / .1)"/>
   <path d="M112 14C126 15 137 23 141 34l.5 4.5c-8 2-20 2-29.5 1.5z" fill="#C4914F"/>
   <path d="${(() => {
     let d = '';
