@@ -353,25 +353,27 @@ const kumquatTree = `<rect x="37.5" y="70" width="5" height="16" fill="#6B4128"/
 
 // The offering table (the user asked): a low red-lacquer table running off the right edge, with an incense burner
 // (three sticks, glowing tips, smoke curling up), a pyramid of mandarins, and a dish of apples, and the kumquat tree
-// standing on its right end. Corner units: 170 across, tabletop at y 108.
+// standing on the floor behind it, its pot peeking over the fruit. The table starts at x 52: the fireplace is on a
+// layer above the room, so anything further left was hidden behind it (the user saw the incense covered on a phone).
+// Corner units: 170 across, tabletop at y 104.
 const fruitBall = (x, y, r, fill, leaf) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>
   <circle cx="${x - r * .35}" cy="${y - r * .35}" r="${r * .22}" fill="#fff" opacity=".45"/>
   ${leaf ? `<path d="M${x} ${y - r + .4}c1-2 3-2.6 4.6-2.1-.5 1.8-2.6 2.8-4.6 2.1z" fill="#4E9A5B"/>` : `<circle cx="${x}" cy="${y - r + .8}" r=".7" fill="#5C7A34"/>`}`;
 const incense = [[14.5, 92, 12.5, 66], [18, 92, 18, 63], [21.5, 92, 23.5, 66]];
 const cnyCornerSvg = `<svg class="cny-corner cny-only" viewBox="0 -30 170 190">
-  <g transform="translate(68 -29.5) scale(1.25)">${kumquatTree}</g>
-  <rect x="2" y="104" width="300" height="5" fill="#B3263E"/><rect x="2" y="109" width="300" height="8" fill="#8E1B30"/>
-  <path d="M2 113h300" stroke="#E0A21B" stroke-width=".9"/>
-  <path d="M8 117h7v37c0 2 2 3 4 3h-11zM140 117h7v40h-11c2 0 4-1 4-3z" fill="#7A1628"/>
-  ${incense.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9C3A26" stroke-width="1.1"/>
+  <g transform="translate(68 -37.5) scale(1.25)">${kumquatTree}</g>
+  <rect x="52" y="104" width="250" height="5" rx="1.5" fill="#B3263E"/><rect x="52" y="109" width="250" height="8" rx="1" fill="#8E1B30"/>
+  <path d="M53 113h250" stroke="#E0A21B" stroke-width=".9"/>
+  <path d="M57 117h7v37c0 2 2 3 4 3h-11zM146 117h7v40h-11c2 0 4-1 4-3z" fill="#7A1628"/>
+  <g transform="translate(46 0)">${incense.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9C3A26" stroke-width="1.1"/>
     <circle class="ember-tip" cx="${x2}" cy="${y2}" r="1.2" fill="#FF8A3D"/>`).join('')}
   <g class="smoke">${incense.map(([, , x, y]) => `<path d="M${x} ${y - 1}c-3-4 3-7 0-11s3-7 0-11"/>`).join('')}</g>
   <path d="M8 92h20c0 7-4 12-10 12S8 99 8 92z" fill="#B8862F"/><ellipse cx="18" cy="92" rx="10" ry="2" fill="#8A6420"/>
-  <ellipse cx="18" cy="92.2" rx="8" ry="1.3" fill="#D8CFC2"/><path d="M11 101l-1 3.5M25 101l1 3.5" stroke="#8A6420" stroke-width="1.6" stroke-linecap="round"/>
-  <ellipse cx="46" cy="103.6" rx="13" ry="2.4" fill="#F4F1EA"/><ellipse cx="46" cy="103.6" rx="9" ry="1.2" fill="none" stroke="#2F5DA8" stroke-width=".5"/>
-  ${[[37, 98.6], [46, 98.6], [55, 98.6], [41.5, 91], [50.5, 91]].map(([x, y]) => fruitBall(x, y, 4.6, '#F08A24')).join('')}${fruitBall(46, 83.4, 4.6, '#F08A24', true)}
-  <ellipse cx="77" cy="103.6" rx="10" ry="2" fill="#F4F1EA"/>
-  ${fruitBall(72.5, 99, 4.3, '#C7334F')}${fruitBall(81.5, 99, 4.3, '#B8323F')}${fruitBall(77, 91.6, 4.3, '#D9433F', true)}
+  <ellipse cx="18" cy="92.2" rx="8" ry="1.3" fill="#D8CFC2"/><path d="M11 101l-1 3.5M25 101l1 3.5" stroke="#8A6420" stroke-width="1.6" stroke-linecap="round"/></g>
+  <g transform="translate(50 0)"><ellipse cx="46" cy="103.6" rx="13" ry="2.4" fill="#F4F1EA"/><ellipse cx="46" cy="103.6" rx="9" ry="1.2" fill="none" stroke="#2F5DA8" stroke-width=".5"/>
+  ${[[37, 98.6], [46, 98.6], [55, 98.6], [41.5, 91], [50.5, 91]].map(([x, y]) => fruitBall(x, y, 4.6, '#F08A24')).join('')}${fruitBall(46, 83.4, 4.6, '#F08A24', true)}</g>
+  <g transform="translate(51 0)"><ellipse cx="77" cy="103.6" rx="10" ry="2" fill="#F4F1EA"/>
+  ${fruitBall(72.5, 99, 4.3, '#C7334F')}${fruitBall(81.5, 99, 4.3, '#B8323F')}${fruitBall(77, 91.6, 4.3, '#D9433F', true)}</g>
 </svg>`;
 
 // Two red lanterns hung from the mantel's ends, swaying a little; their glow grows with the fire. Fireplace units.

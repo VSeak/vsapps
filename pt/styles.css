@@ -625,9 +625,9 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 /* A kumquat tree takes the plant's corner (the picture stays); dumplings only on Eve and New Year's Day */
 .feed:not(.cny) .cny-only, .feed:not(.feast) .feast-only, .feed.cny .plant { display: none; }
 /* The offering table stands forward on the floor (tabletop 20px below the floor line) with the kumquat tree on its right end */
-.room .cny-corner { width: 170px; right: -14px; top: calc(var(--floor-y, 50%) - 118px); }
-@media (min-width: 520px) { .room .cny-corner { width: 220px; right: 0; top: calc(var(--floor-y, 50%) - 153px); } }
-@media (max-height: 760px) { .room .cny-corner { width: 140px; top: calc(var(--floor-y, 50%) - 97px); } }
+.room .cny-corner { width: 170px; right: -14px; top: calc(var(--floor-y, 50%) - 110px); }
+@media (min-width: 520px) { .room .cny-corner { width: 220px; right: 0; top: calc(var(--floor-y, 50%) - 142px); } }
+@media (max-height: 760px) { .room .cny-corner { width: 140px; top: calc(var(--floor-y, 50%) - 91px); } }
 /* Incense: the tips glow on and off; smoke curls up and fades like the mug's steam, slower */
 .cny-corner .smoke path { fill: none; stroke: var(--steam); stroke-width: 1; stroke-linecap: round; transform-box: fill-box; transform-origin: 50% 100%;
   opacity: 0; animation: steam 5s ease-out infinite; }
