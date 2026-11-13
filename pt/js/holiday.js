@@ -104,6 +104,7 @@ function giftSvg(i) {
 const GIFT_DRAW = GIFT_SPOTS.map((s, i) => i).sort((a, b) => GIFT_SPOTS[a][3] - GIFT_SPOTS[b][3]);
 
 const xmasTreeSvg = `<svg class="xmas-tree xmas-only" viewBox="-70 0 150 150">
+  <ellipse cx="40" cy="110.4" rx="21" ry="2.4" fill="#000" opacity=".18"/>
   <g id="giftsBack"></g><rect x="36" y="86" width="8" height="8" fill="#6B4128"/>
   <path d="M40 44 8 88h64z" fill="var(--plant)"/><path d="M40 24 16 60h48z" fill="var(--plant-2)"/><path d="M40 8 24 36h32z" fill="var(--plant)"/>
   <path d="M40 44 8 88h18zM40 24 16 60h14zM40 8 24 36h9z" fill="rgb(0 0 0 / .08)"/>
@@ -284,7 +285,9 @@ function fruitSvg(i, gold) {
   return `<g class="fruit" data-i="${i}">${body}${spark}</g>`;
 }
 const harvestTableSvg = `<svg class="harvest fall-only" viewBox="0 0 148 72">
+  <rect x="30" y="69.6" width="152" height="4.4" rx="2.2" fill="#000" opacity=".16"/>
   <rect x="34" y="48" width="4" height="24" fill="var(--table-2)"/><rect x="118" y="48" width="4" height="24" fill="var(--table-2)"/>
+  <path d="M33 35.4h150V39H30z" fill="#F4E9D4"/><path d="M33 35.4h150" stroke="#000" stroke-opacity=".1" stroke-width=".6"/>
   <path d="M36.8 50v20M120.8 50v20" stroke="#000" stroke-opacity=".18"/>
   <path d="M30 39h152v12H30z" fill="#EADCC2"/><path d="M30.5 39v12" stroke="#000" stroke-opacity=".12"/>
   <path d="${Array.from({ length: 25 }, (_, i) => `M${32 + i * 5} 40.5v10`).join('')}" stroke="#000" stroke-opacity=".035" stroke-width="1.6"/>
@@ -474,6 +477,8 @@ const fruitBall = (x, y, r, fill, leaf) => `<circle cx="${x}" cy="${y}" r="${r}"
 const incense = [[14.5, 92, 12.5, 66], [18, 92, 18, 63], [21.5, 92, 23.5, 66]];
 const cnyCornerSvg = `<svg class="cny-corner cny-only" viewBox="0 -30 170 190">
   <g transform="translate(68 -37.5) scale(1.25)">${kumquatTree}</g>
+  <rect x="52" y="155.4" width="250" height="4.4" rx="2.2" fill="#000" opacity=".18"/>
+  <path d="M55.5 100.6h250v3.6H52z" fill="#C73348"/><path d="M58 101.6h110" stroke="#fff" stroke-opacity=".25" stroke-linecap="round"/>
   <rect x="52" y="104" width="250" height="5" rx="1.5" fill="#B3263E"/><rect x="52" y="109" width="250" height="8" rx="1" fill="#8E1B30"/>
   <path d="M53 113h250" stroke="#E0A21B" stroke-width=".9"/>
   <path d="M54 105.2h120" stroke="#fff" stroke-opacity=".3" stroke-linecap="round"/><path d="M60 111h80" stroke="#fff" stroke-opacity=".12" stroke-linecap="round"/>
@@ -665,10 +670,13 @@ const hwTableSvg = `<svg class="hw-table halloween-only" viewBox="0 0 148 72">
   <defs><mask id="hwMoon"><circle cx="112" cy="24" r="10" fill="#fff"/><circle cx="116.5" cy="20" r="8.6" fill="#000"/></mask>
     <filter id="hwGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.1" result="b"/>
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect x="40" y="69.4" width="160" height="4.4" rx="2.2" fill="#000" opacity=".2"/>
   <g id="jacksBack"></g>
   <rect x="46" y="43" width="5" height="29" fill="#3E2A22"/><rect x="45" y="66" width="7" height="6" rx="1" fill="#33221C"/>
   <path d="M51 43.6h14M51 43.6l13 6M51 43.6l9 10.6M51 43.6v14M53.6 43.6q-.6 2.2-2.6 2.6M57.4 43.6q-1 4.2-6.4 5M61.6 43.6q-1.6 6.6-10.6 7.4"
     fill="none" stroke="#D9D4CC" stroke-width=".35" opacity=".85"/>
+  <path d="M43 33.4h160V37H40z" fill="#5A3E30"/><path d="M58.4 33.4h150V37H56z" fill="#C9C3BA" opacity=".88"/>
+  <path d="M46 35.2h8M60 35.4c14-.4 30 .3 46 0" fill="none" stroke="#2E1F18" stroke-width=".4"/>
   <rect x="40" y="37" width="160" height="7" rx="1" fill="#4A3328"/><path d="M40 37.4h160" stroke="#6B4C3A" stroke-width=".8"/>
   <path d="M42 40c14-.8 26 .6 40-.2M44 42.4c10 .4 18-.4 30 .2M40 41.2c4 0 7-.3 9-.1" fill="none" stroke="#2E1F18" stroke-width=".5"/>
   <path d="M49.6 44v28" stroke="#000" stroke-opacity=".25" stroke-width="1.4"/>

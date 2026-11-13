@@ -6,7 +6,7 @@
 
 // The floor starts where the fireplace stands, wherever the layout puts it: placeRoom measures it into --floor-y.
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
-const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></span><span class="glow-floor"></span>
+const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="floor"></svg><span class="glow-wall"></span><span class="glow-floor"></span>
   <svg class="wall-pic" viewBox="0 0 46 58"><path d="M13 .5L23-7l10 7.5" fill="none" stroke="#000" stroke-opacity=".3" stroke-width=".6"/><circle cx="23" cy="-7" r="1" fill="#000" opacity=".35"/>
     <rect width="46" height="58" rx="4" fill="var(--frame)"/>
     <!-- Texture (the user found it flat): a bevelled frame with grain, a shadow inside its top and left, brushy sky, hill, and sun strokes -->
@@ -27,6 +27,7 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
          seat-cushion seams, a shadow along the bottom, and a second leg. Black/white at low opacity, so it works in both themes. -->
     <defs><pattern id="couchWeave" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
       <path d="M0 .5h3" stroke="#000" stroke-opacity=".07" stroke-width=".8"/></pattern></defs>
+    <rect x="-200" y="95.5" width="332" height="6" rx="3" fill="#000" opacity=".16"/><rect x="-200" y="97" width="330" height="3" rx="1.5" fill="#000" opacity=".12"/>
     <rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/><rect x="38" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
     <path d="M106 92v8M40 92v8" stroke="#000" stroke-opacity=".2" stroke-width="1.2"/>
     <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/><rect x="-200" width="306" height="74" rx="18" fill="url(#couchWeave)"/>
@@ -38,6 +39,14 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <g class="blanket"><rect x="40" y="-4" width="60" height="40" rx="7" fill="var(--blanket)"/>
       <rect x="40" y="6" width="60" height="4" fill="var(--blanket-2)"/><rect x="40" y="22" width="60" height="4" fill="var(--blanket-2)"/>
       <rect x="54" y="-4" width="4" height="40" fill="var(--blanket-3)"/><rect x="80" y="-4" width="4" height="40" fill="var(--blanket-3)"/>
+      <path d="M40 15.5h60M40 28.8h60" stroke="var(--blanket-2)" stroke-width=".7" opacity=".8"/><path d="M67-4v40M91-4v40" stroke="var(--blanket-3)"/>
+      <path d="M54 6h4v4h-4zM80 6h4v4h-4zM54 22h4v4h-4zM80 22h4v4h-4z" fill="#000" opacity=".14"/>
+      <rect x="40" y="-4" width="60" height="40" rx="7" fill="url(#couchWeave)"/>
+      <path d="M44-3.4h52a5 5 0 0 1 3.6 2.4H40.4A5 5 0 0 1 44-3.4z" fill="#fff" opacity=".18"/>
+      <path d="M41 2.2c10 1 20-.6 29 .4s20 1 29-.2" fill="none" stroke="#000" stroke-opacity=".2" stroke-width="1.2"/>
+      <path d="M50 5c-1.5 10-1 20 .5 30M74 5c1 10 .5 21-1 30M88 5c-1 10 0 20 1.5 30" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M52.4 5c-1.5 10-1 20 .5 30M76.2 5c1 10 .5 21-1 30" fill="none" stroke="#fff" stroke-opacity=".1" stroke-width="1.2" stroke-linecap="round"/>
+      <path d="M96 0h1.6a2.4 2.4 0 0 1 2.4 2.4V31a5 5 0 0 1-4 4.9z" fill="#000" opacity=".12"/>
       <path d="M44 36v4M50 36v4M56 36v4M62 36v4M68 36v4M74 36v4M80 36v4M86 36v4M92 36v4M97 36v4" stroke="var(--blanket)" stroke-width="1.6" stroke-linecap="round"/></g>
     <rect x="34" y="14" width="42" height="38" rx="12" fill="var(--pillow)"/>
     <rect x="36.5" y="16.5" width="37" height="33" rx="10" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".9"/>
@@ -73,7 +82,8 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>
-    <path d="M7 44h30l-4 34H11z" fill="var(--pot)"/></svg>
+    <ellipse cx="22" cy="78.6" rx="15" ry="2.2" fill="#000" opacity=".18"/><path d="M7 44h30l-4 34H11z" fill="var(--pot)"/>
+    <path d="M28 46h7l-3.6 32h-5z" fill="#000" opacity=".12"/><path d="M7 44h30" stroke="#fff" stroke-opacity=".2" stroke-width="1.4"/></svg>
   ${xmasTreeSvg}${harvestTableSvg}${cnyCornerSvg}${hwTableSvg}
 </div>`;
 
@@ -189,8 +199,15 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
       <linearGradient id="flSideIn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFD27A"/><stop offset="1" stop-color="#EB7F20"/></linearGradient></defs>
     ${stoneSvg}
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>${holeDetailSvg}
-    <rect x="9" y="164" width="132" height="6" rx="2" fill="var(--stone)"/><rect x="9" y="164" width="132" height="6" rx="2" fill="#fff" opacity=".1"/>
-    <rect x="9" y="164" width="132" height="1.4" rx=".7" fill="#fff" opacity=".18"/>
+    <!-- The hearth sticks out onto the floor (the user found the room's perspective off): its top widens toward you
+         like the floorboards, with slab joints running the same way, a front edge, and a shadow on the floor. The floor
+         starts at y 170, so this reaches past the drawing's bottom (.fire svg is overflow: visible). -->
+    <ellipse cx="75" cy="182.2" rx="72" ry="2.6" fill="#000" opacity=".2"/>
+    <path d="M9 166h132l5 11H4z" fill="var(--stone)"/><path d="M9 166h132l5 11H4z" fill="#fff" opacity=".12"/>
+    <path d="M42 166l-2.4 11M75 166v11M108 166l2.4 11" stroke="var(--mortar)" stroke-width="1.1"/>
+    <path d="M9 166h132" stroke="#000" stroke-opacity=".25"/>
+    <rect x="4" y="177" width="142" height="4.6" rx="1" fill="var(--stone)"/><rect x="4" y="177" width="142" height="4.6" rx="1" fill="#000" opacity=".16"/>
+    <path d="M4.5 177.2h141" stroke="#fff" stroke-opacity=".2"/>
     ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
@@ -210,6 +227,41 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <span class="embers" id="embers"></span>
 </div>`;
 
+// The floor in perspective (the user found the room's perspective off: even rows of boards read as a brick wall).
+// The boards run toward you, their edges meeting at a vanishing point above the fireplace's middle, so they're narrow
+// at the wall and wide at the bottom of the screen. End joints come at rows that get taller toward you, staggered
+// board to board; each length of board gets its own shade and a line of grain (fixed seed, so it's the same every
+// time). The back of the floor is faded toward the floor color and shaded where it meets the wall. Drawn in pixels,
+// to fit the floor's real size, each time placeRoom measures (W × H, fx = the fire's middle).
+function drawFloor(W, H, fx) {
+  const svg = $('#floor');
+  if (!svg || W <= 0 || H <= 0) return;
+  const d = H * .75, s0 = 26, X = (k, y) => fx + k * s0 * (y + d) / d;   // board edge k at height y
+  const N = 9, g = 1.32, rows = Array.from({ length: N + 1 }, (_, j) => H * (g ** j - 1) / (g ** N - 1));
+  let seed = 3, tones = '', joints = '', grain = '', edges = '';
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  // The boards narrow toward the wall, so every board on screen shows at the wall's edge: that sets the range.
+  const kMin = Math.floor(-fx / s0) - 1, kMax = Math.ceil((W - fx) / s0) + 1;
+  for (let k = kMin; k <= kMax; k++) {
+    if ((X(k + 1, 0) < 0 && X(k + 1, H) < 0) || (X(k, 0) > W && X(k, H) > W)) continue;
+    edges += `M${X(k, 0).toFixed(1)} 0L${X(k, H).toFixed(1)} ${H.toFixed(1)}`;
+    const cuts = [0, ...rows.slice(1, -1).filter((_, j) => (j + 1 + ((k % 3) + 3) % 3) % 3 === 0), H];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const a = cuts[i], b = cuts[i + 1], t = rnd();
+      tones += `<path d="M${X(k, a).toFixed(1)} ${a.toFixed(1)}L${X(k + 1, a).toFixed(1)} ${a.toFixed(1)} ${X(k + 1, b).toFixed(1)} ${b.toFixed(1)} ${X(k, b).toFixed(1)} ${b.toFixed(1)}z" fill="${t < .5 ? '#000' : '#fff'}" opacity="${(.02 + rnd() * .05).toFixed(3)}"/>`;
+      if (i > 0) joints += `M${X(k, a).toFixed(1)} ${a.toFixed(1)}L${X(k + 1, a).toFixed(1)} ${a.toFixed(1)}`;
+      const gk = k + .25 + rnd() * .5, ga = a + (b - a) * .15, gb = a + (b - a) * (.5 + rnd() * .4);
+      grain += `M${X(gk, ga).toFixed(1)} ${ga.toFixed(1)}L${X(gk, gb).toFixed(1)} ${gb.toFixed(1)}`;
+    }
+  }
+  svg.setAttribute('viewBox', `0 0 ${W} ${H.toFixed(1)}`);
+  svg.innerHTML = `<defs><linearGradient id="floorFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--floor)" stop-opacity=".6"/><stop offset=".5" style="stop-color:var(--floor)" stop-opacity="0"/></linearGradient>
+      <linearGradient id="floorWall" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="22"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs>
+    ${tones}<path d="${grain}" stroke="#000" stroke-opacity=".07" stroke-width="1"/>
+    <path d="${joints}" stroke="var(--plank)" stroke-width="1.6"/><path d="${edges}" stroke="var(--plank)" stroke-width="1.8"/>
+    <rect width="${W}" height="${H.toFixed(1)}" fill="url(#floorFade)"/><rect width="${W}" height="22" fill="url(#floorWall)"/>`;
+}
+
 // Keeps --floor-y on the feed at the fireplace's foot as the page lays out, fonts load, or the phone turns.
 let roomWatch;
 function placeRoom() {
@@ -223,6 +275,7 @@ function placeRoom() {
     feedEl.style.setProperty('--floor-y', `${F.bottom - top.top - 7}px`);
     feedEl.style.setProperty('--fire-x', `${F.left - top.left + F.width / 2}px`);
     feedEl.style.setProperty('--fire-gy', `${F.top - top.top + F.height * .6}px`);
+    drawFloor(feedEl.clientWidth, feedEl.clientHeight - (F.bottom - top.top), F.left - top.left + F.width / 2);
   };
   roomWatch = new ResizeObserver(place);
   roomWatch.observe(feedEl);

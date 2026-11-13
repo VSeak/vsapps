@@ -140,22 +140,22 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 /* Wall, baseboard, and floorboards. --floor-y (placeRoom) is where the fireplace stands. */
 /* Texture (the user found the room flat): the wall is pinstriped wallpaper (pairs of --wall-2 lines with a small dot
    between), shaded a little toward the ceiling and just above the baseboard; the baseboard gets a lit top edge and a
-   shadow under it; the floorboards get end joints, grain, a knot, and a shade per board (an SVG tile, two boards tall),
-   and a soft shadow where they meet the wall. Shading is black/white at low opacity, so it works in both themes. */
+   shadow under it; the floor (drawFloor, below) runs toward you in perspective,
+   with a soft shadow where it meets the wall. Shading is black/white at low opacity, so it works in both themes. */
 .room { --fy: var(--floor-y, 50%); position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
     linear-gradient(transparent calc(var(--fy) - 10px), rgb(0 0 0 / .07) var(--fy), rgb(255 255 255 / .22) var(--fy) calc(var(--fy) + 1.5px),
       transparent 0 calc(var(--fy) + 5px), rgb(0 0 0 / .16) 0 calc(var(--fy) + 7px), transparent 0),
     linear-gradient(var(--wall) 0 var(--fy), var(--base) var(--fy) calc(var(--fy) + 7px), transparent 0); }
-/* The wallpaper is its own layer, only as tall as the wall, so its dots don't run onto the floor. Both pseudo-elements
-   stay see-through around their pattern: the firelight glow on the floor (.glow-floor) is painted under the floorboards' lines. */
+/* The wallpaper is its own layer, only as tall as the wall, so its dots don't run onto the floor.
+   It stays see-through around its pattern. */
 .room::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: var(--fy);
   background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
     radial-gradient(circle, var(--wall-2) 1.3px, transparent 1.9px) 20px 6px / 40px 26px,
     repeating-linear-gradient(90deg, var(--wall-2) 0 2px, transparent 2px 6px, var(--wall-2) 6px 8px, transparent 8px 40px) -24px 0; }
-.room::after { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--fy) + 7px); bottom: 0;
-  background-image:linear-gradient(rgb(0 0 0 / .14), transparent 26px), repeating-linear-gradient(transparent 0 44px, var(--plank) 44px 46px),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='92'%3E%3Crect width='128' height='44' fill='rgba(255,255,255,.05)'/%3E%3Crect x='60' y='46' width='140' height='44' fill='rgba(0,0,0,.04)'/%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M128 0v44M58 46v44' stroke='rgba(0,0,0,.16)' stroke-width='2'/%3E%3Cpath d='M130 0v44M60 46v44' stroke='rgba(255,255,255,.12)'/%3E%3Cpath d='M6 12c30-3 60 3 100-1M140 30c20 2 40-2 58 0M10 33c25 2 50-1 90 1M70 58c40-3 80 3 126-1M4 74c18 2 34-1 48 0M70 80c30 1 60-2 90 0' stroke='rgba(0,0,0,.07)' stroke-width='1.2'/%3E%3Cellipse cx='160' cy='14' rx='5' ry='2' stroke='rgba(0,0,0,.1)'/%3E%3C/g%3E%3C/svg%3E"); }
+/* The floor is drawn in perspective by drawFloor (room.js) into this SVG, fitted to the floor's size in pixels. It sits
+   under the firelight glow and the furniture (z 0; the other room drawings are z 1). */
+.room .floor { left: 0; top: calc(var(--fy) + 7px); width: 100%; height: calc(100% - var(--fy) - 7px); z-index: 0; overflow: hidden; }
 .room svg { position: absolute; display: block; z-index: 1; overflow: visible; }   /* the plant's leaves reach past its box (the user saw them cut off) */
 .couch { width: 132px; left: -30px; top: calc(var(--floor-y, 50%) - 64px); }
 .plant { width: 46px; right: 8px; top: calc(var(--floor-y, 50%) - 52px); }
@@ -175,7 +175,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .fire { --s: 0; --sl: 0; --sr: 0; --g: 0; position: relative; width: clamp(140px, 42vw, 170px); flex: none;
   transition: --s .8s cubic-bezier(.3, 1.6, .5, 1), --sl .8s cubic-bezier(.3, 1.6, .5, 1), --sr .8s cubic-bezier(.3, 1.6, .5, 1), --g 1.2s ease; }
 .fire.down { transition: --s .6s ease-in, --sl .6s ease-in, --sr .6s ease-in, --g 1s ease; }
-.fire svg { display: block; width: 100%; position: relative; }
+.fire svg { display: block; width: 100%; position: relative; overflow: visible; }   /* the hearth reaches onto the floor below the drawing */
 .fire .fo { fill: #E8442C; transform-box: fill-box; transform-origin: 50% 100%; transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity 0s; }
 .fire .fi { fill: #F5B428; fill: url(#flIn); }
 .fire .fo { fill: url(#flOut); }
