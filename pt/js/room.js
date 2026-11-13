@@ -1,4 +1,4 @@
-// ---------- The cozy room behind the Feed page (the user asked) ----------
+// ---------- The cozy room behind the Home page (the user asked) ----------
 // A wall and a wooden floor, a couch running off the left edge with a throw blanket on its arm, a side table with a
 // steaming mug, a plant and a picture on the right, a window showing the real sky on the left, and a rug under the pal. The fireplace
 // on the back wall is the flame meter (the user's idea): its fire, glow, and sparks follow flameOf's 7 steps

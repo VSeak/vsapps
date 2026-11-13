@@ -119,7 +119,7 @@ async function dayDialog(day) {
     }); } });
   if (changed) redraw();
 
-  // One Cragberry a day (the user asked), here as on Feed: Add Cragberry is off once the day has one.
+  // One Cragberry a day (the user asked), here as on Home: Add Cragberry is off once the day has one.
   function syncCrag(form) {
     const btn = form.querySelector('[data-add="climb"]'), has = feeds.some(x => x.kind === 'climb' && dayOf(x.fed_at) === day);
     btn.disabled = has;

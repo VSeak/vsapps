@@ -22,4 +22,4 @@ If you ran `schema.sql` before these were added, run each once (SQL Editor → N
 
 ## 3. Try it
 
-Sign in, open **Settings**, upload a photo, name your pal, and set the daily goal. Then go to **Feed** and tap a berry after each PT set.
+Sign in, open **Settings**, upload a photo, name your pal, and set the daily goal. Then go to **Home** and tap a berry after each PT set.

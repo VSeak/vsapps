@@ -37,7 +37,7 @@ async function settingsPage() {
     </div>
     ${xmas ? `<div class="card">
       <h2>${hs.title}</h2>
-      <p class="hint">${hs.thru}, ${esc(settings.name)} wears ${hs.what} on Feed.
+      <p class="hint">${hs.thru}, ${esc(settings.name)} wears ${hs.what} on Home.
         ${url ? (settings.hat ? 'Move it, or take it off.' : 'Place it on your photo to put it on.') : 'The fox wears it between its ears; you can move it.'}</p>
       <div class="row wrap">
         <button type="button" class="fill" id="placeHat">${settings.hat ? 'Move Hat' : 'Place Hat'}</button>
@@ -51,7 +51,7 @@ async function settingsPage() {
     </div>` : ''}
     <div class="card">
       <h2>Window</h2>
-      <p class="hint">The window on Feed shows the real sky outside: sunrise, sunset, and the moon where you are.
+      <p class="hint">The window on Home shows the real sky outside: sunrise, sunset, and the moon where you are.
         ${settings.lat != null ? 'Your location is saved, rounded to about 10 km.' : 'Until your location is saved, it uses 7am and 7pm.'}</p>
       <div class="row wrap">
         <button type="button" class="fill" id="useLoc">${settings.lat != null ? 'Update Location' : 'Use My Location'}</button>

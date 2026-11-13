@@ -1,4 +1,4 @@
-// ---------- Feed (#/): the pal, today's progress, and the two berries ----------
+// ---------- Home (#/): the pal, today's progress, and the two berries ----------
 // Tapping a berry throws it from where it sits into the pal (it shrinks as it flies away), the pal bounces with little
 // shake marks around it, and a row goes into pt_feeds. Undo shows for 5 seconds after each throw.
 // Sweetberry = daily PT, Cragberry = climb day PT (the user named them).
@@ -279,7 +279,7 @@ function dizzy() {
 }
 
 // ---------- Sparkles and sparks ----------
-// One timer for both, every half second, only while the Feed page is up and the app is on screen.
+// One timer for both, every half second, only while the Home page is up and the app is on screen.
 // Goal passed (the user asked): a sparkle twinkles somewhere around the pal every ~1.5 s for the rest of the day.
 // Full flame for a week (the user asked): sparks float up off the flame like a real fire.
 let fxTimer, skyTick = 0;
