@@ -3,6 +3,7 @@
 // Tapping a day lists its berries to delete one, or adds one that was forgotten. Tapping the month opens a month and year picker.
 
 let histMonth = null;   // 'YYYY-MM' being shown; starts on this month
+let histYear = null;    // the Year in Berries card's year
 
 async function historyPage() {
   if (!redrawing) view(loading);
@@ -25,6 +26,9 @@ async function historyPage() {
   const isNow = histMonth === today().slice(0, 7);
   // The four monthly cards say which month they count (the user asked): "This Month", or the month shown, like "Oct 2026".
   const when = `<small>${isNow ? 'This Month' : first.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>`;
+  // The Year in Berries card (the user asked): any year from the first berry's to this one. Starts on this year.
+  const thisYr = new Date().getFullYear(), firstYr = Math.min(thisYr, ...feeds.slice(0, 1).map(f => +dayOf(f.fed_at).slice(0, 4)));
+  histYear ??= thisYr;
   const week = [...Array(7)].map((_, i) => new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));   // Nov 1 2026 is a Sunday
   const cells = [...Array(first.getDay())].map(() => '<span></span>');
   for (let i = 1; i <= count; i++) {
@@ -58,9 +62,19 @@ async function historyPage() {
         <li>${berrySvg('climb', 'lg-berry')}Cragberry</li>
         <li><span class="cal-spark lg-spark"></span>Stuffed</li>
       </ul>
+    </div>
+    <div class="card">
+      <div class="cal-head">
+        <button type="button" class="ghost small" data-year="${histYear - 1}" aria-label="Previous year" ${histYear <= firstYr ? 'disabled' : ''}>‹</button>
+        <h2>${histYear} in Berries</h2>
+        <button type="button" class="ghost small" data-year="${histYear + 1}" aria-label="Next year" ${histYear >= thisYr ? 'disabled' : ''}>›</button>
+      </div>
+      ${yearHtml(days, goal, histYear)}
     </div>`, { keepScroll: true });
 
   app.onclick = e => {
+    const yr = e.target.closest('[data-year]');
+    if (yr) { histYear = +yr.dataset.year; redraw(); return; }
     const mo = e.target.closest('[data-month]');
     if (mo) { histMonth = mo.dataset.month; redraw(); return; }
     if (e.target.closest('#pickMonth')) { pickMonth(); return; }
@@ -142,4 +156,61 @@ async function pickMonth() {
   if (!f) return;
   histMonth = f.get('month');
   redraw();
+}
+
+// ---------- A year in berries (the user asked) ----------
+// The year's totals, full and stuffed days, its best streak (counted inside the year), and its Christmas tree.
+function yearStats(days, goal, year) {
+  const inYear = [...days].filter(([d]) => d.startsWith(year + '-')).sort(([a], [b]) => a.localeCompare(b));
+  const sum = k => inYear.reduce((n, [, e]) => n + e[k], 0);
+  let best = 0, run = 0, prev = null;
+  for (const [d, e] of inYear) {
+    if (!e.daily) { run = 0; prev = null; continue; }
+    run = prev && addDays(prev, 1) === d ? run + 1 : 1;
+    prev = d;
+    best = Math.max(best, run);
+  }
+  return { sweet: sum('daily'), crag: sum('climb'), full: inYear.filter(([, e]) => berriesOn(e) >= goal).length,
+    stuffed: inYear.filter(([, e]) => isStuffed(e, goal)).length, best, ornaments: ornamentDays(days, goal, year).length };
+}
+function yearHtml(days, goal, year) {
+  const s = yearStats(days, goal, year);
+  return `<div class="stats yr-stats">
+      <div class="stat"><b>${s.sweet + s.crag}</b><span>Berries</span></div>
+      <div class="stat">${berrySvg('daily', 'tiny')}<b>${s.sweet}</b><span>Sweet&shy;berries</span></div>
+      <div class="stat">${berrySvg('climb', 'tiny')}<b>${s.crag}</b><span>Crag&shy;berries</span></div>
+      <div class="stat"><b>${s.full}</b><span>Full Days</span></div>
+      <div class="stat"><span class="cal-spark" aria-hidden="true"></span><b>${s.stuffed}</b><span>Stuffed Days</span></div>
+      <div class="stat">${flameSvg}<b>${s.best}</b><span>Best Streak</span></div>
+    </div>
+    ${s.ornaments ? `<p class="yr-tree">Christmas tree: ${s.ornaments} of 24 ornaments.</p>` : ''}`;
+}
+
+// The first time the app is opened in a new year (whenever that is: it doesn't have to be January 1), last year's
+// screen shows once, anywhere: year_seen is saved first, so it can't show twice. Not if last year had no berries.
+// After that, the Year in Berries card on History has it.
+async function newYear() {
+  const y = new Date().getFullYear(), last = y - 1;
+  if (!('year_seen' in settings) || settings.year_seen >= y) return;
+  if (!feeds.some(f => dayOf(f.fed_at).startsWith(last + '-'))) return;
+  try { await sb.from('pt_settings').update({ year_seen: y }).eq('id', true).then(must); }
+  catch (e) { logError('error', 'year_seen: ' + msgOf(e)); return; }
+  settings.year_seen = y;
+  await ask({ title: 'Happy New Year!', ok: 'Done', cancel: false,
+    body: `<div class="ny-sparkles" aria-hidden="true"></div>
+      <p class="ny-sub">Here's ${esc(settings.name)}'s ${last} in berries.</p>${yearHtml(byDay(feeds), settings.daily_goal, last)}
+      <p class="hint">See it again any time on History.</p>`,
+    onOpen: form => {
+      if (reducedMotion()) return;
+      const layer = form.querySelector('.ny-sparkles');
+      const one = delay => {
+        const s = document.createElement('span');
+        s.className = 'sparkle' + (Math.random() < .5 ? ' gold' : '');
+        s.style.cssText = `left:${5 + Math.random() * 90}%; top:${5 + Math.random() * 90}%; --sz:${10 + Math.random() * 12}px; animation-delay:${delay}ms`;
+        s.onanimationend = () => s.remove();
+        layer.append(s);
+      };
+      for (let i = 0; i < 16; i++) one(Math.random() * 600);
+      for (let i = 0; i < 10; i++) one(900 + Math.random() * 800);
+    } });
 }

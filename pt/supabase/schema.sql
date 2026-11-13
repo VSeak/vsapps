@@ -23,7 +23,12 @@ create table public.pt_settings (
   daily_goal int not null default 2 check (daily_goal between 1 and 10),
   photo_at timestamptz,
   lat numeric(4, 1) check (lat between -90 and 90),
-  lon numeric(4, 1) check (lon between -180 and 180)
+  lon numeric(4, 1) check (lon between -180 and 180),
+  -- The Christmas Santa hat on the owner's photo, as fractions of it: {x, y} = the middle of its fur band, w = width,
+  -- r = tilt in degrees. Null = not placed (no hat on a photo; the fox drawing has its own spot).
+  hat jsonb check (hat is null or (jsonb_typeof(hat) = 'object' and length(hat::text) <= 200)),
+  -- The year whose New Year "in Berries" screen has been shown (2027 = the 2026 screen). Shown once, on any device.
+  year_seen int check (year_seen between 2000 and 3000)
 );
 
 -- One row per berry thrown: daily = daily PT (counts toward the streak and the goal), climb = PT done on a climbing day.

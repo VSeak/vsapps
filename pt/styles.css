@@ -247,12 +247,15 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .fire + .pal { margin-top: 6px; }
 .rug { position: absolute; left: 50%; bottom: 3%; width: 128%; height: 26%; transform: translateX(-50%); border-radius: 50%; background: var(--rug); z-index: -1; }
 .rug::after { content: ""; position: absolute; inset: 12% 7%; border: 3px dashed var(--rug-2); border-radius: 50%; }
-.pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; transform-origin: 50% 90%; }
+.pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; }
+/* The pal in a box its own shape (--ar), standing bottom middle: the Santa hat is placed in fractions of it */
+.pal-body { position: absolute; left: 50%; bottom: 0; translate: -50% 0; width: min(100%, calc(var(--pal) * var(--ar, 1))); aspect-ratio: var(--ar, 1);
+  transform-origin: 50% 90%; }
 .pal-name { font-size: clamp(1.8rem, 7vw, 2.3rem); margin: 1.2rem 0 .3rem; }
 .mood { color: var(--ink-2); text-align: center; margin: 0; min-height: 1.5em; }
 
 /* The bounce: squash, jump, land */
-.pal.happy .pal-pic { animation: bounce .75s cubic-bezier(.3, .7, .4, 1); }
+.pal.happy .pal-body { animation: bounce .75s cubic-bezier(.3, .7, .4, 1); }
 @keyframes bounce {
   0% { transform: none; }
   18% { transform: scale(1.1, .88); }
@@ -306,7 +309,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pal.happy .pal-pic, .pal.happy .mark, .fl, .glow-wall, .feed.whoosh .glow-wall { animation: none; }
+  .pal.happy .pal-body, .pal.happy .mark, .fl, .glow-wall, .feed.whoosh .glow-wall { animation: none; }
   .fire { transition: none; }
 }
 
@@ -467,7 +470,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 }
 
 /* The pal breathes: a slow, slight rise from the feet (paused while it bounces) */
-.pal-breathe { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; animation: pal-breathe 4.2s ease-in-out infinite; }
+.pal-breathe { position: relative; display: block; width: 100%; height: 100%; transform-origin: 50% 100%; animation: pal-breathe 4.2s ease-in-out infinite; }
 @keyframes pal-breathe { 50% { transform: scale(.997, 1.015); } }
 .pal.happy .pal-breathe { animation-play-state: paused; }
 /* Firelight catches the pal's edge (the user saw the old halo light up the whole pal): the #rimLight filter in feed.js
@@ -494,3 +497,39 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
   .win-wrap { width: 56px; top: max(8px, calc(var(--floor-y, 50%) - 130px)); }
   .window { height: 64px; }
 }
+
+/* ---------- Christmas (holiday.js; the user asked): the day after Thanksgiving through January 7 ---------- */
+.feed:not(.xmas) .xmas-only, .feed.xmas .plant { display: none; }
+/* The advent tree stands where the plant was; its presents spill out to the left, toward the pal */
+.room .xmas-tree { width: 124px; right: 4px; top: calc(var(--floor-y, 50%) - 60px); }
+@media (min-width: 520px) { .room .xmas-tree { width: 150px; right: 30px; top: calc(var(--floor-y, 50%) - 72px); } }
+.orn, .gift { transform-box: fill-box; transform-origin: 50% 50%; }
+.gift { transform-origin: 50% 100%; }
+.orn.pop, .gift.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes pop { 0% { transform: scale(0); } 60% { transform: scale(1.3); } 100% { transform: scale(1); } }
+.orn-spark { transform-box: fill-box; transform-origin: 50% 50%; animation: orn-twinkle 2.4s ease-in-out infinite; }
+@keyframes orn-twinkle { 0%, 100% { opacity: .3; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1) rotate(45deg); } }
+/* Garland lights twinkle, each on its own beat; their glow grows with the fire (--rim, 0–1) */
+.lights > g { fill: var(--c); animation: bulb 2.2s ease-in-out infinite; }
+.lights .halo { opacity: calc(.18 + .4 * var(--rim, 0)); }
+@keyframes bulb { 50% { opacity: .45; } }
+/* The hat: (--hx, --hy) is the middle of its fur band as fractions of the photo, --hw its width, --hr its tilt */
+.hat { position: absolute; left: calc(var(--hx) * 100%); top: calc(var(--hy) * 100%); width: calc(var(--hw) * 100%); overflow: visible;
+  translate: -50% -82.2%; rotate: calc(var(--hr) * 1deg); transform-origin: 50% 82.2%; pointer-events: none; display: block; }
+@media (prefers-reduced-motion: reduce) { .lights > g, .orn-spark, .orn.pop, .gift.pop { animation: none; } }
+@media (max-height: 760px) { .room .xmas-tree { width: 104px; top: calc(var(--floor-y, 50%) - 45px); } }
+/* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
+.hat-stage { display: flex; justify-content: center; padding: 3.2rem 0 .6rem; background: var(--sunk); border-radius: 16px; overflow: hidden; }
+.pal.placing { --pal: min(60vw, 230px); }
+.placing .pal-body { touch-action: none; cursor: crosshair; }
+.placing .hat { pointer-events: auto; cursor: grab; }
+.placing .hat:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; border-radius: 8px; }
+input[type="range"] { padding: 0; border: 0; accent-color: var(--accent); background: none; }
+/* Year in Berries: History's card and the New Year screen */
+.yr-stats { margin-bottom: .6rem; }
+@media (min-width: 700px) { .card .yr-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+dialog .yr-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.yr-tree { color: var(--ink-2); font-weight: 700; text-align: center; margin: 0; }
+.ny-sub { font: 600 1.1rem Fredoka, sans-serif; color: var(--accent-text); margin: -.2rem 0 .2rem; }
+.ny-sparkles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#dlg form { position: relative; }

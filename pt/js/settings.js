@@ -33,6 +33,15 @@ async function settingsPage() {
       </form>
     </div>
     <div class="card">
+      <h2>Santa Hat</h2>
+      <p class="hint">At Christmas (the day after Thanksgiving through January 7), ${esc(settings.name)} wears a Santa hat on Feed.
+        ${url ? (settings.hat ? 'Move it, or take it off.' : 'Place it on your photo to put it on.') : 'The fox wears it between its ears; you can move it.'}</p>
+      <div class="row wrap">
+        <button type="button" class="fill" id="placeHat">${settings.hat ? 'Move Hat' : 'Place Hat'}</button>
+        ${settings.hat ? `<button type="button" class="ghost ${url ? 'danger' : ''}" id="rmHat">${url ? 'Take Off Hat' : 'Reset Hat'}</button>` : ''}
+      </div>
+    </div>
+    <div class="card">
       <h2>Window</h2>
       <p class="hint">The window on Feed shows the real sky outside: sunrise, sunset, and the moon where you are.
         ${settings.lat != null ? 'Your location is saved, rounded to about 10 km.' : 'Until your location is saved, it uses 7am and 7pm.'}</p>
@@ -67,7 +76,8 @@ async function settingsPage() {
     if (file) busy($('#pickPhoto'), async () => {
       const blob = await shrinkPhoto(file);
       await sb.storage.from('pt-photo').upload('pal', blob, { upsert: true, contentType: blob.type, cacheControl: '0' }).then(must);
-      await sb.from('pt_settings').update({ photo_at: new Date().toISOString() }).eq('id', true).then(must);
+      // A new photo puts the head somewhere else, so the hat comes off until it's placed again.
+      await sb.from('pt_settings').update({ photo_at: new Date().toISOString(), ...('hat' in settings && { hat: null }) }).eq('id', true).then(must);
       flash('Photo saved.');
       redraw();
     });
@@ -76,11 +86,17 @@ async function settingsPage() {
     if (!await confirmDelete('Remove Photo?', `${esc(settings.name)} goes back to the fox drawing. The photo is deleted.`)) return;
     busy(e.target, async () => {
       await sb.storage.from('pt-photo').remove(['pal']).then(must);
-      await sb.from('pt_settings').update({ photo_at: null }).eq('id', true).then(must);
+      await sb.from('pt_settings').update({ photo_at: null, ...('hat' in settings && { hat: null }) }).eq('id', true).then(must);
       flash('Photo removed.');
       redraw();
     });
   };
+  $('#placeHat').onclick = () => placeHat(url);
+  if (settings.hat) $('#rmHat').onclick = e => busy(e.target, async () => {
+    await sb.from('pt_settings').update({ hat: null }).eq('id', true).then(must);
+    flash(url ? 'Hat off.' : 'Hat back in its spot.');
+    redraw();
+  });
   $('#setForm').onsubmit = e => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -90,6 +106,64 @@ async function settingsPage() {
       goTo('#/');
     });
   };
+}
+
+// Place Hat (the user asked): drag the hat onto the head (or tap where it goes), then size and tilt it with the sliders.
+// Arrow keys move it too. Saved as fractions of the photo, so it stays on the head at any size.
+async function placeHat(url) {
+  if (!('hat' in settings)) { flash("The hat needs a database update first (see SETUP.md).", 'error'); return; }
+  const h = { ...(palHat(url) ?? { x: .5, y: .22, w: .5, r: 0 }) };
+  const f = await ask({ title: 'Place Hat', ok: 'Save',
+    body: `<p class="hint">Drag the hat onto ${esc(settings.name)}'s head, or tap where it goes.</p>
+      <div class="hat-stage"><div class="pal placing">${palPic(url, h)}</div></div>
+      <label>Size<input type="range" name="w" min="15" max="100" value="${Math.round(h.w * 100)}"></label>
+      <label>Tilt<input type="range" name="r" min="-45" max="45" value="${Math.round(h.r)}"></label>`,
+    onOpen: form => {
+      const body = form.querySelector('.pal-body'), hat = form.querySelector('.hat');
+      const show = () => { for (const [k, v] of Object.entries({ hx: h.x, hy: h.y, hw: h.w, hr: h.r })) hat.style.setProperty('--' + k, v); };
+      const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+      const at = e => { const R = body.getBoundingClientRect(); return [(e.clientX - R.left) / R.width, (e.clientY - R.top) / R.height]; };
+      let grab = null;
+      hat.tabIndex = 0;
+      hat.setAttribute('role', 'img');
+      hat.setAttribute('aria-label', 'Santa hat: drag it, or move it with the arrow keys');
+      body.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        const [px, py] = at(e);
+        // On the hat: keep hold of the spot you grabbed. Anywhere else: the hat jumps there.
+        grab = hat.contains(e.target) ? [h.x - px, h.y - py] : [0, 0];
+        body.setPointerCapture(e.pointerId);
+        move(e);
+      });
+      const move = e => {
+        if (!grab) return;
+        const [px, py] = at(e);
+        h.x = clamp(px + grab[0], -.2, 1.2); h.y = clamp(py + grab[1], 0, 1);
+        show();
+      };
+      body.addEventListener('pointermove', move);
+      body.addEventListener('pointerup', () => { grab = null; });
+      body.addEventListener('pointercancel', () => { grab = null; });
+      hat.addEventListener('keydown', e => {
+        const d = { ArrowLeft: [-.01, 0], ArrowRight: [.01, 0], ArrowUp: [0, -.01], ArrowDown: [0, .01] }[e.key];
+        if (!d) return;
+        e.preventDefault();
+        h.x = clamp(h.x + d[0], -.2, 1.2); h.y = clamp(h.y + d[1], 0, 1);
+        show();
+      });
+      form.addEventListener('input', e => {
+        if (e.target.name === 'w') h.w = e.target.value / 100;
+        if (e.target.name === 'r') h.r = +e.target.value;
+        show();
+      });
+    } });
+  if (!f) return;
+  const r3 = n => Math.round(n * 1000) / 1000;
+  await busy($('#placeHat'), async () => {
+    await sb.from('pt_settings').update({ hat: { x: r3(h.x), y: r3(h.y), w: r3(h.w), r: Math.round(h.r) } }).eq('id', true).then(must);
+    flash('Hat saved.');
+    redraw();
+  });
 }
 
 // About 600px on the long side, so a phone photo of several MB uploads as roughly 100 KB. WebP keeps a see-through

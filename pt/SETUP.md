@@ -17,6 +17,7 @@ Push to `main`. GitHub Pages publishes it at `https://vseak.github.io/vsapps/pt/
 If you ran `schema.sql` before these were added, run each once (SQL Editor → New query → paste → Run):
 
 - `pt/supabase/migrations/2026-11-13-window-location.sql`: saves a rounded location for the window's real sunrise and sunset.
+- `pt/supabase/migrations/2026-11-13-hat-and-new-year.sql`: saves where the Santa hat sits on your photo, and that the New Year screen was shown.
 
 ## 3. Try it
 

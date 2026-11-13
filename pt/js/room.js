@@ -8,7 +8,7 @@
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
 const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></span><span class="glow-floor"></span>
   <svg class="wall-pic" viewBox="0 0 46 58"><rect width="46" height="58" rx="4" fill="var(--frame)"/><rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
-    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/></svg>
+    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/>${wreathSvg}</svg>
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
     <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span></div><span class="sill"></span></div>
   <svg class="couch" viewBox="0 0 130 100"><rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
@@ -24,11 +24,12 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
     <path d="M31 18.5h2.5a3.2 3.2 0 0 1 0 6.4H31" fill="none" stroke="var(--mug)" stroke-width="2"/>
-    <rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>
+    <rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>
     <path d="M7 44h30l-4 34H11z" fill="var(--pot)"/></svg>
+  ${xmasTreeSvg}
 </div>`;
 
 // ---------- The window: the real sky outside (the user asked) ----------
@@ -78,8 +79,8 @@ const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
     <rect x="15" y="12" width="120" height="158" rx="5" fill="var(--stone)"/>
-    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>
+    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>${garlandSvg}
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}

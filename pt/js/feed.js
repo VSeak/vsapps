@@ -30,7 +30,7 @@ async function feedPage() {
     </div>
     <div class="stage">
       ${fireplaceSvg}
-      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url)}</span>
+      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, xmasNow().on ? palHat(url) : null)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
@@ -42,10 +42,12 @@ async function feedPage() {
     </div>
   </section>`);
   shownLevel = null;   // the first draw sets the fire without a whoosh
+  shownOrn = null;     // and hangs the ornaments without the pop
   renderStatus();
   placeRoom();
   setSky();
   startFx();
+  newYear();
   app.onclick = e => {
     const b = e.target.closest('.berry-btn');
     if (b) feed(b.dataset.kind, b.querySelector('.berry'));
@@ -62,6 +64,7 @@ function renderStatus() {
   fx = { day: today(), passed: isStuffed(t, goal), egg: flame.full >= 7, level: flame.level };
   $('.feed').style.setProperty('--rim', (flame.level / FLAME_TOP).toFixed(2));   // the warm glow around the pal grows with the fire
   setFire(flame.level, fx.egg);
+  setXmas(days, goal);
   // Today's goal counts both berries (the user asked): red dots for Sweetberries, then a gold one for the Cragberry.
   const n = berriesOn(t);
   const dots = Array.from({ length: Math.max(goal, Math.min(n, 10)) }, (_, i) =>
