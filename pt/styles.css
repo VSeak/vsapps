@@ -6,7 +6,7 @@
   --gold: #E0A21B; --gold-soft: #FCEFCB; --gold-text: #845A00; --leaf: #4E9A5B; --ember: #C9B3A8;
   --warn-soft: #FBEFD5; --warn-line: #EFC577; --danger: #B3263E;
   --panel: #3A2230; --panel-ink: #FFF6EE;
-  --wall: #F7E6D6; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mantel: #8A5A3C; --hole: #3A2230;
+  --wall: #F7E6D6; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mortar: #E3C9AE; --mantel: #8A5A3C; --hole: #3A2230;
   --couch: #8FA88A; --couch-2: #7E9879; --pillow: #F2C14E; --plant: #4E9A5B; --plant-2: #5FAE6C; --pot: #C46A4A; --rug: #E9A7A0; --rug-2: #FFF6EE;
   --frame: #8A5A3C; --pic: #A8C7D8; --pic-2: #7FA88A; --pic-sun: #F2C14E; --glow: 255 150 60; --glow-k: .55; --veil: rgb(255 246 238 / .82);
   --blanket: #C9603F; --blanket-2: #F2C14E; --blanket-3: rgb(90 30 20 / .22); --table: #A86B45; --table-2: #8A5A3C; --mug: #F2EDE4; --steam: rgb(120 100 100 / .4);
@@ -20,7 +20,7 @@
     --gold: #F4BF45; --gold-soft: #3A2E12; --gold-text: #F4BF45; --leaf: #7CC488; --ember: #6B5560;
     --warn-soft: #33270F; --warn-line: #6A4E1A; --danger: #FF7B88;
     --panel: #30222D; --panel-ink: #F8ECEF;
-  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mantel: #3E2A22; --hole: #120B10;
+  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
   --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
@@ -34,7 +34,7 @@
   --gold: #F4BF45; --gold-soft: #3A2E12; --gold-text: #F4BF45; --leaf: #7CC488; --ember: #6B5560;
   --warn-soft: #33270F; --warn-line: #6A4E1A; --danger: #FF7B88;
   --panel: #30222D; --panel-ink: #F8ECEF;
-  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mantel: #3E2A22; --hole: #120B10;
+  --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
   --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);

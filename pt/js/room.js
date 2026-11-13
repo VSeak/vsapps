@@ -102,7 +102,8 @@ function setSky() {
 // The fireplace. Flames are drawn at full size and scaled per step in CSS; the side flames join at steps 6 and 7.
 const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
   <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/></g>`;
-// Detail (the user found the fireplace, mantel, and couch flat): stone blocks in staggered courses over darker mortar,
+// Detail (the user found the fireplace, mantel, and couch flat): stone blocks in staggered courses over mortar (--mortar,
+// lighter than the stone: darkened stone matched the night wall, the user saw it),
 // each a slightly different shade (fixed seed, so it's the same every load); an arch of wedge stones with a keystone
 // around the opening; firebrick on the back wall inside; a hearth slab at the foot; and the mantel gets a lit top edge,
 // wood grain, a knot, and a molding strip under the shelf. Shading is black/white at low opacity, so it works in both themes.
@@ -129,12 +130,12 @@ const stoneSvg = (() => {
     seams += `M${(75 + 37 * c).toFixed(1)} ${(82 - 37 * s).toFixed(1)}L${(75 + 44 * c).toFixed(1)} ${(82 - 44 * s).toFixed(1)}`;
   }
   for (const y of [100, 118, 136, 154]) seams += `M31 ${y}h7M112 ${y}h7`;
-  return `<rect x="15" y="12" width="120" height="158" rx="5" fill="#000" opacity=".22"/>
+  return `<rect x="15" y="12" width="120" height="158" rx="5" fill="var(--mortar)"/>
     <g fill="var(--stone)">${blocks}</g>${tints}
-    <path d="M31 170V82a44 44 0 0 1 88 0V170Z" fill="var(--stone)" stroke="#000" stroke-opacity=".22"/>
+    <path d="M31 170V82a44 44 0 0 1 88 0V170Z" fill="var(--stone)" stroke="var(--mortar)" stroke-width="1.2"/>
     <path d="M31 170V82a44 44 0 0 1 88 0V170Z" fill="#fff" opacity=".07"/>
-    <path d="${seams}" stroke="#000" stroke-opacity=".22"/>
-    <path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="var(--stone)" stroke="#000" stroke-opacity=".22"/><path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="#fff" opacity=".14"/>`;
+    <path d="${seams}" stroke="var(--mortar)" stroke-width="1.2"/>
+    <path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="var(--stone)" stroke="var(--mortar)" stroke-width="1.2"/><path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="#fff" opacity=".14"/>`;
 })();
 const holeDetailSvg = (() => {
   let brick = '';
