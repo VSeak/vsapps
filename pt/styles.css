@@ -540,14 +540,24 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .snow i:nth-child(7) { left: 76%; animation-delay: -6s; animation-duration: 8s; } .snow i:nth-child(8) { left: 86%; animation-delay: -2s; }
 .snow i:nth-child(9) { left: 94%; animation-delay: -4.5s; animation-duration: 7s; }
 @keyframes snowfall { to { transform: translate(6px, 96px); } }
-/* November 1 through Thanksgiving (the user asked): brown leaves blow across, tumbling */
+/* November 1 through Thanksgiving (the user asked): brown leaves blow across, tumbling. Two animations: leafblow carries
+   it across and spins it flat (transform); leafflip turns it over end on a slanted axis (the separate `rotate` property,
+   which the browser applies outside `transform`, so the flip never swings the path), going edge-on and darker on its
+   back (the user found them flat). Each leaf flips at its own speed, every other one the other way. Durations and
+   delays are set as lists (blow, flip): a single value would apply to both animations. */
 .leaves { inset: 0; }
 .leafy .leaves { opacity: 1; }
-.leaves i { position: absolute; left: -8px; width: 5px; height: 3.5px; border-radius: 0 80% 0 80%; background: #8A5A2B; animation: leafblow 6s linear infinite; }
-.leaves i:nth-child(2n) { background: #A0672E; } .leaves i:nth-child(3n) { background: #6E4422; } .leaves i:nth-child(5) { background: #9C4F25; }
-.leaves i:nth-child(1) { --n: 1; top: 12%; animation-delay: -1s; } .leaves i:nth-child(2) { --n: 4; top: 34%; animation-delay: -3.4s; animation-duration: 7s; }
-.leaves i:nth-child(3) { --n: 2; top: 55%; animation-delay: -5.2s; animation-duration: 5.5s; } .leaves i:nth-child(4) { --n: 5; top: 22%; animation-delay: -2.2s; animation-duration: 8s; }
-.leaves i:nth-child(5) { --n: 3; top: 66%; animation-delay: -.3s; animation-duration: 6.5s; } .leaves i:nth-child(6) { --n: 6; top: 44%; animation-delay: -4.4s; animation-duration: 7.5s; }
+.leaves i { position: absolute; left: -8px; width: 5px; height: 3.5px; border-radius: 0 80% 0 80%; background: #8A5A2B;
+  animation: leafblow var(--dur, 6s) linear var(--del, 0s) infinite, leafflip calc(.7s + var(--n) * .17s) linear var(--del, 0s) infinite; }
+.leaves i:nth-child(2n) { background: #A0672E; animation-direction: normal, reverse; } .leaves i:nth-child(3n) { background: #6E4422; } .leaves i:nth-child(5) { background: #9C4F25; }
+.leaves i:nth-child(1) { --n: 1; top: 12%; --del: -1s; } .leaves i:nth-child(2) { --n: 4; top: 34%; --del: -3.4s; --dur: 7s; }
+.leaves i:nth-child(3) { --n: 2; top: 55%; --del: -5.2s; --dur: 5.5s; } .leaves i:nth-child(4) { --n: 5; top: 22%; --del: -2.2s; --dur: 8s; }
+.leaves i:nth-child(5) { --n: 3; top: 66%; --del: -.3s; --dur: 6.5s; } .leaves i:nth-child(6) { --n: 6; top: 44%; --del: -4.4s; --dur: 7.5s; }
+@keyframes leafflip {
+  0% { rotate: 1 .5 0 0deg; filter: brightness(1); } 25% { rotate: 1 .5 0 90deg; filter: brightness(.85); }
+  50% { rotate: 1 .5 0 180deg; filter: brightness(.68); } 75% { rotate: 1 .5 0 270deg; filter: brightness(.85); }
+  100% { rotate: 1 .5 0 360deg; filter: brightness(1); }
+}
 @keyframes leafblow {
   0% { transform: translate(0, 0) rotate(0); } 25% { transform: translate(28px, 9px) rotate(140deg); }
   50% { transform: translate(55px, 3px) rotate(250deg); } 75% { transform: translate(82px, 14px) rotate(390deg); }
