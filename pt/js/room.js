@@ -207,18 +207,19 @@ const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="v
 // The pal's name in standing letters on the mantel, all caps (the user asked: "like a form of home decor"): painted
 // wood letters. A darker copy up and right is their thickness, the fire throws a faint shadow of them up the wall, a
 // shade lights them from above, faint grain runs across, and the fire warms their bottoms (--rim). Names are up to 10
-// characters (Settings); the size is set so 10 fill the shelf, and every name gets that size (a longer one from before
-// the cap shrinks to fit). Fireplace units: the mantel's top is y 4.
+// characters (Settings). Each name grows to fill the shelf's width, up to 28 units tall for short ones (the user found
+// "CYNDA" small at a size set for 10 letters); a longer one from before the cap shrinks to fit. The thickness and the
+// wall shadow grow with the letters. Fireplace units: the mantel's top is y 4.
 function mantelNameSvg(name) {
-  const n = [...name].length, fs = Math.min(17, 130 / (n * .76)), half = n * fs * .38;
+  const n = [...name].length, fs = Math.min(28, 126 / (n * .76)), half = n * fs * .38, d = (fs * .05).toFixed(2);
   const txt = (attrs) => `<text x="75" y="4.1" text-anchor="middle" font-size="${fs.toFixed(2)}" ${attrs}>${esc(name.toUpperCase())}</text>`;
   return `<defs><linearGradient id="ltShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/>
       <stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
     <linearGradient id="ltWarm" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgb(255,150,60)"/><stop offset=".6" stop-color="rgb(255,150,60)" stop-opacity="0"/></linearGradient>
     <pattern id="ltGrain" width="9" height="2.4" patternUnits="userSpaceOnUse"><path d="M0 .8c3-.3 5 .3 9 0M0 1.9c2 .2 6-.2 9 .1" fill="none" stroke="#000" stroke-opacity=".13" stroke-width=".3"/></pattern></defs>
-    ${txt('class="ml-wall" transform="translate(0 -2.2)"')}
+    ${txt(`class="ml-wall" transform="translate(0 -${(d * 2.6).toFixed(2)})"`)}
     <ellipse cx="75" cy="4.3" rx="${half.toFixed(1)}" ry=".9" fill="#000" opacity=".25"/>
-    ${txt('fill="var(--letters-2)" transform="translate(.8 -.8)"')}
+    ${txt(`fill="var(--letters-2)" transform="translate(${d} -${d})"`)}
     ${txt('fill="var(--letters)" stroke="#000" stroke-opacity=".28" stroke-width=".35" paint-order="stroke"')}
     ${txt('fill="url(#ltShade)"')}${txt('fill="url(#ltGrain)"')}${txt('class="ml-warm" fill="url(#ltWarm)"')}`;
 }
