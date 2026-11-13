@@ -206,10 +206,11 @@ const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="v
     <ellipse cx="104" cy="9.8" rx="2.4" ry="1" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".55"/>`;
 // The pal's name in standing letters on the mantel, all caps (the user asked: "like a form of home decor"): painted
 // wood letters. A darker copy up and right is their thickness, the fire throws a faint shadow of them up the wall, a
-// shade lights them from above, faint grain runs across, and the fire warms their bottoms (--rim). Long names get
-// smaller letters so they stay on the shelf (names are up to 24 characters). Fireplace units: the mantel's top is y 4.
+// shade lights them from above, faint grain runs across, and the fire warms their bottoms (--rim). Names are up to 10
+// characters (Settings); the size is set so 10 fill the shelf, and every name gets that size (a longer one from before
+// the cap shrinks to fit). Fireplace units: the mantel's top is y 4.
 function mantelNameSvg(name) {
-  const n = [...name].length, fs = Math.min(15, 128 / (n * .76)), half = n * fs * .38;
+  const n = [...name].length, fs = Math.min(17, 130 / (n * .76)), half = n * fs * .38;
   const txt = (attrs) => `<text x="75" y="4.1" text-anchor="middle" font-size="${fs.toFixed(2)}" ${attrs}>${esc(name.toUpperCase())}</text>`;
   return `<defs><linearGradient id="ltShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/>
       <stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>

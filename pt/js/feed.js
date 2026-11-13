@@ -33,8 +33,10 @@ async function feedPage() {
       <div class="pal" id="pal" role="button" tabindex="0" aria-label="Boop ${esc(settings.name)}">${rugHtml(rugOf())}<span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
-      <h1 class="pal-name">${esc(settings.name)}</h1>
-      <p class="mood" id="mood" aria-live="polite"></p>
+      <!-- The name is on the mantel and Berries Today shows the progress (the user asked to clean it up), so these
+           two are for screen readers only -->
+      <h1 class="sr-only">${esc(settings.name)}</h1>
+      <p class="sr-only" id="mood" aria-live="polite"></p>
     </div>
     <div class="berries">${berryBtn('daily')}
       <div class="undo" id="undo" hidden><button type="button" class="undo-btn">Undo</button></div>${berryBtn('climb')}

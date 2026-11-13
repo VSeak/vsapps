@@ -28,7 +28,7 @@ async function settingsPage() {
     <div class="card">
       <form id="setForm" class="stack" data-save>
         <h2>Your Pal</h2>
-        <label>Name<input name="name" maxlength="24" required data-need="Give your pal a name." value="${esc(settings.name)}"></label>
+        <label>Name<input name="name" maxlength="10" required data-need="Give your pal a name." value="${esc(settings.name)}"></label>
         <label>Daily Goal<input type="number" name="goal" min="1" max="10" inputmode="numeric" required data-need="Enter a goal from 1 to 10."
           data-range="Enter a goal from 1 to 10." value="${settings.daily_goal}"></label>
         <p class="hint">How many berries make a full day. Sweetberries and the day's Cragberry both count.</p>
