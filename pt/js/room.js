@@ -199,17 +199,28 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
       <linearGradient id="flSideIn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFD27A"/><stop offset="1" stop-color="#EB7F20"/></linearGradient></defs>
     ${stoneSvg}
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>${holeDetailSvg}
+    <!-- The firebox floor: the hearth runs back into the opening, narrowing toward its back wall, sooty and dark, so
+         the logs sit on something (the user saw them float over black, perched on the hearth's back edge). -->
+    <path d="M47 157h56l9 9H38z" fill="var(--stone)"/><path d="M47 157h56l9 9H38z" fill="#000" opacity=".5"/>
+    <path d="M47 157h56" stroke="#000" stroke-opacity=".4"/><path d="M60 157l-3 9M90 157l3 9" stroke="#000" stroke-opacity=".25" stroke-width=".8"/>
     <!-- The hearth sticks out onto the floor (the user found the room's perspective off): its top widens toward you
-         like the floorboards, with slab joints running the same way, a front edge, and a shadow on the floor. The floor
-         starts at y 170, so this reaches past the drawing's bottom (.fire svg is overflow: visible). -->
-    <ellipse cx="75" cy="182.2" rx="72" ry="2.6" fill="#000" opacity=".2"/>
-    <path d="M9 166h132l5 11H4z" fill="var(--stone)"/><path d="M9 166h132l5 11H4z" fill="#fff" opacity=".12"/>
+         like the floorboards, with slab joints running the same way, a thick front edge, and a shadow on the floor. Its
+         top is about the stone's own shade (a paler one read as a paper strip, the user saw it), with a few chips and
+         specks; the dark line at its back runs only along the stone, not across the opening. The floor starts at y 170,
+         so this reaches past the drawing's bottom (.fire svg is overflow: visible). -->
+    <ellipse cx="75" cy="185" rx="72" ry="2.6" fill="#000" opacity=".2"/>
+    <path d="M9 166h132l5 11H4z" fill="var(--stone)"/><path d="M9 166h132l5 11H4z" fill="#fff" opacity=".04"/>
+    <path d="M38 166h74l3 4H35z" fill="#000" opacity=".14"/>
     <path d="M42 166l-2.4 11M75 166v11M108 166l2.4 11" stroke="var(--mortar)" stroke-width="1.1"/>
-    <path d="M9 166h132" stroke="#000" stroke-opacity=".25"/>
-    <rect x="4" y="177" width="142" height="4.6" rx="1" fill="var(--stone)"/><rect x="4" y="177" width="142" height="4.6" rx="1" fill="#000" opacity=".16"/>
-    <path d="M4.5 177.2h141" stroke="#fff" stroke-opacity=".2"/>
+    <g fill="#000" opacity=".16"><circle cx="22" cy="171" r=".7"/><circle cx="57" cy="174" r=".5"/><circle cx="96" cy="170.4" r=".6"/><circle cx="127" cy="173.6" r=".7"/></g>
+    <g fill="#fff" opacity=".12"><circle cx="30" cy="173" r=".5"/><circle cx="84" cy="175" r=".6"/><circle cx="118" cy="169" r=".5"/></g>
+    <path d="M14 176.4l3-.8M132 176.4l-2.6-.6" stroke="#000" stroke-opacity=".2" stroke-width=".8" stroke-linecap="round"/>
+    <path d="M9 166h29M112 166h29" stroke="#000" stroke-opacity=".25"/>
+    <rect x="4" y="177" width="142" height="6.6" rx="1" fill="var(--stone)"/><rect x="4" y="177" width="142" height="6.6" rx="1" fill="#000" opacity=".2"/>
+    <path d="M4.5 177.2h141" stroke="#fff" stroke-opacity=".2"/><path d="M39.6 177.6v5.6M75 177.6v5.6M110.4 177.6v5.6" stroke="var(--mortar)" stroke-width="1" opacity=".7"/>
     ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
+    <ellipse cx="75" cy="165" rx="30" ry="2" fill="#000" opacity=".45"/>
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <path d="M52 158.4h18M76 157.8h20M56 161.2h12M73 162h22M51 163.2h9" stroke="#3A2214" stroke-opacity=".55" stroke-width=".7" stroke-linecap="round"/>
     <path d="M51 156.9h45" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
