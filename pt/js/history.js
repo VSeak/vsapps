@@ -23,6 +23,8 @@ async function historyPage() {
   const label = first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const shift = n => iso(new Date(y, m - 1 + n, 1)).slice(0, 7);
   const isNow = histMonth === today().slice(0, 7);
+  // The four monthly cards say which month they count (the user asked): "This Month", or the month shown, like "Oct 2026".
+  const when = `<small>${isNow ? 'This Month' : first.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>`;
   const week = [...Array(7)].map((_, i) => new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));   // Nov 1 2026 is a Sunday
   const cells = [...Array(first.getDay())].map(() => '<span></span>');
   for (let i = 1; i <= count; i++) {
@@ -38,10 +40,10 @@ async function historyPage() {
     <div class="stats">
       <div class="stat">${flameSvg}<b>${streakOf(days)}</b><span>Current Streak</span></div>
       <div class="stat"><b>${bestStreak(days)}</b><span>Best Streak</span></div>
-      <div class="stat"><b>${goalDays}</b><span>Full Days</span></div>
-      <div class="stat"><span class="cal-spark" aria-hidden="true"></span><b>${stuffedDays}</b><span>Stuffed Days</span></div>
-      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Sweet&shy;berries</span></div>
-      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Crag&shy;berries</span></div>
+      <div class="stat"><b>${goalDays}</b><span>Full Days${when}</span></div>
+      <div class="stat"><span class="cal-spark" aria-hidden="true"></span><b>${stuffedDays}</b><span>Stuffed Days${when}</span></div>
+      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Sweet&shy;berries${when}</span></div>
+      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Crag&shy;berries${when}</span></div>
     </div>
     <div class="card cal-card">
       <div class="cal-head">
