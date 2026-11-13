@@ -30,7 +30,7 @@ async function feedPage() {
     </div>
     <div class="stage">
       ${fireplaceSvg}
-      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
+      <div class="pal" id="pal" role="button" tabindex="0" aria-label="Boop ${esc(settings.name)}"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
@@ -53,6 +53,7 @@ async function feedPage() {
     const b = e.target.closest('.berry-btn');
     if (b) feed(b.dataset.kind, b.querySelector('.berry'));
   };
+  palTouch($('#pal'));
 }
 
 // What the effects need, worked out in renderStatus: passed = today's goal is passed (sparkles for the rest of the day),
@@ -87,6 +88,8 @@ function renderStatus() {
 function feed(kind, fromEl) {
   const row = { id: crypto.randomUUID(), kind, fed_at: new Date().toISOString() };
   const wasPassed = fx.passed;
+  stopPet();
+  palBusy = Date.now() + (reducedMotion() ? 0 : 1500);   // the throw and the bounce: taps on the pal wait
   feeds.push(row);
   if (kind === 'climb') fromEl.closest('button').disabled = true;   // no second Cragberry from a quick double tap
   const saving = sb.from('pt_feeds').insert(row).then(must);
@@ -133,6 +136,141 @@ function celebrate() {
   pal.classList.remove('happy');
   void pal.offsetWidth;   // restarts the animation on a quick second throw
   pal.classList.add('happy');
+  clearTimeout(celebrate.t);
+  // Taken off once the bounce and marks are done: left on, it would bounce again when a pet or dizzy (later in the CSS) ends.
+  celebrate.t = setTimeout(() => pal.classList.remove('happy'), 1100);
+}
+
+// ---------- Touching the pal (the user's partner asked) ----------
+// Tap = boop: a squish and a bubble that depends on today (hungry: a Sweetberry and ?, partway: "More berries please!",
+// goal met: hearts pop out, stuffed: "So full…", with a turkey on Thanksgiving Day). Press and hold = pet: the pal rocks
+// and hearts float up until you let go. Five taps in 2 seconds = dizzy: a hop and a spin, then a wobble with stars and
+// swirls circling its head. Taps wait while a berry is flying in or the pal is bouncing or dizzy.
+let palBusy = 0, taps = [], holdTimer, petTimer;
+const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.1 1.7-1.9 3.1-3.1 5.3-3.1 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+const SWIRL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a1.5 1.5 0 1 1 2 1.6 3.5 3.5 0 1 1-4.6-4.3A5.5 5.5 0 1 1 6.5 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+function palTouch(pal) {
+  pal.addEventListener('contextmenu', e => e.preventDefault());   // a long press would open the phone's image menu
+  pal.addEventListener('animationend', e => { if (e.animationName === 'squish') pal.classList.remove('booped'); });
+  pal.addEventListener('pointerdown', e => {
+    if (!e.target.closest('.pal-body') || e.button > 0) return;
+    try { pal.setPointerCapture(e.pointerId); } catch { /* no live pointer: fine, pointerup still comes here */ }
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => { holdTimer = null; startPet(); }, 400);
+  });
+  const up = e => {
+    if (petTimer) return stopPet();
+    if (!holdTimer) return;
+    clearTimeout(holdTimer); holdTimer = null;
+    if (e.type === 'pointerup') palTap();
+  };
+  pal.addEventListener('pointerup', up);
+  pal.addEventListener('pointercancel', up);
+  pal.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    if (!e.repeat) palTap();
+  });
+}
+
+function palTap() {
+  const now = Date.now();
+  if (now < palBusy) return;
+  taps = taps.filter(t => now - t < 2000);
+  taps.push(now);
+  if (taps.length >= 5) { taps = []; dizzy(); } else boop();
+}
+
+// Restarts a one-shot animation class, so a quick second tap plays it again.
+function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+// Where the pal's own box sits inside #pal (the photo may be narrower or shorter than the square).
+function bodyBox() {
+  const pal = $('#pal'), P = pal.getBoundingClientRect(), B = $('.pal-body', pal).getBoundingClientRect();
+  return { x: B.left - P.left, y: B.top - P.top, w: B.width, h: B.height };
+}
+
+function boop() {
+  const pal = $('#pal');
+  replay(pal, 'booped');
+  const t = byDay(feeds).get(today()), n = berriesOn(t), goal = settings.daily_goal;
+  if (n === goal) return heartBurst();
+  bubble(!n ? `${berrySvg('daily', 'tiny')}<b>?</b>`
+    : n < goal ? 'More berries please!'
+    : `So full…${fallNow().tday ? ' 🦃' : ''}`);
+  if (n > goal && !reducedMotion()) for (let i = 0; i < 4; i++) sparkle(i * 120);
+}
+
+// A speech bubble over the pal's head for about 2 seconds; a new one replaces it.
+function bubble(html) {
+  const pal = $('#pal');
+  $('.bubble', pal)?.remove();
+  const b = document.createElement('span'), box = bodyBox();
+  b.className = 'bubble';
+  b.setAttribute('aria-hidden', 'true');
+  b.innerHTML = html;
+  b.style.cssText = `left:${box.x + box.w * .5}px; top:${Math.max(-30, box.y - 6)}px`;
+  b.onanimationend = () => b.remove();
+  setTimeout(() => b.remove(), 2600);
+  pal.append(b);
+}
+
+// One heart. from = where it starts inside #pal, dx/dy = how far it travels, kind = burst (goal met) or rise (petting).
+function heart(x, y, dx, dy, kind, delay = 0) {
+  const h = document.createElement('span');
+  h.className = 'heart ' + kind + (Math.random() < .25 ? ' soft' : '');
+  h.innerHTML = HEART;
+  h.style.cssText = `left:${x}px; top:${y}px; --dx:${dx}px; --dy:${dy}px; --sz:${16 + Math.random() * 10}px; animation-delay:${delay}ms`;
+  h.onanimationend = () => h.remove();
+  setTimeout(() => h.remove(), 2200 + delay);
+  $('#pal').append(h);
+}
+
+// Goal met: a fan of hearts pops out of the pal's head.
+function heartBurst() {
+  $('.bubble', $('#pal'))?.remove();
+  const box = bodyBox(), x = box.x + box.w / 2, y = box.y + box.h * .2;
+  for (let i = 0; i < 6; i++) {
+    const a = (-160 + i * 28 + Math.random() * 12) * Math.PI / 180, r = 60 + Math.random() * 30;
+    heart(x, y, Math.cos(a) * r, Math.sin(a) * r - 10, 'burst', i * 40);
+  }
+}
+
+function startPet() {
+  const pal = $('#pal');
+  if (!pal || Date.now() < palBusy) return;
+  taps = [];
+  pal.classList.add('petting');
+  const one = () => {
+    if (!$('#pal')) return stopPet();
+    const box = bodyBox();
+    heart(box.x + box.w * (.3 + Math.random() * .4), box.y + box.h * .15, (Math.random() - .5) * 50, -70 - Math.random() * 30, 'rise');
+  };
+  one();
+  petTimer = setInterval(one, 450);
+}
+function stopPet() {
+  clearTimeout(holdTimer); holdTimer = null;
+  clearInterval(petTimer); petTimer = null;
+  $('#pal')?.classList.remove('petting');
+}
+
+// Dizzy: the stars circle where the head is: the hat's spot if one is placed, else near the top of the photo.
+function dizzy() {
+  const pal = $('#pal'), box = bodyBox();
+  palBusy = Date.now() + 3300;
+  $('.bubble', pal)?.remove();
+  pal.classList.remove('booped');
+  replay(pal, 'dizzy');
+  const hy = settings.hat?.y ?? ($('.pal-pic', pal) ? .12 : FOX_HAT.y);
+  const ring = document.createElement('span');
+  ring.className = 'dizzy-ring';
+  ring.setAttribute('aria-hidden', 'true');
+  ring.style.cssText = `left:${box.x + box.w / 2}px; top:${box.y + box.h * hy - 8}px; --rx:${box.w * .32}px; --ry:${box.w * .09}px`;
+  ring.innerHTML = [0, 1, 2, 3, 4].map(i => `<span class="orbit" style="--ph:${i / 5}"><span class="orb ${i % 2 ? 'swirl' : 'star'}">${i % 2 ? SWIRL : ''}</span></span>`).join('');
+  pal.append(ring);
+  setTimeout(() => { pal.classList.remove('dizzy'); ring.remove(); }, 3300);
 }
 
 // ---------- Sparkles and sparks ----------
