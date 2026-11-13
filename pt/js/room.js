@@ -12,15 +12,36 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
     <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span><span class="leaves">${'<i></i>'.repeat(6)}</span><span class="fireworks"><i></i><i></i><i></i></span><span class="bats">${batSvg.repeat(3)}</span></div><span class="sill"></span>
     <svg class="win-wreath" viewBox="6 12 34 36" aria-hidden="true">${wreathSvg}${fuSvg}</svg></div>
-  <svg class="couch" viewBox="0 0 130 100"><rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
-    <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/>
+  <svg class="couch" viewBox="0 0 130 100">
+    <!-- Detail (the user found it flat): a fine diagonal weave over the fabric, piping highlights, tufted buttons,
+         seat-cushion seams, a shadow along the bottom, and a second leg. Black/white at low opacity, so it works in both themes. -->
+    <defs><pattern id="couchWeave" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <path d="M0 .5h3" stroke="#000" stroke-opacity=".07" stroke-width=".8"/></pattern></defs>
+    <rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/><rect x="38" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
+    <path d="M106 92v8M40 92v8" stroke="#000" stroke-opacity=".2" stroke-width="1.2"/>
+    <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/><rect x="-200" width="306" height="74" rx="18" fill="url(#couchWeave)"/>
+    <rect x="-200" y="2.2" width="294" height="2.4" rx="1.2" fill="#fff" opacity=".14"/>
+    <path d="M24 8v38" stroke="#000" stroke-opacity=".14" stroke-width="1"/>
+    <g fill="#000" opacity=".2"><circle cx="10" cy="18" r="1.4"/><circle cx="10" cy="36" r="1.4"/><circle cx="90" cy="18" r="1.4"/></g>
+    <path d="M7 15.5l3 2.5 3-2.5M7 33.5l3 2.5 3-2.5M87 15.5l3 2.5 3-2.5" fill="none" stroke="#000" stroke-opacity=".1" stroke-width=".7"/>
     <!-- The plaid throw drapes over the top of the backrest and hangs down behind the pillow (the user moved it off the arm) -->
     <g class="blanket"><rect x="40" y="-4" width="60" height="40" rx="7" fill="var(--blanket)"/>
       <rect x="40" y="6" width="60" height="4" fill="var(--blanket-2)"/><rect x="40" y="22" width="60" height="4" fill="var(--blanket-2)"/>
       <rect x="54" y="-4" width="4" height="40" fill="var(--blanket-3)"/><rect x="80" y="-4" width="4" height="40" fill="var(--blanket-3)"/>
       <path d="M44 36v4M50 36v4M56 36v4M62 36v4M68 36v4M74 36v4M80 36v4M86 36v4M92 36v4M97 36v4" stroke="var(--blanket)" stroke-width="1.6" stroke-linecap="round"/></g>
     <rect x="34" y="14" width="42" height="38" rx="12" fill="var(--pillow)"/>
-    <rect x="-200" y="46" width="320" height="48" rx="14" fill="var(--couch-2)"/><rect x="100" y="32" width="28" height="62" rx="12" fill="var(--couch)"/></svg>
+    <rect x="36.5" y="16.5" width="37" height="33" rx="10" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width=".9"/>
+    <path d="M37 22c8 4 14 6 18 11M73 22c-8 4-14 6-18 11" fill="none" stroke="#000" stroke-opacity=".1" stroke-width=".8"/>
+    <circle cx="55" cy="33" r="1.7" fill="#000" opacity=".2"/>
+    <rect x="-200" y="46" width="320" height="48" rx="14" fill="var(--couch-2)"/><rect x="-200" y="46" width="320" height="48" rx="14" fill="url(#couchWeave)"/>
+    <rect x="-200" y="47.5" width="314" height="3" rx="1.5" fill="#fff" opacity=".12"/>
+    <path d="M-200 60H104" stroke="#000" stroke-opacity=".13" stroke-width="1"/>
+    <path d="M30 49v10M-40 49v10" stroke="#000" stroke-opacity=".18" stroke-width="1"/>
+    <path d="M-200 88H106" stroke="#000" stroke-opacity=".14" stroke-width="5"/>
+    <rect x="100" y="32" width="28" height="62" rx="12" fill="var(--couch)"/><rect x="100" y="32" width="28" height="62" rx="12" fill="url(#couchWeave)"/>
+    <rect x="103" y="34" width="22" height="4" rx="2" fill="#fff" opacity=".16"/>
+    <rect x="103.5" y="38" width="21" height="52" rx="9" fill="none" stroke="#000" stroke-opacity=".12" stroke-width=".9"/>
+    <path d="M104 87.5h20" stroke="#000" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/></svg>
   <svg class="side-table" viewBox="0 0 50 74">
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
@@ -81,11 +102,64 @@ function setSky() {
 // The fireplace. Flames are drawn at full size and scaled per step in CSS; the side flames join at steps 6 and 7.
 const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
   <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/></g>`;
+// Detail (the user found the fireplace, mantel, and couch flat): stone blocks in staggered courses over darker mortar,
+// each a slightly different shade (fixed seed, so it's the same every load); an arch of wedge stones with a keystone
+// around the opening; firebrick on the back wall inside; a hearth slab at the foot; and the mantel gets a lit top edge,
+// wood grain, a knot, and a molding strip under the shelf. Shading is black/white at low opacity, so it works in both themes.
+const stoneSvg = (() => {
+  let seed = 11;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  let blocks = '', tints = '';
+  for (let y = 19, row = 0; y < 170; y += 15, row++) {
+    for (let x = row % 2 ? 4 : 15; x < 135;) {
+      const w = 17 + rnd() * 13, a = Math.max(x, 15), b = Math.min(x + w, 135);
+      if (b - a > 4) {
+        const r = `x="${(a + .7).toFixed(1)}" y="${y + .7}" width="${(b - a - 1.4).toFixed(1)}" height="13.6" rx="2.5"`;
+        blocks += `<rect ${r}/>`;
+        tints += `<rect ${r} fill="${rnd() < .5 ? '#000' : '#fff'}" opacity="${(.02 + rnd() * .08).toFixed(2)}"/>`;
+      }
+      x += w;
+    }
+  }
+  // The arch: wedge seams every 18° around the opening (center 75 82, radius 37 → 44), and the straight sides' joints.
+  let seams = '';
+  for (let d = 18; d < 180; d += 18) {
+    if (d === 90) continue;   // the keystone sits there
+    const c = Math.cos(d * RAD), s = Math.sin(d * RAD);
+    seams += `M${(75 + 37 * c).toFixed(1)} ${(82 - 37 * s).toFixed(1)}L${(75 + 44 * c).toFixed(1)} ${(82 - 44 * s).toFixed(1)}`;
+  }
+  for (const y of [100, 118, 136, 154]) seams += `M31 ${y}h7M112 ${y}h7`;
+  return `<rect x="15" y="12" width="120" height="158" rx="5" fill="#000" opacity=".22"/>
+    <g fill="var(--stone)">${blocks}</g>${tints}
+    <path d="M31 170V82a44 44 0 0 1 88 0V170Z" fill="var(--stone)" stroke="#000" stroke-opacity=".22"/>
+    <path d="M31 170V82a44 44 0 0 1 88 0V170Z" fill="#fff" opacity=".07"/>
+    <path d="${seams}" stroke="#000" stroke-opacity=".22"/>
+    <path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="var(--stone)" stroke="#000" stroke-opacity=".22"/><path d="M70.6 46.3h8.8l1.3-11h-11.4z" fill="#fff" opacity=".14"/>`;
+})();
+const holeDetailSvg = (() => {
+  let brick = '';
+  for (let y = 88, row = 0; y < 160; y += 8, row++) {
+    brick += `M30 ${y}h90`;
+    for (let x = row % 2 ? 44 : 52; x < 112; x += 16) brick += `M${x} ${y}v8`;
+  }
+  return `<clipPath id="fpHole"><path d="M38 170V82a37 37 0 0 1 74 0V170Z"/></clipPath>
+    <g clip-path="url(#fpHole)"><path d="${brick}" stroke="#fff" stroke-opacity=".07" stroke-width=".8"/>
+      <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="10"/></g>`;
+})();
+const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="var(--mantel)"/><rect x="11" y="17.5" width="128" height="2" rx="1" fill="#000" opacity=".2"/>
+    <rect x="15" y="19.5" width="120" height="1.6" fill="#000" opacity=".16"/>
+    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>
+    <rect x="7" y="4.6" width="136" height="2.2" rx="1.1" fill="#fff" opacity=".16"/>
+    <rect x="9" y="13" width="132" height="2.6" rx="1.3" fill="#000" opacity=".18"/>
+    <path d="M12 9.2c16-1.2 30 .8 48-.2s34-1 50 .4 22-.4 28-.6M18 11.8c22 .8 40-.8 62 .2s32-.6 52 .2M30 7.4c14-.5 22 .3 36-.2" fill="none" stroke="#000" stroke-opacity=".14" stroke-width=".55"/>
+    <ellipse cx="104" cy="9.8" rx="2.4" ry="1" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".55"/>`;
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
-    <rect x="15" y="12" width="120" height="158" rx="5" fill="var(--stone)"/>
-    <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>
-    <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
+    ${stoneSvg}
+    <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>${holeDetailSvg}
+    <rect x="9" y="164" width="132" height="6" rx="2" fill="var(--stone)"/><rect x="9" y="164" width="132" height="6" rx="2" fill="#fff" opacity=".1"/>
+    <rect x="9" y="164" width="132" height="1.4" rx=".7" fill="#fff" opacity=".18"/>
+    ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
