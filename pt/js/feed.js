@@ -16,6 +16,15 @@ async function feedPage() {
   feeds = rows;
   view(`<section class="feed">${roomSvg}
     <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+    <div class="dust" id="dust" aria-hidden="true"></div>
+    <!-- Rim light (the user asked for the pal's edge lit, not the whole pal): a thin band just inside the outline,
+         thicker on top where the fire behind catches it. setFire sets its strength (#rimFlood). -->
+    <svg class="fx-defs" width="0" height="0" aria-hidden="true"><filter id="rimLight" x="-5%" y="-5%" width="110%" height="110%">
+      <feMorphology in="SourceAlpha" operator="erode" radius="3" result="core"/><feOffset in="core" dy="3" result="low"/>
+      <feComposite in="SourceAlpha" in2="low" operator="out" result="edge"/><feGaussianBlur in="edge" stdDeviation="1.4" result="soft"/>
+      <feFlood id="rimFlood" flood-color="rgb(255,165,80)" flood-opacity="0"/><feComposite in2="soft" operator="in" result="lit"/>
+      <feComposite in="lit" in2="SourceAlpha" operator="in" result="rim"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rim"/></feMerge></filter></svg>
     <div class="status">
       <div class="today" id="todayRow"></div>
       <div class="climbs" id="climbRow"></div>
@@ -166,16 +175,19 @@ function burst() {
   for (let i = 0; i < 10; i++) sparkle(Math.random() * 350);
 }
 
-// Specks of dust drifting up in the firelight (the user asked: not too dusty). None until the fire's step 3, then at
-// most one fewer than the step on screen at once (2 at step 3, 6 at step 7), around the fireplace only.
+// Specks of dust drifting in the firelight (the user asked: not too dusty). None until the fire's step 3, then at
+// most one fewer than the step on screen at once (2 at step 3, 6 at step 7), around the fireplace only. They float in
+// front of the room (#dust), and wander: three random waypoints in any direction, with a slight upward pull from the warm air.
 function speck() {
-  const layer = $('#sparkles'), fire = $('#fire');
+  const layer = $('#dust'), fire = $('#fire');
   if (!layer || !fire || layer.querySelectorAll('.speck').length >= fx.level - 1) return;
   const L = layer.getBoundingClientRect(), F = fire.getBoundingClientRect();
+  const r = (lo, hi) => (lo + Math.random() * (hi - lo)).toFixed(0) + 'px';
   const s = document.createElement('span');
   s.className = 'speck';
   s.style.cssText = `left:${F.left - L.left + F.width * (-.25 + Math.random() * 1.5)}px; top:${F.top - L.top + F.height * (.25 + Math.random() * .85)}px;
-    --dx:${(Math.random() * 30 - 15).toFixed(0)}px; --t:${(6 + Math.random() * 4).toFixed(1)}s`;
+    --x1:${r(-18, 18)}; --y1:${r(-14, 10)}; --x2:${r(-24, 24)}; --y2:${r(-22, 12)}; --x3:${r(-28, 28)}; --y3:${r(-32, 8)};
+    --t:${(7 + Math.random() * 4).toFixed(1)}s`;
   s.onanimationend = () => s.remove();
   setTimeout(() => s.remove(), 11000);
   layer.append(s);

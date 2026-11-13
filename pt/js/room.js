@@ -6,18 +6,20 @@
 
 // The floor starts where the fireplace stands, wherever the layout puts it: placeRoom measures it into --floor-y.
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
-const roomSvg = `<div class="room" aria-hidden="true">
+const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></span><span class="glow-floor"></span>
   <svg class="wall-pic" viewBox="0 0 46 58"><rect width="46" height="58" rx="4" fill="var(--frame)"/><rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
     <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/></svg>
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
     <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span></div><span class="sill"></span></div>
   <svg class="couch" viewBox="0 0 130 100"><rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
-    <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/><rect x="34" y="12" width="42" height="38" rx="12" fill="var(--pillow)"/>
-    <rect x="-200" y="46" width="320" height="48" rx="14" fill="var(--couch-2)"/><rect x="100" y="32" width="28" height="62" rx="12" fill="var(--couch)"/>
-    <g class="blanket"><rect x="91" y="25" width="42" height="48" rx="7" fill="var(--blanket)"/>
-      <rect x="91" y="35" width="42" height="4" fill="var(--blanket-2)"/><rect x="91" y="53" width="42" height="4" fill="var(--blanket-2)"/>
-      <rect x="103" y="25" width="4" height="48" fill="var(--blanket-3)"/><rect x="119" y="25" width="4" height="48" fill="var(--blanket-3)"/>
-      <path d="M95 73v4M100 73v4M105 73v4M110 73v4M115 73v4M120 73v4M125 73v4M130 73v4" stroke="var(--blanket)" stroke-width="1.6" stroke-linecap="round"/></g></svg>
+    <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/>
+    <!-- The plaid throw drapes over the top of the backrest and hangs down behind the pillow (the user moved it off the arm) -->
+    <g class="blanket"><rect x="40" y="-4" width="60" height="40" rx="7" fill="var(--blanket)"/>
+      <rect x="40" y="6" width="60" height="4" fill="var(--blanket-2)"/><rect x="40" y="22" width="60" height="4" fill="var(--blanket-2)"/>
+      <rect x="54" y="-4" width="4" height="40" fill="var(--blanket-3)"/><rect x="80" y="-4" width="4" height="40" fill="var(--blanket-3)"/>
+      <path d="M44 36v4M50 36v4M56 36v4M62 36v4M68 36v4M74 36v4M80 36v4M86 36v4M92 36v4M97 36v4" stroke="var(--blanket)" stroke-width="1.6" stroke-linecap="round"/></g>
+    <rect x="34" y="14" width="42" height="38" rx="12" fill="var(--pillow)"/>
+    <rect x="-200" y="46" width="320" height="48" rx="14" fill="var(--couch-2)"/><rect x="100" y="32" width="28" height="62" rx="12" fill="var(--couch)"/></svg>
   <svg class="side-table" viewBox="0 0 50 74">
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
@@ -74,7 +76,6 @@ function setSky() {
 const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
   <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/></g>`;
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
-  <span class="glow-wall"></span><span class="glow-floor"></span>
   <svg viewBox="0 0 150 170" aria-hidden="true">
     <rect x="15" y="12" width="120" height="158" rx="5" fill="var(--stone)"/>
     <rect x="5" y="4" width="140" height="12" rx="4" fill="var(--mantel)"/>
@@ -93,7 +94,13 @@ function placeRoom() {
   roomWatch?.disconnect();
   if (!feedEl || !fire) return;
   // 7px up: the baseboard runs behind the fireplace's foot, so it stands on the floor instead of floating above the trim.
-  const place = () => feedEl.style.setProperty('--floor-y', `${fire.getBoundingClientRect().bottom - feedEl.getBoundingClientRect().top - 7}px`);
+  // --fire-x / --fire-gy: where the firelight on the wall centers (the glow lives in the room, behind the furniture).
+  const place = () => {
+    const F = fire.getBoundingClientRect(), top = feedEl.getBoundingClientRect();
+    feedEl.style.setProperty('--floor-y', `${F.bottom - top.top - 7}px`);
+    feedEl.style.setProperty('--fire-x', `${F.left - top.left + F.width / 2}px`);
+    feedEl.style.setProperty('--fire-gy', `${F.top - top.top + F.height * .6}px`);
+  };
   roomWatch = new ResizeObserver(place);
   roomWatch.observe(feedEl);
   roomWatch.observe($('.status'));
@@ -109,6 +116,12 @@ function setFire(level, egg) {
   const up = shownLevel !== null && level > shownLevel, down = shownLevel !== null && level < shownLevel;
   fire.className = `fire lvl-${level} ${egg ? 'egg' : ''} ${down ? 'down' : ''}`;
   fire.setAttribute('aria-label', level ? `Fire: step ${level} of ${FLAME_TOP}` : `Fire: cold, step 0 of ${FLAME_TOP}`);
-  if (up && !reducedMotion()) { void fire.offsetWidth; fire.classList.add('whoosh'); }
+  // The room's firelight (glow on the wall and floor, the pal's rim light) follows the step too.
+  const feedEl = $('.feed');
+  feedEl.dataset.lvl = level;
+  feedEl.classList.toggle('egg', egg);
+  feedEl.classList.remove('whoosh');
+  if (up && !reducedMotion()) { void feedEl.offsetWidth; feedEl.classList.add('whoosh'); }
+  $('#rimFlood')?.setAttribute('flood-opacity', (.95 * level / FLAME_TOP).toFixed(2));
   shownLevel = level;
 }

@@ -126,7 +126,10 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   padding: 1rem 16px; flex: 1; width: 100%; background: var(--floor); }
 @media (min-width: 800px) { .feed { margin: 1.2rem auto; border-radius: 28px; } }
 @media (max-width: 799px) { html:has(.feed), html:has(.feed) body { background: var(--floor); } }
-.feed > :not(.sparkles, .room) { position: relative; z-index: 1; }
+.feed > :not(.sparkles, .room, .dust, .fx-defs) { position: relative; z-index: 1; }
+/* Dust floats in front of everything (not behind the fireplace: the user saw specks rise out from behind it) */
+.dust { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+.fx-defs { position: absolute; }
 .status { display: flex; flex-direction: column; align-items: center; gap: .3rem; text-align: center; }
 /* A soft backing so words stay easy to read over the wall and floor */
 .status > div, .mood { background: var(--veil); border-radius: 999px; padding: .15rem .8rem; }
@@ -168,18 +171,18 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .f-main { --k: var(--s); }
 .f-side.l { --k: var(--sl); --r: -14deg; --f: -1; }   /* mirrored: its tall tip on the outside, the left (the user asked) */
 .f-side.r { --k: var(--sr); --r: 14deg; }
-.fire.lvl-1 { --s: .75; --g: .14; }   /* same size as step 2, so 1 ↔ 2 only fades the red in or out */
+.fire.lvl-1 { --s: .75; }   /* same size as step 2, so 1 ↔ 2 only changes the red */
 /* Going out: the flame shrinks down into the logs (--s eases to 0), then is hidden. No fade (the user asked). */
 .fire.lvl-0 .fl { opacity: 0; transition: opacity 0s .6s; }
 /* Steps 0 and 1 have no red: it shrinks down behind the yellow (about half its size, the same shape) and only then
    disappears, like a fire dying down (the user asked; a fade looked wrong). Going up, it shows small and grows out. */
 .fire.lvl-0 .f-main .fo, .fire.lvl-1 .f-main .fo { transform: scale(.5); opacity: 0; transition: transform .55s ease-in, opacity .1s .5s; }
-.fire.lvl-2 { --s: .75; --g: .26; }
-.fire.lvl-3 { --s: .95; --g: .38; }
-.fire.lvl-4 { --s: 1.1; --g: .5; }
-.fire.lvl-5 { --s: 1.25; --g: .63; }
-.fire.lvl-6 { --s: 1.4; --sl: .6; --g: .8; }
-.fire.lvl-7 { --s: 1.6; --sl: .75; --sr: .7; --g: 1; }
+.fire.lvl-2 { --s: .75; }
+.fire.lvl-3 { --s: .95; }
+.fire.lvl-4 { --s: 1.1; }
+.fire.lvl-5 { --s: 1.25; }
+.fire.lvl-6 { --s: 1.4; --sl: .6; }
+.fire.lvl-7 { --s: 1.6; --sl: .75; --sr: .7; }
 /* Flames sway from step 2 up */
 .fire:not(.lvl-0, .lvl-1) .fl { animation: sway 1.6s ease-in-out infinite; }
 .fire .f-side.l { animation-delay: -.5s; }
@@ -189,17 +192,23 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   40% { transform: rotate(var(--r, 0deg)) scale(calc(var(--k) * 1.04 * var(--f)), calc(var(--k) * 1.1)) skewX(-4deg); }
   70% { transform: rotate(var(--r, 0deg)) scale(calc(var(--k) * .98 * var(--f)), calc(var(--k) * 1.03)) skewX(3deg); }
 }
-.glow-wall, .glow-floor { position: absolute; left: 50%; border-radius: 50%; pointer-events: none; }
-.glow-wall { top: 60%; width: calc(110px + 280px * var(--g)); aspect-ratio: 1.15; transform: translate(-50%, -50%); z-index: -1;
+/* The firelight on the wall and floor lives in the room, behind the couch, plant, and table, so it lights the wall
+   around their edges instead of covering them (the user asked). placeRoom sets --fire-x and --fire-gy; the strength
+   --g follows the fire's step through data-lvl on .feed. */
+.feed { transition: --g 1.2s ease; }
+.feed[data-lvl="1"] { --g: .14; } .feed[data-lvl="2"] { --g: .26; } .feed[data-lvl="3"] { --g: .38; } .feed[data-lvl="4"] { --g: .5; }
+.feed[data-lvl="5"] { --g: .63; } .feed[data-lvl="6"] { --g: .8; } .feed[data-lvl="7"] { --g: 1; }
+.glow-wall, .glow-floor { position: absolute; left: var(--fire-x, 50%); border-radius: 50%; pointer-events: none; }
+.glow-wall { top: var(--fire-gy, 30%); width: calc(110px + 280px * var(--g)); aspect-ratio: 1.15; transform: translate(-50%, -50%);
   background: radial-gradient(closest-side, rgb(var(--glow) / calc(.5 * var(--g) * var(--glow-k))), transparent); animation: breathe 3.8s ease-in-out infinite; }
-.glow-floor { bottom: 0; width: calc(60px + 320px * var(--g)); height: calc(16px + 44px * var(--g)); transform: translate(-50%, 50%);
+.glow-floor { top: calc(var(--floor-y, 50%) + 7px); width: calc(60px + 320px * var(--g)); height: calc(16px + 44px * var(--g)); transform: translate(-50%, -50%);
   background: radial-gradient(closest-side, rgb(var(--glow) / calc(.6 * var(--g) * var(--glow-k))), transparent); }
 @keyframes breathe { 50% { opacity: .78; } }
 /* Up a step while you watch: the fire flares */
-.fire.whoosh .glow-wall { animation: whoosh 1.1s ease-out, breathe 3.8s ease-in-out 1.1s infinite; }
+.feed.whoosh .glow-wall { animation: whoosh 1.1s ease-out, breathe 3.8s ease-in-out 1.1s infinite; }
 @keyframes whoosh { 25% { transform: translate(-50%, -50%) scale(1.4); filter: brightness(1.7); } }
 /* A week at full size: brighter breathing, and sparks float up out of it (ember() in feed.js) */
-.fire.egg .glow-wall { animation-duration: 2.4s; }
+.feed.egg .glow-wall { animation-duration: 2.4s; }
 .embers { position: absolute; left: 50%; top: 56%; width: 0; height: 0; pointer-events: none; }
 .ember { position: absolute; left: var(--x); top: 0; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--c);
   animation: rise var(--t) ease-out forwards; }
@@ -297,7 +306,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pal.happy .pal-pic, .pal.happy .mark, .fl, .glow-wall, .fire.whoosh .glow-wall { animation: none; }
+  .pal.happy .pal-pic, .pal.happy .mark, .fl, .glow-wall, .feed.whoosh .glow-wall { animation: none; }
   .fire { transition: none; }
 }
 
@@ -453,16 +462,19 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .pal-breathe { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; animation: pal-breathe 4.2s ease-in-out infinite; }
 @keyframes pal-breathe { 50% { transform: scale(.997, 1.015); } }
 .pal.happy .pal-breathe { animation-play-state: paused; }
-/* Firelight catches the pal's outline: a warm halo that follows a cut-out PNG's shape, growing with the fire (--rim, 0–1) */
-.feed .pal-pic { filter: drop-shadow(0 0 calc(2px + 8px * var(--rim, 0)) rgb(var(--glow) / calc(.85 * var(--rim, 0)))); transition: filter 1.2s ease; }
+/* Firelight catches the pal's edge (the user saw the old halo light up the whole pal): the #rimLight filter in feed.js
+   brightens only a thin band inside the outline, thicker on top. A faint warm halo outside it grows with the fire (--rim, 0–1). */
+.feed .pal-pic { filter: url(#rimLight) drop-shadow(0 0 calc(1px + 4px * var(--rim, 0)) rgb(var(--glow) / calc(.35 * var(--rim, 0)))); }
 
 /* Specks of dust in the firelight (speck() in feed.js): few, tiny, faint, and slow */
-.speck { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: rgb(var(--glow)); opacity: 0;
+.speck { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: rgb(var(--glow)); opacity: 0;   /* in #dust, in front */
   animation: speck var(--t) ease-in-out forwards; }
 @keyframes speck {
-  25% { opacity: .55; }
-  75% { opacity: .4; }
-  100% { opacity: 0; transform: translate(var(--dx), -54px); }
+  0% { opacity: 0; transform: none; }
+  25% { opacity: .55; transform: translate(var(--x1), var(--y1)); }
+  55% { transform: translate(var(--x2), var(--y2)); }
+  80% { opacity: .4; }
+  100% { opacity: 0; transform: translate(var(--x3), var(--y3)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
