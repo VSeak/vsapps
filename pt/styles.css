@@ -136,7 +136,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   background: linear-gradient(var(--wall) 0 var(--floor-y, 50%), var(--base) var(--floor-y, 50%) calc(var(--floor-y, 50%) + 7px), transparent 0); }
 .room::after { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--floor-y, 50%) + 7px); bottom: 0;
   background: repeating-linear-gradient(transparent 0 44px, var(--plank) 44px 46px); }
-.room svg { position: absolute; display: block; z-index: 1; }
+.room svg { position: absolute; display: block; z-index: 1; overflow: visible; }   /* the plant's leaves reach past its box (the user saw them cut off) */
 .couch { width: 132px; left: -30px; top: calc(var(--floor-y, 50%) - 64px); }
 .plant { width: 46px; right: 8px; top: calc(var(--floor-y, 50%) - 52px); }
 .wall-pic { width: 44px; left: 22px; top: max(10px, calc(var(--floor-y, 50%) - 200px)); }
