@@ -69,22 +69,24 @@ function bestStreak(days) {
 }
 
 // The flame (the user asked): 0 = grey ember, 1 = yellow core lit, 2 = all lit, then bigger each step up to 7 = full size.
-// Each finished day since the first berry: goal met → up a step; some berries (daily, or only climb) → holds;
-// none → down a step, never below 0. Today counts only once its goal is met: an unfinished day can't drop it.
+// Each finished day since the first berry: goal met OR a Cragberry → up one step (at most one a day: the user asked for a
+// Cragberry to grow it when the goal hasn't already); some Sweetberries short of the goal → holds; none → down a step, never below 0.
+// Today counts only once it grows (goal met or a Cragberry): an unfinished day can't drop it.
 // full = days in a row it ended at full size; a week of that (7) sets off the sparks.
 const FLAME_TOP = 7;
 function flameOf(days, goal) {
+  const grows = e => !!e && (e.daily >= goal || e.climb > 0);
   let level = 0, full = 0;
   const first = [...days.keys()].sort()[0];
   if (!first) return { level, full };
   const step = d => {
-    const e = days.get(d), n = e?.daily || 0;
-    if (n >= goal) level = Math.min(FLAME_TOP, level + 1);
+    const e = days.get(d);
+    if (grows(e)) level = Math.min(FLAME_TOP, level + 1);
     else if (!e) level = Math.max(0, level - 1);
     full = level === FLAME_TOP ? full + 1 : 0;
   };
   for (let d = first; d < today(); d = addDays(d, 1)) step(d);
-  if (dailyOn(days, today()) >= goal) step(today());
+  if (grows(days.get(today()))) step(today());
   return { level, full };
 }
 
