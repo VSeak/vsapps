@@ -60,7 +60,7 @@ let fx = { day: null, passed: false, egg: false };
 function renderStatus() {
   const days = byDay(feeds), t = days.get(today()) || { daily: 0, climb: 0 };
   const goal = settings.daily_goal, flame = flameOf(days, goal);
-  fx = { day: today(), passed: t.daily > goal, egg: flame.full >= 7, level: flame.level };
+  fx = { day: today(), passed: isStuffed(t, goal), egg: flame.full >= 7, level: flame.level };
   $('.feed').style.setProperty('--rim', (flame.level / FLAME_TOP).toFixed(2));   // the warm glow around the pal grows with the fire
   setFire(flame.level, fx.egg);
   const monthStart = today().slice(0, 8) + '01';
@@ -75,7 +75,7 @@ function renderStatus() {
   $('small', crag).textContent = t.climb ? 'Done for today' : BERRY.climb[1];
   $('#climbRow').innerHTML = `${berrySvg('climb', 'tiny')} Cragberries this month: <b>${climbMonth}</b>${t.climb ? ` <span class="muted">(${t.climb} today)</span>` : ''}`;
   const name = esc(settings.name);
-  $('#mood').innerHTML = t.daily > goal ? `${name} is stuffed!`
+  $('#mood').innerHTML = fx.passed ? `${name} is stuffed!`
     : t.daily === goal ? `${name} is full and happy.`
     : t.daily ? `${name} would love ${plural(goal - t.daily, 'more berry', 'more berries')}.`
     : `${name} would love a berry.`;

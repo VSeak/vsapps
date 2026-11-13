@@ -119,3 +119,7 @@ const foxSvg = `<svg class="pal-pic" viewBox="40 60 190 210" aria-hidden="true">
 </svg>`;
 
 const palPic = url => url ? `<img class="pal-pic" src="${url}" alt="">` : foxSvg;
+
+// Stuffed (the goal-passed sparkles, "is stuffed!", and History's sparkle): past the goal on Sweetberries, or at the goal
+// plus that day's Cragberry (the user asked: always having to go past the goal on Sweetberries was too strict).
+const isStuffed = (e, goal) => !!e && (e.daily > goal || (e.daily >= goal && e.climb > 0));

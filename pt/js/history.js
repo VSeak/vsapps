@@ -28,8 +28,8 @@ async function historyPage() {
     const d = iso(new Date(y, m - 1, i)), e = days.get(d), future = d > today();
     const dots = e?.daily ? `<span class="cal-dots">${'<i></i>'.repeat(Math.min(e.daily, 4))}${e.daily > 4 ? `<small>+${e.daily - 4}</small>` : ''}</span>` : '';
     const desc = [e?.daily ? plural(e.daily, 'Sweetberry', 'Sweetberries') : '', e?.climb ? plural(e.climb, 'Cragberry', 'Cragberries') : ''].filter(Boolean).join(', ');
-    cells.push(`<button type="button" class="day ${e?.daily >= goal ? 'met' : ''} ${e?.daily > goal ? 'passed' : ''} ${d === today() ? 'is-today' : ''}" data-day="${d}" ${future ? 'disabled' : ''}
-      aria-label="${fmtDate(d)}${desc ? ': ' + desc : ''}">${e?.daily > goal ? '<span class="cal-spark"></span>' : ''}<span class="num">${i}</span>${dots}${e?.climb ? berrySvg('climb', 'cal-gold') : ''}</button>`);
+    cells.push(`<button type="button" class="day ${e?.daily >= goal ? 'met' : ''} ${isStuffed(e, goal) ? 'passed' : ''} ${d === today() ? 'is-today' : ''}" data-day="${d}" ${future ? 'disabled' : ''}
+      aria-label="${fmtDate(d)}${desc ? ': ' + desc : ''}">${isStuffed(e, goal) ? '<span class="cal-spark"></span>' : ''}<span class="num">${i}</span>${dots}${e?.climb ? berrySvg('climb', 'cal-gold') : ''}</button>`);
   }
 
   view(`<div class="page-head"><h1 class="big">History</h1></div>
@@ -47,7 +47,7 @@ async function historyPage() {
         <button type="button" class="ghost small" data-month="${shift(1)}" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button>
       </div>
       <div class="cal">${week.map(w => `<span class="wk">${w}</span>`).join('')}${cells.join('')}</div>
-      <p class="hint">Full Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal}, and a sparkle means it went past. Tap a day to fix it.</p>
+      <p class="hint">Full Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal}. A sparkle means stuffed: past the goal, or the goal plus a Cragberry. Tap a day to fix it.</p>
     </div>`, { keepScroll: true });
 
   app.onclick = e => {
