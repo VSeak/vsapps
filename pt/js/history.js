@@ -49,7 +49,13 @@ async function historyPage() {
         <button type="button" class="ghost small" data-month="${shift(1)}" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button>
       </div>
       <div class="cal">${week.map(w => `<span class="wk">${w}</span>`).join('')}${cells.join('')}</div>
-      <p class="hint">Full Days, Stuffed Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal} (a Cragberry counts toward it). A sparkle means stuffed: past the goal. Tap a day to fix it.</p>
+      <!-- A legend of the calendar's marks, instead of a paragraph (the user asked) -->
+      <ul class="legend">
+        <li><span class="cal-dots"><i></i></span>Sweetberry</li>
+        <li>${berrySvg('climb', 'lg-berry')}Cragberry</li>
+        <li><span class="lg-met"></span>Goal Met</li>
+        <li><span class="cal-spark lg-spark"></span>Stuffed</li>
+      </ul>
     </div>`, { keepScroll: true });
 
   app.onclick = e => {
