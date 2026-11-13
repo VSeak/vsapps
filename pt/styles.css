@@ -737,9 +737,11 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 }
 
 /* The pal breathes: a slow, slight rise from the feet (paused while it bounces) */
-/* A soft shadow on the floor under the pal's feet (the user asked): over the rug (z -1), under the pal (drawn first) */
-.pal-breathe::before { content: ""; position: absolute; left: 50%; bottom: -3%; width: 72%; height: 10%; translate: -50% 0; border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(0 0 0 / .38), rgb(0 0 0 / .18) 55%, transparent); pointer-events: none; }
+/* A soft shadow on the floor under the pal's feet (the user asked): over the rug (z -1), under the pal (drawn first).
+   Centered on the picture's bottom edge (bottom = -half its height): it sat higher, so the pal hid all but its faint
+   rim and the user couldn't see it. */
+.pal-breathe::before { content: ""; position: absolute; left: 50%; bottom: -4.5%; width: 70%; height: 9%; translate: -50% 0; border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / .45), rgb(0 0 0 / .22) 55%, transparent); pointer-events: none; }
 .pal-breathe { position: relative; display: block; width: 100%; height: 100%; transform-origin: 50% 100%; animation: pal-breathe 4.2s ease-in-out infinite; }
 @keyframes pal-breathe { 50% { transform: scale(.997, 1.015); } }
 .pal.happy .pal-breathe { animation-play-state: paused; }
