@@ -58,6 +58,10 @@ function renderStatus() {
     `<span class="dot ${i < t.daily ? 'on' : ''} ${i >= goal ? 'extra' : ''}"></span>`).join('');
   $('#todayRow').innerHTML = `<span class="label">Sweetberries today</span><span class="dots" role="img" aria-label="${t.daily} of ${goal}">${dots}</span>
     <span class="count">${t.daily}/${goal}</span>`;
+  // One Cragberry a day (the user asked): it greys out once used, until Undo takes it back or the day turns.
+  const crag = $('.berry-btn.climb');
+  crag.disabled = t.climb > 0;
+  $('small', crag).textContent = t.climb ? 'Done for today' : BERRY.climb[1];
   $('#climbRow').innerHTML = `${berrySvg('climb', 'tiny')} Cragberries this month: <b>${climbMonth}</b>${t.climb ? ` <span class="muted">(${t.climb} today)</span>` : ''}`;
   const name = esc(settings.name);
   $('#mood').innerHTML = t.daily > goal ? `${name} is stuffed!`
@@ -70,6 +74,7 @@ function feed(kind, fromEl) {
   const row = { id: crypto.randomUUID(), kind, fed_at: new Date().toISOString() };
   const wasPassed = fx.passed;
   feeds.push(row);
+  if (kind === 'climb') fromEl.closest('button').disabled = true;   // no second Cragberry from a quick double tap
   const saving = sb.from('pt_feeds').insert(row).then(must);
   saving.catch(e => { feeds = feeds.filter(f => f !== row); if (app.contains(fromEl)) renderStatus(); flash(msgOf(e), 'error'); });
   toss(kind, fromEl).then(() => {
@@ -123,12 +128,12 @@ function celebrate() {
 let fxTimer;
 function startFx() {
   clearInterval(fxTimer);
-  if (reducedMotion()) return;
   let tick = 0;
   fxTimer = setInterval(() => {
     if (!$('#sparkles')) return clearInterval(fxTimer);
     if (document.hidden) return;
     if (fx.day !== today()) renderStatus();   // past midnight: a new day, so the sparkles stop
+    if (reducedMotion()) return;   // the midnight check above still runs, so Cragberry comes back at midnight
     tick++;
     if (fx.egg && Math.random() < .8) ember();
     // About every 1.5 s, at an uneven beat: one sparkle, or sometimes two a moment apart (the user asked).

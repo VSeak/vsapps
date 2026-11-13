@@ -146,7 +146,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   .wall-pic { width: 56px; left: 64px; }
 }
 
-/* The fireplace is the flame meter (flameOf's 7 steps): 0 cold ash with two faint coals, 1 a yellow flicker, 2 red joins,
+/* The fireplace is the flame meter (flameOf's 7 steps): 0 just the logs (the user dropped the ash and coals), 1 a yellow flicker, 2 red joins,
    3–7 bigger, side flames at 6 and 7. The glow on the wall and floor grows with it (--g). Registered so they ease. */
 @property --s { syntax: '<number>'; inherits: true; initial-value: 0; }
 @property --sl { syntax: '<number>'; inherits: true; initial-value: 0; }
@@ -166,7 +166,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .f-side.l { --k: var(--sl); --r: -14deg; --f: -1; }   /* mirrored: its tall tip on the outside, the left (the user asked) */
 .f-side.r { --k: var(--sr); --r: 14deg; }
 .fire.lvl-1 { --s: .75; --g: .14; }   /* same size as step 2, so 1 ↔ 2 only fades the red in or out */
-/* Going out: the flame shrinks into the coals (--s eases to 0), then is hidden. No fade (the user asked). */
+/* Going out: the flame shrinks down into the logs (--s eases to 0), then is hidden. No fade (the user asked). */
 .fire.lvl-0 .fl { opacity: 0; transition: opacity 0s .6s; }
 /* Steps 0 and 1 have no red: it shrinks down behind the yellow (about half its size, the same shape) and only then
    disappears, like a fire dying down (the user asked; a fade looked wrong). Going up, it shows small and grows out. */
@@ -177,11 +177,6 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .fire.lvl-5 { --s: 1.25; --g: .63; }
 .fire.lvl-6 { --s: 1.4; --sl: .6; --g: .8; }
 .fire.lvl-7 { --s: 1.6; --sl: .75; --sr: .7; --g: 1; }
-.fire:not(.lvl-0) .ash { display: none; }
-.coal { fill: #C2452D; animation: coal 2.6s ease-in-out infinite; }
-.coal.c2 { animation-delay: -1.3s; }
-.coal.c3 { animation-delay: -.6s; }
-@keyframes coal { 50% { opacity: .3; } }
 /* Flames sway from step 2 up */
 .fire:not(.lvl-0, .lvl-1) .fl { animation: sway 1.6s ease-in-out infinite; }
 .fire .f-side.l { animation-delay: -.5s; }
@@ -299,7 +294,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pal.happy .pal-pic, .pal.happy .mark, .coal, .fl, .glow-wall, .fire.whoosh .glow-wall { animation: none; }
+  .pal.happy .pal-pic, .pal.happy .mark, .fl, .glow-wall, .fire.whoosh .glow-wall { animation: none; }
   .fire { transition: none; }
 }
 
@@ -391,3 +386,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
   .pal-name { font-size: 1.6rem; margin: .6rem 0 .15rem; }
   .feed { padding-top: .5rem; padding-bottom: .1rem; }
 }
+
+/* Cragberry after today's: greyed out until tomorrow (or an Undo) */
+.berry-btn.climb:disabled { opacity: 1; border-color: var(--line); color: var(--muted); background: var(--sunk); box-shadow: none; }
+.berry-btn.climb:disabled .berry { filter: grayscale(1); opacity: .45; }

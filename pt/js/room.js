@@ -26,9 +26,6 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C" transform="rotate(-8 75 154)"/>
-    <!-- Step 0's ash and coals sit on top of the logs, in front of them (the user saw the logs hiding them) -->
-    <g class="ash"><ellipse cx="75" cy="153" rx="25" ry="7" fill="#6B5E62"/><ellipse cx="73" cy="148" rx="15" ry="6" fill="#7D7074"/>
-      <circle class="coal" cx="65" cy="151" r="2.6"/><circle class="coal c2" cx="83" cy="152" r="2.2"/><circle class="coal c3" cx="75" cy="146" r="1.8"/></g>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
   </svg>
   <span class="embers" id="embers"></span>
