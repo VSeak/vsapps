@@ -48,22 +48,29 @@ function ornamentSvg(i, gold) {
 }
 
 // Presents in the order they arrive: a heap that grows from under the tree out to the left (toward the pal) and down
-// the floor toward you (the user asked for both). Five rows, back to front, each one only 7–8 units in front of the
-// one behind and staggered like bricks, so every box hides the lower half of the ones behind it (the user saw loose
-// boxes with floor between them). Each row fills from the middle out. [left, width, height, bottom] in tree units.
+// the floor toward you (the user asked for both). Big boxes at the back, then rows of smaller and smaller ones in
+// front, each row only 8–10 units ahead of the last and staggered like bricks, so the smaller boxes cover the bottoms
+// of the bigger ones (the user saw loose boxes, then boxes all one size). Three small ones sit stacked on the big
+// ones (the user liked those). [left, width, height, bottom] in tree units.
 const GIFT_SPOTS = [
-  [13, 17, 16, 110], [-5, 19, 14, 110], [29, 20, 13, 110], [-21, 17, 15, 110], [48, 18, 15, 110], [-38, 18, 13, 110], [65, 15, 14, 110],
-  [5, 17, 13, 118], [21, 20, 15, 118], [-13, 19, 15, 118], [40, 18, 14, 118], [-30, 18, 14, 118], [57, 19, 13, 118],
-  [14, 18, 13, 126], [-5, 20, 15, 126], [31, 19, 15, 126], [-22, 18, 14, 126], [49, 18, 14, 126],
-  [5, 19, 15, 134], [23, 18, 14, 134], [-12, 18, 13, 134], [40, 19, 13, 134],
-  [2, 18, 12, 141], [20, 19, 13, 141]];
+  [10, 24, 20, 110], [33, 28, 26, 110], [-15, 26, 24, 110], [60, 22, 19, 110], [-36, 22, 18, 110],   // big, at the back
+  [9, 19, 16, 120], [29, 18, 13, 120], [-9, 17, 14, 120], [48, 17, 15, 120],                         // medium
+  [39, 14, 9, 84],                                                                                     // stacked on the tallest
+  [-28, 18, 15, 120], [66, 15, 14, 120],
+  [11, 13, 10, 129], [25, 15, 12, 129], [-5, 15, 12, 129],                                             // small
+  [-11, 15, 10, 86],                                                                                   // stacked
+  [41, 14, 11, 129], [-20, 14, 11, 129], [56, 13, 10, 129],
+  [3, 12, 10, 137], [17, 10, 8, 137],                                                                  // smallest, in front
+  [63, 12, 8, 91],                                                                                     // stacked
+  [-10, 11, 9, 137], [30, 11, 9, 137]];
 const GIFT_COLORS = [['#C7334F', '#F2C14E'], ['#4E9A5B', '#FFF6EE'], ['#F2EDE4', '#C7334F'], ['#E0A21B', '#7A3A5A'],
   ['#7A4A8A', '#F2C14E'], ['#4A7EC2', '#FFF6EE']];
 function giftSvg(i) {
   const [x, w, h, b] = GIFT_SPOTS[i], [box, rib] = GIFT_COLORS[i % GIFT_COLORS.length], y = b - h, cx = x + w / 2;
+  const k = w / 16, rw = (1.8 * k).toFixed(2), bw = (2 * k).toFixed(2), bh = (1.2 * k).toFixed(2);   // ribbon and bow grow with the box
   return `<g class="gift" data-i="${i}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx=".8" fill="${box}"/>
-    <rect x="${cx - .9}" y="${y}" width="1.8" height="${h}" fill="${rib}"/><rect x="${x}" y="${y + h * .4}" width="${w}" height="1.6" fill="${rib}"/>
-    <ellipse cx="${cx - 1.8}" cy="${y - .9}" rx="2" ry="1.2" fill="${rib}"/><ellipse cx="${cx + 1.8}" cy="${y - .9}" rx="2" ry="1.2" fill="${rib}"/>
+    <rect x="${cx - rw / 2}" y="${y}" width="${rw}" height="${h}" fill="${rib}"/><rect x="${x}" y="${y + h * .4}" width="${w}" height="${rw}" fill="${rib}"/>
+    <ellipse cx="${cx - bw * .9}" cy="${y - bh * .75}" rx="${bw}" ry="${bh}" fill="${rib}"/><ellipse cx="${cx + bw * .9}" cy="${y - bh * .75}" rx="${bw}" ry="${bh}" fill="${rib}"/>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx=".8" fill="none" stroke="rgb(0 0 0 / .12)" stroke-width=".5"/></g>`;
 }
 // Drawn back to front, so a present in front overlaps the one behind it.
