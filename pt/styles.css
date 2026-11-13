@@ -156,7 +156,7 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
   transition: --s .8s cubic-bezier(.3, 1.6, .5, 1), --sl .8s cubic-bezier(.3, 1.6, .5, 1), --sr .8s cubic-bezier(.3, 1.6, .5, 1), --g 1.2s ease; }
 .fire.down { transition: --s .6s ease-in, --sl .6s ease-in, --sr .6s ease-in, --g 1s ease; }
 .fire svg { display: block; width: 100%; position: relative; }
-.fire .fo { fill: #E8442C; transition: opacity .4s; }
+.fire .fo { fill: #E8442C; transform-box: fill-box; transform-origin: 50% 100%; transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity 0s; }
 .fire .fi { fill: #F5B428; }
 /* Side flames lean out and are a deeper orange, so they read as flames of their own behind the main one */
 .fire .f-side .fo { fill: #D9541E; }
@@ -166,7 +166,10 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .f-side.l { --k: var(--sl); --r: -14deg; }
 .f-side.r { --k: var(--sr); --r: 14deg; }
 .fire.lvl-1 { --s: .75; --g: .14; }   /* same size as step 2, so 1 ↔ 2 only fades the red in or out */
-.fire.lvl-0 .fl, .fire.lvl-0 .f-main .fo, .fire.lvl-1 .f-main .fo { opacity: 0; }
+.fire.lvl-0 .fl { opacity: 0; }
+/* Steps 0 and 1 have no red: it shrinks down behind the yellow (about half its size, the same shape) and only then
+   disappears, like a fire dying down (the user asked; a fade looked wrong). Going up, it shows small and grows out. */
+.fire.lvl-0 .f-main .fo, .fire.lvl-1 .f-main .fo { transform: scale(.5); opacity: 0; transition: transform .55s ease-in, opacity .1s .5s; }
 .fire.lvl-2 { --s: .75; --g: .26; }
 .fire.lvl-3 { --s: .95; --g: .38; }
 .fire.lvl-4 { --s: 1.1; --g: .5; }
