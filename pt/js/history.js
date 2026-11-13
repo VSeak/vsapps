@@ -3,7 +3,7 @@
 // Tapping a day lists its berries to delete one, or adds one that was forgotten. Tapping the month opens a month and year picker.
 
 let histMonth = null;   // 'YYYY-MM' being shown; starts on this month
-let histYear = null;    // the Year in Berries card's year
+let histYear = null, histYearOf = null;   // the Year in Berries card's year, and the "last year" it was picked in
 
 async function historyPage() {
   if (!redrawing) view(loading);
@@ -26,9 +26,11 @@ async function historyPage() {
   const isNow = histMonth === today().slice(0, 7);
   // The four monthly cards say which month they count (the user asked): "This Month", or the month shown, like "Oct 2026".
   const when = `<small>${isNow ? 'This Month' : first.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</small>`;
-  // The Year in Berries card (the user asked): any year from the first berry's to this one. Starts on this year.
-  const thisYr = new Date().getFullYear(), firstYr = Math.min(thisYr, ...feeds.slice(0, 1).map(f => +dayOf(f.fed_at).slice(0, 4)));
-  histYear ??= thisYr;
+  // The Year in Berries card (the user asked): January only, and only years already over (the first berry's year to
+  // last year). Starts on last year. Hidden if there are none.
+  const lastYr = new Date().getFullYear() - 1, firstYr = feeds.length ? +dayOf(feeds[0].fed_at).slice(0, 4) : lastYr + 1;
+  const showYear = new Date().getMonth() === 0 && firstYr <= lastYr;
+  if (histYearOf !== lastYr || !(histYear >= firstYr && histYear <= lastYr)) { histYear = lastYr; histYearOf = lastYr; }   // a new year starts on the year just ended
   const week = [...Array(7)].map((_, i) => new Date(2026, 10, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }));   // Nov 1 2026 is a Sunday
   const cells = [...Array(first.getDay())].map(() => '<span></span>');
   for (let i = 1; i <= count; i++) {
@@ -63,14 +65,14 @@ async function historyPage() {
         <li><span class="cal-spark lg-spark"></span>Stuffed</li>
       </ul>
     </div>
-    <div class="card">
+    ${showYear ? `<div class="card">
       <div class="cal-head">
         <button type="button" class="ghost small" data-year="${histYear - 1}" aria-label="Previous year" ${histYear <= firstYr ? 'disabled' : ''}>‹</button>
         <h2>${histYear} in Berries</h2>
-        <button type="button" class="ghost small" data-year="${histYear + 1}" aria-label="Next year" ${histYear >= thisYr ? 'disabled' : ''}>›</button>
+        <button type="button" class="ghost small" data-year="${histYear + 1}" aria-label="Next year" ${histYear >= lastYr ? 'disabled' : ''}>›</button>
       </div>
       ${yearHtml(days, goal, histYear)}
-    </div>`, { keepScroll: true });
+    </div>` : ''}`, { keepScroll: true });
 
   app.onclick = e => {
     const yr = e.target.closest('[data-year]');
@@ -188,7 +190,7 @@ function yearHtml(days, goal, year) {
 
 // The first time the app is opened in a new year (whenever that is: it doesn't have to be January 1), last year's
 // screen shows once, anywhere: year_seen is saved first, so it can't show twice. Not if last year had no berries.
-// After that, the Year in Berries card on History has it.
+// After that, the Year in Berries card on History has it, until the end of January.
 async function newYear() {
   const y = new Date().getFullYear(), last = y - 1;
   if (!('year_seen' in settings) || settings.year_seen >= y) return;
@@ -199,7 +201,7 @@ async function newYear() {
   await ask({ title: 'Happy New Year!', ok: 'Done', cancel: false,
     body: `<div class="ny-sparkles" aria-hidden="true"></div>
       <p class="ny-sub">Here's ${esc(settings.name)}'s ${last} in berries.</p>${yearHtml(byDay(feeds), settings.daily_goal, last)}
-      <p class="hint">See it again any time on History.</p>`,
+      <p class="hint">See it again on History until the end of January.</p>`,
     onOpen: form => {
       if (reducedMotion()) return;
       const layer = form.querySelector('.ny-sparkles');

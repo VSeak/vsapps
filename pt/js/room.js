@@ -1,6 +1,6 @@
 // ---------- The cozy room behind the Feed page (the user asked) ----------
 // A wall and a wooden floor, a couch running off the left edge with a throw blanket on its arm, a side table with a
-// steaming mug, a plant on the right, a picture, a window showing the real sky, and a rug under the pal. The fireplace
+// steaming mug, a plant and a picture on the right, a window showing the real sky on the left, and a rug under the pal. The fireplace
 // on the back wall is the flame meter (the user's idea): its fire, glow, and sparks follow flameOf's 7 steps
 // (styles.css, .fire.lvl-N). Every color is a token, so dark mode turns it into the room at night.
 
@@ -8,9 +8,10 @@
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
 const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></span><span class="glow-floor"></span>
   <svg class="wall-pic" viewBox="0 0 46 58"><rect width="46" height="58" rx="4" fill="var(--frame)"/><rect x="6" y="6" width="34" height="46" rx="2" fill="var(--pic)"/>
-    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/>${wreathSvg}</svg>
+    <path d="M6 44l10-12 8 8 6-6 10 10v8H6z" fill="var(--pic-2)"/><circle cx="31" cy="17" r="4" fill="var(--pic-sun)"/></svg>
   <div class="win-wrap"><div class="window" id="window"><span class="stars"></span><span class="sun"></span>
-    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span></div><span class="sill"></span></div>
+    <span class="moon"><i id="moonShade"></i></span><span class="cloud"></span><span class="snow">${'<i></i>'.repeat(9)}</span></div><span class="sill"></span>
+    <svg class="win-wreath xmas-only" viewBox="6 12 34 36" aria-hidden="true">${wreathSvg}</svg></div>
   <svg class="couch" viewBox="0 0 130 100"><rect x="104" y="92" width="7" height="8" rx="2" fill="var(--mantel)"/>
     <rect x="-200" width="306" height="74" rx="18" fill="var(--couch)"/>
     <!-- The plaid throw drapes over the top of the backrest and hangs down behind the pillow (the user moved it off the arm) -->
@@ -24,7 +25,7 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
     <path d="M31 18.5h2.5a3.2 3.2 0 0 1 0 6.4H31" fill="none" stroke="var(--mug)" stroke-width="2"/>
-    <rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}
+    ${caneSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>

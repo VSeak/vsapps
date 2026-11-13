@@ -145,11 +145,11 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .room svg { position: absolute; display: block; z-index: 1; overflow: visible; }   /* the plant's leaves reach past its box (the user saw them cut off) */
 .couch { width: 132px; left: -30px; top: calc(var(--floor-y, 50%) - 64px); }
 .plant { width: 46px; right: 8px; top: calc(var(--floor-y, 50%) - 52px); }
-.wall-pic { width: 44px; left: 22px; top: max(10px, calc(var(--floor-y, 50%) - 200px)); }
+.wall-pic { width: 44px; right: 24px; top: max(10px, calc(var(--floor-y, 50%) - 168px)); }   /* on the right, where the window was (the user swapped them) */
 @media (min-width: 520px) {
   .couch { width: 170px; left: 0; top: calc(var(--floor-y, 50%) - 84px); }
   .plant { width: 56px; right: 34px; top: calc(var(--floor-y, 50%) - 64px); }
-  .wall-pic { width: 56px; left: 64px; }
+  .wall-pic { width: 56px; right: 120px; }
 }
 
 /* The fireplace is the flame meter (flameOf's 7 steps): 0 just the logs (the user dropped the ash and coals), 1 a yellow flicker, 2 red joins,
@@ -416,7 +416,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 
 /* ---------- More cozy (the user asked): the window, the side table and steam, the pal's breathing and warm glow, dust ---------- */
 /* The window shows the real sky (setSky in room.js): night, dawn, day, or dusk, by the sunrise and sunset where you are */
-.win-wrap { position: absolute; right: 14px; top: max(8px, calc(var(--floor-y, 50%) - 176px)); width: 72px; z-index: 1; }
+.win-wrap { position: absolute; left: 18px; top: max(8px, calc(var(--floor-y, 50%) - 176px)); width: 72px; z-index: 1; }
 .window { position: relative; height: 84px; border: 5px solid var(--frame); border-radius: 8px 8px 3px 3px; overflow: hidden;
   background-color: #9FD0F0; background-image: linear-gradient(rgb(255 255 255 / 0), rgb(255 255 255 / .28)); transition: background-color 3s; }
 .window::before, .window::after { content: ""; position: absolute; background: var(--frame); z-index: 3; }
@@ -464,7 +464,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
   100% { opacity: 0; transform: translateY(-6px) scale(1.3, 1.1); }
 }
 @media (min-width: 520px) {
-  .win-wrap { right: 110px; width: 84px; }
+  .win-wrap { left: 60px; width: 84px; top: max(8px, calc(var(--floor-y, 50%) - 200px)); }   /* clears the taller couch below it */
   .window { height: 96px; }
   .side-table { width: 56px; left: 150px; }
 }
@@ -494,15 +494,15 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 }
 /* Short phones: a smaller window, lower, so it clears the status pills above it */
 @media (max-height: 760px) {
-  .win-wrap { width: 56px; top: max(8px, calc(var(--floor-y, 50%) - 130px)); }
+  .win-wrap { width: 56px; top: max(8px, calc(var(--floor-y, 50%) - 146px)); }   /* above the couch back */
   .window { height: 64px; }
 }
 
 /* ---------- Christmas (holiday.js; the user asked): the day after Thanksgiving through January 7 ---------- */
-.feed:not(.xmas) .xmas-only, .feed.xmas .plant { display: none; }
-/* The advent tree stands where the plant was; its presents spill out to the left, toward the pal */
-.room .xmas-tree { width: 124px; right: 4px; top: calc(var(--floor-y, 50%) - 60px); }
-@media (min-width: 520px) { .room .xmas-tree { width: 150px; right: 30px; top: calc(var(--floor-y, 50%) - 72px); } }
+.feed:not(.xmas) .xmas-only, .feed.xmas .plant, .feed.xmas .wall-pic { display: none; }   /* at Christmas the big tree takes their corner */
+/* The advent tree stands in the corner where the picture and plant were (both put away; the user asked), big; its presents spill left toward the pal */
+.room .xmas-tree { width: 206px; right: -2px; top: calc(var(--floor-y, 50%) - 121px); }   /* tree part 110px wide; pot foot on the floor */
+@media (min-width: 520px) { .room .xmas-tree { width: 281px; right: 16px; top: calc(var(--floor-y, 50%) - 168px); } }
 .orn, .gift { transform-box: fill-box; transform-origin: 50% 50%; }
 .gift { transform-origin: 50% 100%; }
 .orn.pop, .gift.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
@@ -517,7 +517,9 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .hat { position: absolute; left: calc(var(--hx) * 100%); top: calc(var(--hy) * 100%); width: calc(var(--hw) * 100%); overflow: visible;
   translate: -50% -82.2%; rotate: calc(var(--hr) * 1deg); transform-origin: 50% 82.2%; pointer-events: none; display: block; }
 @media (prefers-reduced-motion: reduce) { .lights > g, .orn-spark, .orn.pop, .gift.pop { animation: none; } }
-@media (max-height: 760px) { .room .xmas-tree { width: 104px; top: calc(var(--floor-y, 50%) - 45px); } }
+@media (max-height: 760px) { .room .xmas-tree { width: 165px; top: calc(var(--floor-y, 50%) - 91px); } }
+/* The wreath hangs on the window now (the picture is put away at Christmas) */
+.room .win-wreath { position: absolute; left: 50%; top: 50%; width: 62%; translate: -50% -50%; z-index: 4; }
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
 .hat-stage { display: flex; justify-content: center; padding: 3.2rem 0 .6rem; background: var(--sunk); border-radius: 16px; overflow: hidden; }
 .pal.placing { --pal: min(60vw, 230px); }

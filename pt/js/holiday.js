@@ -105,10 +105,14 @@ const wreathSvg = `<g class="xmas-only">
   <circle cx="23" cy="39" r="1.8" fill="#A82A43"/>
 </g>`;
 
-// In the cocoa: three marshmallows on top and a candy cane leaning out. Side-table units.
+// In the cocoa: a candy cane standing in it (drawn before the mug, so the mug and the cocoa's surface hide its lower
+// end: it reads as inside, not stuck on the side; the user saw that) and three marshmallows floating on top. Side-table units.
+const CANE = 'M27 24V8.6a2.6 2.6 0 0 1 5.2 0v1.4';
+const caneSvg = `<g class="xmas-only">
+  <path d="${CANE}" fill="none" stroke="#FFF6EE" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="${CANE}" fill="none" stroke="#D93A55" stroke-width="1.7" stroke-dasharray="1.1 1.1"/>
+</g>`;
 const cocoaSvg = `<g class="xmas-only">
-  <path d="M28.5 21V9.5a2.6 2.6 0 0 1 5.2 0v1" fill="none" stroke="#FFF6EE" stroke-width="1.7" stroke-linecap="round"/>
-  <path d="M28.5 21V9.5a2.6 2.6 0 0 1 5.2 0v1" fill="none" stroke="#D93A55" stroke-width="1.7" stroke-dasharray="1.1 1.1"/>
   <rect x="19.6" y="13.4" width="3" height="2.6" rx=".8" fill="#FFFDF8" transform="rotate(-12 21 14.7)"/>
   <rect x="23" y="13" width="3" height="2.6" rx=".8" fill="#FFFDF8" transform="rotate(8 24.5 14.3)"/>
   <rect x="25.6" y="14" width="2.6" height="2.2" rx=".7" fill="#F4ECE0"/>
