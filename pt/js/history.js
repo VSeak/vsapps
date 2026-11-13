@@ -16,6 +16,7 @@ async function historyPage() {
   const inMonth = [...days].filter(([d]) => d.startsWith(histMonth));
   const sum = k => inMonth.reduce((n, [, e]) => n + e[k], 0);
   const goalDays = inMonth.filter(([, e]) => berriesOn(e) >= goal).length;
+  const stuffedDays = inMonth.filter(([, e]) => isStuffed(e, goal)).length;
 
   const [y, m] = histMonth.split('-').map(Number);
   const first = new Date(y, m - 1, 1), count = new Date(y, m, 0).getDate();
@@ -37,8 +38,9 @@ async function historyPage() {
       <div class="stat">${flameSvg}<b>${streakOf(days)}</b><span>Current Streak</span></div>
       <div class="stat"><b>${bestStreak(days)}</b><span>Best Streak</span></div>
       <div class="stat"><b>${goalDays}</b><span>Full Days</span></div>
-      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Sweetberries</span></div>
-      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Cragberries</span></div>
+      <div class="stat"><span class="cal-spark" aria-hidden="true"></span><b>${stuffedDays}</b><span>Stuffed Days</span></div>
+      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Sweet&shy;berries</span></div>
+      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Crag&shy;berries</span></div>
     </div>
     <div class="card cal-card">
       <div class="cal-head">
@@ -47,7 +49,7 @@ async function historyPage() {
         <button type="button" class="ghost small" data-month="${shift(1)}" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button>
       </div>
       <div class="cal">${week.map(w => `<span class="wk">${w}</span>`).join('')}${cells.join('')}</div>
-      <p class="hint">Full Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal} (a Cragberry counts toward it). A sparkle means stuffed: past the goal. Tap a day to fix it.</p>
+      <p class="hint">Full Days, Stuffed Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal} (a Cragberry counts toward it). A sparkle means stuffed: past the goal. Tap a day to fix it.</p>
     </div>`, { keepScroll: true });
 
   app.onclick = e => {

@@ -312,7 +312,11 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 }
 
 /* ---------- History ---------- */
-.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+/* Six cards: 3 + 3 on a phone, one row of 6 when wide (the user saw a gap when there were 5) */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-bottom: 1rem; }
+@media (min-width: 700px) { .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.stat > .cal-spark { left: auto; top: .7rem; right: .7rem; width: 14px; height: 14px; }
+@media (max-width: 420px) { .stat { padding: .65rem .55rem; } .stat span { font-size: .78rem; } }
 .stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: .7rem .8rem; display: flex; flex-direction: column;
   box-shadow: var(--shadow); position: relative; }
 .stat b { font: 600 1.7rem/1.1 Fredoka, sans-serif; }
