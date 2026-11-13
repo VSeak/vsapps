@@ -8,7 +8,7 @@ async function settingsPage() {
   const url = await photoUrl();
   if (tok !== navToken) return;
   // The hat card only shows in a hat season (the user asked): Santa Hat at Christmas, Autumn Beanie through Thanksgiving.
-  // Both use the same placement, so a hat placed in November is already on at Christmas.
+  // New Year Cap at Chinese New Year. All use the same placement, so a hat placed in November is already on at Christmas.
   const hs = hatSeason(), xmas = !!hs;
   view(`<div class="page-head"><h1 class="big">Settings</h1></div>
     <div class="card">

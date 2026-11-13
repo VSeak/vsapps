@@ -621,6 +621,33 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .fruit { transform-box: fill-box; transform-origin: 50% 100%; }
 .fruit.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
 @media (prefers-reduced-motion: reduce) { .fruit.pop { animation: none; } }
+/* ---------- Chinese New Year (holiday.js; the user asked): Eve through the Lantern Festival ---------- */
+/* A kumquat tree takes the plant's corner (the picture stays); dumplings only on Eve and New Year's Day */
+.feed:not(.cny) .cny-only, .feed:not(.feast) .feast-only, .feed.cny .plant { display: none; }
+.room .kumquat { width: 92px; right: 2px; top: calc(var(--floor-y, 50%) - 106px); }
+@media (min-width: 520px) { .room .kumquat { width: 116px; right: 16px; top: calc(var(--floor-y, 50%) - 136px); } }
+@media (max-height: 760px) { .room .kumquat { width: 78px; top: calc(var(--floor-y, 50%) - 88px); } }
+.hb { transform-box: fill-box; transform-origin: 50% 0; }
+.hb.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+/* The mantel's lanterns sway a little, out of step; their glow grows with the fire (--rim, 0–1) */
+.lantern { transform-box: view-box; animation: sway 4s ease-in-out infinite alternate; }
+.lantern + .lantern { animation-delay: -2.3s; }
+.lantern .halo { fill: #FF7A4D; opacity: calc(.12 + .35 * var(--rim, 0)); }
+@keyframes sway { from { rotate: -4deg; } to { rotate: 4deg; } }
+/* Fireworks in the window after dark on Eve, New Year's Day, and the Lantern Festival: rings of dots that burst and fade */
+.fireworks { inset: 0; z-index: 2; }
+.boom .fireworks { opacity: 1; }
+.fireworks i { position: absolute; width: 2px; height: 2px; border-radius: 50%; color: #FFD25E; background: currentColor; opacity: 0;
+  box-shadow: 10px 0 0 .5px, 7px 7px 0 .5px, 0 10px 0 .5px, -7px 7px 0 .5px, -10px 0 0 .5px, -7px -7px 0 .5px, 0 -10px 0 .5px, 7px -7px 0 .5px;
+  animation: burst 2.6s ease-out infinite; }
+.fireworks i:nth-child(1) { left: 28%; top: 30%; }
+.fireworks i:nth-child(2) { left: 70%; top: 22%; color: #FF5A6E; animation-delay: -.9s; animation-duration: 3.1s; }
+.fireworks i:nth-child(3) { left: 52%; top: 58%; color: #7CC4FF; animation-delay: -1.7s; animation-duration: 2.8s; }
+@keyframes burst { 0% { opacity: 1; transform: scale(.1); } 60% { opacity: 1; } 100% { opacity: 0; transform: scale(1.1); } }
+@media (prefers-reduced-motion: reduce) {
+  .hb.pop, .lantern { animation: none; }
+  .fireworks i { animation: none; opacity: .9; transform: scale(.8); }   /* still bursts, frozen open */
+}
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */
 .hat-stage { display: flex; justify-content: center; padding: 3.2rem 0 .6rem; background: var(--sunk); border-radius: 16px; overflow: hidden; }
 .pal.placing { --pal: min(60vw, 230px); }
