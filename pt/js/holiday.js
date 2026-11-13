@@ -508,6 +508,21 @@ function jackSvg(i, gold) {
     ${gold ? `<path class="orn-spark" d="M5.5-11l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#FFE7A0"/>` : ''}</g></g>`;
 }
 
+// Halloween only: a heaped bowl of candy on the table, left of the big pumpkin (the user asked: it was small on the side
+// table): candy corn and wrapped candies over a black bowl with an orange band. Table units; the tabletop is y 37.
+const candyCorn = (x, y, r) => `<g transform="rotate(${r} ${x} ${y})"><path d="M${x - 1.8} ${y}l1.8-4.8 1.8 4.8z" fill="#F08A24"/>
+  <path d="M${x - 1.8} ${y}h3.6l-.45-1.2h-2.7z" fill="#F2C14E"/><path d="M${x - .6} ${y - 3.3}l.6-1.5.6 1.5z" fill="#FFFDF8"/></g>`;
+const wrapped = (x, y, c) => `<path d="M${x - 3.9} ${y - 1.3}l1.8 1.3-1.8 1.3zM${x + 3.9} ${y - 1.3}l-1.8 1.3 1.8 1.3z" fill="${c}"/>
+  <circle cx="${x}" cy="${y}" r="2.1" fill="${c}"/><circle cx="${x - .7}" cy="${y - .7}" r=".6" fill="#fff" opacity=".5"/>`;
+const candyBowlSvg = `<g class="hday-only">
+  ${wrapped(68, 28.4, '#7A4A8A')}${candyCorn(73.2, 29, -12)}${wrapped(79.4, 28.2, '#4E9A5B')}${candyCorn(70.6, 26.4, 16)}
+  ${candyCorn(76.4, 26, -4)}${wrapped(73.8, 24.8, '#C7334F')}${candyCorn(81.6, 28.6, 20)}
+  <path d="M63.6 28.6h20.8c0 5-4.6 7.6-10.4 7.6s-10.4-2.6-10.4-7.6z" fill="#2A2033"/>
+  <path d="M64.4 31.4h19.2q-.5 1.2-1.4 2.2H65.8q-.9-1-1.4-2.2z" fill="#E07A24"/>
+  <path d="M63.6 28.6h20.8" stroke="#3B2A4F" stroke-width="1" stroke-linecap="round"/>
+  <path d="M70 36.2h8l.8.8h-9.6z" fill="#2A2033"/>
+</g>`;
+
 // The table: dark wood, one leg showing (the other is off the right edge), a cobweb in the corner under the top, and a
 // grey gauze runner hanging over the front edge in tatters with strands of web trailing from it. Table units 148 × 72,
 // like the harvest table; nothing starts left of x 40, so the fireplace (a layer above the room) hides none of it.
@@ -530,7 +545,7 @@ const hwTableSvg = `<svg class="hw-table halloween-only" viewBox="0 0 148 72">
   <ellipse cx="107" cy="22" rx="12" ry="17.4" fill="#E0762A"/><ellipse cx="121" cy="22" rx="12" ry="17.4" fill="#E0762A"/>
   <ellipse cx="114" cy="22" rx="10" ry="17.8" fill="#EE8A34"/>
   <path d="M95 14q-1.6 4 0 10" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" opacity=".25"/>
-  <g id="carving"></g>
+  <g id="carving"></g>${candyBowlSvg}
   <g id="jacksFront"></g>
 </svg>`;
 
@@ -563,9 +578,13 @@ const spiderSvg = `<g class="halloween-only">
   </g>
 </g>`;
 
-// A bat for the October window (the user asked): wings that flap (scaled through flat and down) on a little body.
-const batSvg = `<i><svg viewBox="-6 -3.4 12 7"><g class="wings"><path d="M0 0C-1.4-2-4-2.8-6-1.6c1 .3 1.3 1 1.1 1.9.8-.6 1.8-.4 2.1.4.6-.7 1.6-.6 2.8-.7zM0 0c1.4-2 4-2.8 6-1.6-1 .3-1.3 1-1.1 1.9-.8-.6-1.8-.4-2.1.4-.6-.7-1.6-.6-2.8-.7z"/></g>
-  <ellipse cx="0" cy=".4" rx="1.1" ry="1.6"/><path d="M-.9-.8l.2-1.2.5.8zM.9-.8l-.2-1.2-.5.8z"/></svg></i>`;
+// A bat for the October window (the user asked), seen side-on and facing right, the way it flies: the head and ears at the
+// front, the near wing and a fainter far wing swept back from the shoulder, beating down through the body and back up
+// (the wings' base is y 0). The first one was seen from the front, so it looked like it flapped toward you while moving
+// sideways (the user saw it).
+const BAT_WING = 'M1.2 0C.4-2.2-1.8-3.6-5-3.8c.6.8.6 1.6.1 2.2 1-.1 1.6.4 1.4 1.3.9-.3 1.6 0 1.7.3z';
+const batSvg = `<i><svg viewBox="-6 -4.4 10.4 7.4"><g class="wings"><path d="${BAT_WING}" transform="translate(-.9 -.3)" opacity=".55"/><path d="${BAT_WING}"/></g>
+  <ellipse cx="-.2" cy=".6" rx="2.6" ry="1.1"/><circle cx="2.6" cy=".2" r="1.05"/><path d="M2.1-.5l.1-1.3.7 1zM2.9-.4l.4-1.2.4 1.1z"/></svg></i>`;
 
 // A marshmallow ghost floating in the cocoa: drawn over it, with a little cocoa in front so it sits in the drink. Side-table units.
 const ghostSvg = `<g class="halloween-only">
@@ -574,16 +593,6 @@ const ghostSvg = `<g class="halloween-only">
   <ellipse cx="24.5" cy="13.4" rx=".5" ry=".7" fill="#2A2033"/>
   <path d="M21.4 15.4q1.4.8 3.1.8t3.1-.8v.6q-1.4.8-3.1.8t-3.1-.8z" fill="#6B3A22"/>
 </g>`;
-// Halloween only: a bowl of candy beside the mug: candy corn and wrapped candies.
-const candyCorn = (x, y, r) => `<g transform="rotate(${r} ${x} ${y})"><path d="M${x - 1.2} ${y}l1.2-3.2 1.2 3.2z" fill="#F08A24"/>
-  <path d="M${x - 1.2} ${y}h2.4l-.3-.8h-1.8z" fill="#F2C14E"/><path d="M${x - .4} ${y - 2.2}l.4-1 .4 1z" fill="#FFFDF8"/></g>`;
-const wrapped = (x, y, c) => `<path d="M${x - 2.6} ${y - .9}l1.2.9-1.2.9zM${x + 2.6} ${y - .9}l-1.2.9 1.2.9z" fill="${c}"/><circle cx="${x}" cy="${y}" r="1.4" fill="${c}"/>`;
-const candyBowlSvg = `<g class="hday-only">
-  ${wrapped(39.6, 24.6, '#7A4A8A')}${candyCorn(42.2, 25, -10)}${wrapped(44.6, 24.2, '#4E9A5B')}${candyCorn(41, 23.4, 14)}${candyCorn(43.6, 23, -4)}
-  <path d="M36.2 25h11.6c0 2.6-2.4 3.8-5.8 3.8s-5.8-1.2-5.8-3.8z" fill="#E8812E"/><path d="M36.2 25h11.6" stroke="#C9621E" stroke-width=".7"/>
-  <path d="M39.6 27.4h4.8" stroke="#2A2033" stroke-width=".5" stroke-linecap="round"/>
-</g>`;
-
 // The witch hat (the user asked): a tall bent cone over a wide brim, an orange band with a gold buckle. Same 100 × 90 as
 // the other hats; the brim's middle is at (50, 74), where the Santa hat's fur band sits, so one placement fits all.
 const witchHatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">

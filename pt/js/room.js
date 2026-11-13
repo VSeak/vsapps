@@ -25,7 +25,7 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
     <ellipse cx="25" cy="67" rx="13" ry="3.5" fill="var(--table)"/><rect x="22" y="32" width="6" height="35" fill="var(--table-2)"/>
     <rect x="2" y="30" width="46" height="4" rx="2" fill="var(--table-2)"/><ellipse cx="25" cy="30" rx="23" ry="5.5" fill="var(--table)"/>
     <path d="M31 18.5h2.5a3.2 3.2 0 0 1 0 6.4H31" fill="none" stroke="var(--mug)" stroke-width="2"/>
-    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}${ghostSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}${candyBowlSvg}
+    ${caneSvg}${cinnamonSvg}<rect x="18" y="15" width="13" height="14" rx="2.5" fill="var(--mug)"/><ellipse cx="24.5" cy="15.6" rx="5.3" ry="1.3" fill="#6B3A22"/>${cocoaSvg}${ghostSvg}${ciderSvg}${teaSvg}${pieSvg}${dumplingsSvg}
     <g class="steam"><path d="M21 12c-3-3 3-6 0-9s3-6 0-9"/><path d="M24.5 11c-3-3 3-6 0-9s3-6 0-9"/><path d="M28 12c-3-3 3-6 0-9s3-6 0-9"/></g></svg>
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>

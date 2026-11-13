@@ -704,7 +704,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .batty.sky-night .bats, .batty.sky-dusk .bats { opacity: 1; }
 .bats i { position: absolute; left: -14px; width: 11px; animation: batfly var(--dur, 7s) linear var(--del, 0s) infinite; }
 .window .bats svg { position: static; display: block; width: 100%; fill: #1A1424; }
-.bats .wings { transform-box: fill-box; transform-origin: 50% 70%; animation: flap .22s ease-in-out infinite alternate; }
+.bats .wings { transform-box: fill-box; transform-origin: 50% 100%; animation: flap .22s ease-in-out infinite alternate; }
 .bats i:nth-child(1) { top: 20%; --del: -1.5s; }
 .bats i:nth-child(2) { top: 50%; width: 8px; --del: -4.6s; --dur: 8.5s; }
 .bats i:nth-child(2) .wings { animation-duration: .18s; }
