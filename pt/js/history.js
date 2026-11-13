@@ -1,6 +1,6 @@
 // ---------- History (#/history): streaks, a month calendar, and fixing a day ----------
-// A day's cell shows its daily berries (filled when the goal was met) and a gold berry for climb PT.
-// Tapping a day lists its berries to delete one, or adds one that was forgotten.
+// A day's cell shows its Sweetberries (filled when the goal was met, a sparkle when passed) and a Cragberry for climb day PT.
+// Tapping a day lists its berries to delete one, or adds one that was forgotten. Tapping the month opens a month and year picker.
 
 let histMonth = null;   // 'YYYY-MM' being shown; starts on this month
 
@@ -27,9 +27,9 @@ async function historyPage() {
   for (let i = 1; i <= count; i++) {
     const d = iso(new Date(y, m - 1, i)), e = days.get(d), future = d > today();
     const dots = e?.daily ? `<span class="cal-dots">${'<i></i>'.repeat(Math.min(e.daily, 4))}${e.daily > 4 ? `<small>+${e.daily - 4}</small>` : ''}</span>` : '';
-    const desc = [e?.daily ? plural(e.daily, 'daily berry', 'daily berries') : '', e?.climb ? `${e.climb} climb` : ''].filter(Boolean).join(', ');
-    cells.push(`<button type="button" class="day ${e?.daily >= goal ? 'met' : ''} ${d === today() ? 'is-today' : ''}" data-day="${d}" ${future ? 'disabled' : ''}
-      aria-label="${fmtDate(d)}${desc ? ': ' + desc : ''}"><span class="num">${i}</span>${dots}${e?.climb ? berrySvg('climb', 'cal-gold') : ''}</button>`);
+    const desc = [e?.daily ? plural(e.daily, 'Sweetberry', 'Sweetberries') : '', e?.climb ? plural(e.climb, 'Cragberry', 'Cragberries') : ''].filter(Boolean).join(', ');
+    cells.push(`<button type="button" class="day ${e?.daily >= goal ? 'met' : ''} ${e?.daily > goal ? 'passed' : ''} ${d === today() ? 'is-today' : ''}" data-day="${d}" ${future ? 'disabled' : ''}
+      aria-label="${fmtDate(d)}${desc ? ': ' + desc : ''}">${e?.daily > goal ? '<span class="cal-spark"></span>' : ''}<span class="num">${i}</span>${dots}${e?.climb ? berrySvg('climb', 'cal-gold') : ''}</button>`);
   }
 
   view(`<div class="page-head"><h1 class="big">History</h1></div>
@@ -37,22 +37,23 @@ async function historyPage() {
       <div class="stat">${flameSvg}<b>${streakOf(days)}</b><span>Current Streak</span></div>
       <div class="stat"><b>${bestStreak(days)}</b><span>Best Streak</span></div>
       <div class="stat"><b>${goalDays}</b><span>Full Days</span></div>
-      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Daily PT</span></div>
-      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Climb PT</span></div>
+      <div class="stat">${berrySvg('daily', 'tiny')}<b>${sum('daily')}</b><span>Sweetberries</span></div>
+      <div class="stat">${berrySvg('climb', 'tiny')}<b>${sum('climb')}</b><span>Cragberries</span></div>
     </div>
     <div class="card cal-card">
       <div class="cal-head">
         <button type="button" class="ghost small" data-month="${shift(-1)}" aria-label="Previous month">‹</button>
-        <h2>${label}</h2>
+        <h2><button type="button" class="month-btn" id="pickMonth" aria-label="Pick a month: ${label}">${label} <span aria-hidden="true">▾</span></button></h2>
         <button type="button" class="ghost small" data-month="${shift(1)}" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button>
       </div>
       <div class="cal">${week.map(w => `<span class="wk">${w}</span>`).join('')}${cells.join('')}</div>
-      <p class="hint">Full Days, Daily PT, and Climb PT count this month. A filled day met the goal of ${goal}. Tap a day to fix it.</p>
+      <p class="hint">Full Days, Sweetberries, and Cragberries count this month. A filled day met the goal of ${goal}, and a sparkle means it went past. Tap a day to fix it.</p>
     </div>`, { keepScroll: true });
 
   app.onclick = e => {
     const mo = e.target.closest('[data-month]');
     if (mo) { histMonth = mo.dataset.month; redraw(); return; }
+    if (e.target.closest('#pickMonth')) { pickMonth(); return; }
     const day = e.target.closest('[data-day]');
     if (day) dayDialog(day.dataset.day);
   };
@@ -63,15 +64,15 @@ async function dayDialog(day) {
   const list = () => {
     const rows = feeds.filter(f => dayOf(f.fed_at) === day);
     return rows.length ? `<ul class="day-list">${rows.map(f => `<li>${berrySvg(f.kind, 'tiny')}
-      <span>${f.kind === 'climb' ? 'Climb PT' : 'Daily PT'}</span>
+      <span>${BERRY[f.kind][0]} <small class="muted">${BERRY[f.kind][1]}</small></span>
       <span class="muted">${new Date(f.fed_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>
       <button type="button" class="ghost small danger" data-del="${f.id}">Delete</button></li>`).join('')}</ul>`
       : '<p class="muted">No berries this day.</p>';
   };
   await ask({ title: fmtDate(day), ok: 'Done', cancel: false,
     body: `<div id="dayList">${list()}</div>
-      <div class="row wrap"><button type="button" class="small" data-add="daily">Add Daily PT</button>
-      <button type="button" class="small" data-add="climb">Add Climb PT</button></div>`,
+      <div class="row wrap"><button type="button" class="small" data-add="daily">Add Sweetberry</button>
+      <button type="button" class="small" data-add="climb">Add Cragberry</button></div>`,
     onOpen: f => f.addEventListener('click', e => {
       const del = e.target.closest('[data-del]'), add = e.target.closest('[data-add]');
       if (!del && !add) return;
@@ -91,4 +92,37 @@ async function dayDialog(day) {
       });
     }) });
   if (changed) redraw();
+}
+
+// The month and year picker (the user asked): a year with arrows over a grid of its 12 months. Future months are off;
+// a dot marks a month with any berries. Picking a month closes it; This Month jumps back to now.
+async function pickMonth() {
+  const now = today().slice(0, 7), thisYr = +now.slice(0, 4);
+  const withBerries = new Set(feeds.map(f => dayOf(f.fed_at).slice(0, 7)));
+  const firstYr = Math.min(thisYr, ...[...withBerries].map(m => +m.slice(0, 4)));
+  let yr = +histMonth.slice(0, 4);
+  const grid = () => [...Array(12)].map((_, i) => {
+    const m = `${yr}-${String(i + 1).padStart(2, '0')}`;
+    const name = new Date(yr, i, 1).toLocaleDateString(undefined, { month: 'short' });
+    return `<button type="button" class="mo ${m === histMonth ? 'on' : ''}" data-pick="${m}" ${m > now ? 'disabled' : ''}
+      aria-label="${new Date(yr, i, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}${withBerries.has(m) ? ', has berries' : ''}">
+      ${name}${withBerries.has(m) ? '<i></i>' : ''}</button>`;
+  }).join('');
+  const f = await ask({ title: 'Pick a Month', ok: 'This Month',
+    body: `<input type="hidden" name="month" value="${now}">
+      <div class="yr-head"><button type="button" class="ghost small" data-yr="-1" aria-label="Previous year">‹</button>
+        <b id="yrLabel">${yr}</b><button type="button" class="ghost small" data-yr="1" aria-label="Next year">›</button></div>
+      <div class="months" id="months">${grid()}</div>`,
+    onOpen: form => {
+      const arrows = () => form.querySelectorAll('[data-yr]').forEach(b => { b.disabled = +b.dataset.yr < 0 ? yr <= firstYr : yr >= thisYr; });
+      arrows();
+      form.addEventListener('click', e => {
+        const y = e.target.closest('[data-yr]'), pick = e.target.closest('[data-pick]');
+        if (y) { yr += +y.dataset.yr; form.querySelector('#yrLabel').textContent = yr; form.querySelector('#months').innerHTML = grid(); arrows(); }
+        if (pick) { form.elements.month.value = pick.dataset.pick; form.requestSubmit(form.querySelector('button[value="ok"]')); }
+      });
+    } });
+  if (!f) return;
+  histMonth = f.get('month');
+  redraw();
 }

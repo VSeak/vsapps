@@ -122,7 +122,7 @@ function authPage(head, sub, card, note = '') {
 }
 
 function viewLogin() {
-  authPage('Sign In to PT Pal', 'Feed your pal after every PT set.', `
+  authPage('Sign In to PT Pal', "Someone's hungry.", `
     ${linkError ? `<p class="alert">${esc(linkError)}</p>` : ''}
     <form id="loginForm" class="stack" data-nosave>
       <label>Email<input type="email" name="email" autocomplete="email" required data-need="Enter your email."></label>

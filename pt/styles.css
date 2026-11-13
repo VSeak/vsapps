@@ -108,21 +108,52 @@ input[aria-invalid="true"] { border-color: var(--danger); }
 form .hint { margin-top: -.4rem; }
 
 /* ---------- Feed ---------- */
-.feed { display: flex; flex-direction: column; min-height: calc(100dvh - 7rem - env(safe-area-inset-bottom)); }
+.feed { position: relative; display: flex; flex-direction: column; min-height: calc(100dvh - 7rem - env(safe-area-inset-bottom)); }
+.feed > :not(.sparkles) { position: relative; z-index: 1; }
 .status { display: flex; flex-direction: column; align-items: center; gap: .45rem; text-align: center; }
-.streak { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .9rem .3rem .6rem; border-radius: 999px; background: var(--sunk);
-  font-weight: 700; }
-.streak b { font: 600 1.25rem/1 Fredoka, sans-serif; }
-.flame { width: 1.5rem; height: 1.5rem; flex: none; transition: transform .3s; }
+.flame { width: 1.5rem; height: 1.5rem; flex: none; }
 .flame .outer { fill: var(--accent); }
 .flame .inner { fill: var(--gold); }
-/* The flame grows with the streak, and is a grey ember (never gone) at 0 */
-.streak.lvl-0 .flame .outer, .streak.lvl-0 .flame .inner { fill: var(--ember); }
-.streak.lvl-2 .flame { transform: scale(1.15); }
-.streak.lvl-3 .flame { transform: scale(1.3); }
-.streak.lvl-4 .flame { transform: scale(1.45); }
-.streak.lvl-5 .flame { transform: scale(1.6); animation: flicker 1.6s ease-in-out infinite; }
-@keyframes flicker { 50% { transform: scale(1.6) rotate(-4deg) translateY(-1px); } }
+
+/* The flame chip: 7 steps (flameOf). 0 grey ember, 1 yellow core lit, 2 all lit, 3–7 bigger each step. */
+.streak { position: relative; width: 4rem; height: 4rem; border-radius: 50%; background: var(--sunk); display: grid; place-items: center; }
+.streak .flame { width: 1.7rem; height: 1.7rem; transform-origin: 50% 85%; transition: transform .6s cubic-bezier(.3, 1.5, .5, 1); }
+.streak .flame path { transition: fill .6s; }
+.streak.lvl-0 .flame .outer, .streak.lvl-0 .flame .inner, .streak.lvl-1 .flame .outer { fill: var(--ember); }
+.streak.lvl-0 .flame, .streak.lvl-1 .flame, .streak.lvl-2 .flame { transform: scale(.8); }
+.streak.lvl-3 .flame { transform: scale(.95); }
+.streak.lvl-4 .flame { transform: scale(1.1); }
+.streak.lvl-5 .flame { transform: scale(1.25); }
+.streak.lvl-6 .flame { transform: scale(1.4); }
+.streak.lvl-7 .flame { transform: scale(1.6); }
+/* A week at full size: the flame sways and brightens, and sparks float up off it (ember() in feed.js) */
+.streak.egg .flame { animation: flicker 1.8s ease-in-out infinite; }
+@keyframes flicker {
+  0%, 100% { transform: scale(1.6); filter: none; }
+  30% { transform: scale(1.62, 1.68) rotate(-3deg); filter: brightness(1.12); }
+  65% { transform: scale(1.58, 1.64) rotate(2.5deg); filter: brightness(1.05); }
+}
+.embers { position: absolute; left: 50%; top: 18%; width: 0; height: 0; pointer-events: none; }
+.ember { position: absolute; left: var(--x); top: 0; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--c);
+  animation: rise var(--t) ease-out forwards; }
+@keyframes rise {
+  0% { opacity: 0; transform: none; }
+  15% { opacity: 1; }
+  60% { transform: translate(calc(var(--dx) * .6), -26px) scale(.8); }
+  100% { opacity: 0; transform: translate(var(--dx), -46px) scale(.2); }
+}
+
+/* Goal passed: sparkles twinkle around the pal for the rest of the day (sparkle() in feed.js), behind everything */
+.sparkles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.sparkle { position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2); background: var(--accent); opacity: 0;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); animation: twinkle 1.3s ease-in-out both; }
+.sparkle.gold { background: var(--gold); }
+@keyframes twinkle {
+  0% { opacity: 0; transform: scale(.2) rotate(0); }
+  40% { opacity: 1; transform: scale(1) rotate(45deg); }
+  60% { opacity: .9; transform: scale(.85) rotate(60deg); }
+  100% { opacity: 0; transform: scale(.2) rotate(90deg); }
+}
 .today { display: flex; align-items: center; gap: .5rem; font-size: .92rem; flex-wrap: wrap; justify-content: center; }
 .today .label { color: var(--muted); font-weight: 700; }
 .dots { display: inline-flex; gap: .3rem; }
@@ -172,12 +203,13 @@ form .hint { margin-top: -.4rem; }
 
 /* The two berries: daily on the left, climb on the right */
 .berries { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; padding-top: .5rem; }
-.berry-btn { flex-direction: column; gap: .2rem; width: 7.5rem; padding: .7rem .5rem .6rem; border-radius: 24px; background: var(--card);
+.berry-btn { flex-direction: column; gap: 0; width: 8rem; padding: .7rem .5rem .6rem; border-radius: 24px; background: var(--card);
   box-shadow: var(--shadow); touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: transform .1s; }
 .berry-btn .berry { width: 64px; height: 64px; }
 .berry-btn.daily { border-color: var(--accent); color: var(--accent-text); }
 .berry-btn.climb { border-color: var(--gold); color: var(--gold-text); }
-.berry-btn.climb { flex-direction: column-reverse; }   /* berry on top for both; the markup puts its label first */
+.berry-btn .b-name { font: 600 1.05rem/1.2 Fredoka, sans-serif; margin-top: .15rem; }
+.berry-btn small { font-size: .78rem; font-weight: 700; color: var(--muted); }
 .berry-btn:active { transform: scale(.93); }
 
 /* A berry in flight: three layers so across, up-and-over, and shrinking each get their own timing */
@@ -191,7 +223,8 @@ form .hint { margin-top: -.4rem; }
 #undo .link { color: var(--panel-ink); padding: .3rem .6rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .pal.happy .pal-pic, .pal.happy .mark, .streak.lvl-5 .flame { animation: none; }
+  .pal.happy .pal-pic, .pal.happy .mark, .streak.egg .flame { animation: none; }
+  .streak .flame, .streak .flame path { transition: none; }
 }
 
 /* ---------- History ---------- */
@@ -256,3 +289,18 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 #installBar p { margin: 0; font-size: .9rem; }
 .install-btns { grid-column: 2; display: flex; gap: .5rem; justify-content: flex-end; }
 .share-ic { width: 1.1em; height: 1.1em; vertical-align: -.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* History: a day past the goal, the month button, and the month and year picker */
+.cal-spark { position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; background: var(--gold);
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); }
+.month-btn { font: inherit; border: 0; background: none; padding: .2rem .5rem; border-radius: 12px; color: var(--ink); }
+.month-btn:hover { background: var(--sunk); }
+.month-btn span { font-size: .7em; color: var(--muted); }
+.yr-head { display: flex; align-items: center; justify-content: space-between; }
+.yr-head b { font: 600 1.3rem Fredoka, sans-serif; }
+.yr-head button { font-size: 1.2rem; padding: .1rem .8rem; }
+.months { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; }
+.mo { position: relative; flex-direction: column; gap: .15rem; padding: .6rem 0; border-radius: 14px; background: var(--sunk); border-color: transparent; min-height: 3.2rem; }
+.mo.on { border-color: var(--accent); color: var(--accent-text); }
+.mo i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.mo:disabled { background: transparent; }
