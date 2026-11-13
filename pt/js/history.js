@@ -27,7 +27,8 @@ async function historyPage() {
   const cells = [...Array(first.getDay())].map(() => '<span></span>');
   for (let i = 1; i <= count; i++) {
     const d = iso(new Date(y, m - 1, i)), e = days.get(d), future = d > today();
-    const dots = e?.daily ? `<span class="cal-dots">${'<i></i>'.repeat(Math.min(e.daily, 4))}${e.daily > 4 ? `<small>+${e.daily - 4}</small>` : ''}</span>` : '';
+    // Sweetberries as little berry icons (the user asked), up to 3, then +n
+    const dots = e?.daily ? `<span class="cal-dots">${berrySvg('daily', 'cal-berry').repeat(Math.min(e.daily, 3))}${e.daily > 3 ? `<small>+${e.daily - 3}</small>` : ''}</span>` : '';
     const desc = [e?.daily ? plural(e.daily, 'Sweetberry', 'Sweetberries') : '', e?.climb ? plural(e.climb, 'Cragberry', 'Cragberries') : ''].filter(Boolean).join(', ');
     cells.push(`<button type="button" class="day ${berriesOn(e) >= goal ? 'met' : ''} ${isStuffed(e, goal) ? 'passed' : ''} ${d === today() ? 'is-today' : ''}" data-day="${d}" ${future ? 'disabled' : ''}
       aria-label="${fmtDate(d)}${desc ? ': ' + desc : ''}">${isStuffed(e, goal) ? '<span class="cal-spark"></span>' : ''}<span class="num">${i}</span>${dots}${e?.climb ? berrySvg('climb', 'cal-gold') : ''}</button>`);

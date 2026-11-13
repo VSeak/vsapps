@@ -334,8 +334,8 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .day.met { background: var(--accent-soft); }
 .day.met .num { font-weight: 700; }
 .day.is-today { border-color: var(--accent); }
-.cal-dots { display: flex; gap: 2px; align-items: center; flex-wrap: wrap; justify-content: center; }
-.cal-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.cal-dots { display: flex; gap: 1px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.cal-berry { width: 11px; height: 11px; flex: none; }
 .cal-dots small { font-size: .65rem; font-weight: 700; color: var(--accent-text); }
 .cal-gold { position: absolute; top: 1px; right: 1px; width: 14px; height: 14px; }
 .legend { list-style: none; margin: .9rem 0 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem 1rem; font-size: .82rem; color: var(--muted); font-weight: 700; }
