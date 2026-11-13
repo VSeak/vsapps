@@ -73,7 +73,7 @@ async function dayDialog(day) {
     body: `<div id="dayList">${list()}</div>
       <div class="row wrap"><button type="button" class="small" data-add="daily">Add Sweetberry</button>
       <button type="button" class="small" data-add="climb">Add Cragberry</button></div>`,
-    onOpen: f => f.addEventListener('click', e => {
+    onOpen: f => { syncCrag(f); f.addEventListener('click', e => {
       const del = e.target.closest('[data-del]'), add = e.target.closest('[data-add]');
       if (!del && !add) return;
       busy(e.target.closest('button'), async () => {
@@ -89,9 +89,16 @@ async function dayDialog(day) {
         }
         changed = true;
         $('#dayList').innerHTML = list();
-      });
-    }) });
+      }).then(() => syncCrag(f));   // after busy(), which turns the tapped button back on
+    }); } });
   if (changed) redraw();
+
+  // One Cragberry a day (the user asked), here as on Feed: Add Cragberry is off once the day has one.
+  function syncCrag(form) {
+    const btn = form.querySelector('[data-add="climb"]'), has = feeds.some(x => x.kind === 'climb' && dayOf(x.fed_at) === day);
+    btn.disabled = has;
+    btn.textContent = has ? 'Cragberry Added' : 'Add Cragberry';
+  }
 }
 
 // The month and year picker (the user asked): a year with arrows over a grid of its 12 months. Future months are off;
