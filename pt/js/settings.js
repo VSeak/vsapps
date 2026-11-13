@@ -46,11 +46,8 @@ async function settingsPage() {
     </div>` : ''}
     ${'rug' in settings ? `<div class="card">
       <h2>Rug</h2>
-      <p class="hint">The rug ${esc(settings.name)} stands on in front of the fire.</p>
-      <div class="rug-picks" id="rugs" role="radiogroup" aria-label="Rug">
-        ${RUGS.map(r => `<label class="rug-pick"><input type="radio" name="rug" value="${r.id}" ${r.id === rugOf() ? 'checked' : ''}>
-          <span class="rug-floor"><span class="pal">${rugHtml(r.id)}</span></span><span>${r.name}</span></label>`).join('')}
-      </div>
+      <p class="hint">${esc(settings.name)} stands on the ${RUGS.find(r => r.id === rugOf()).name} rug in front of the fire.</p>
+      <div class="row wrap"><button type="button" class="fill" id="changeRug">Change Rug</button></div>
     </div>` : ''}
     <div class="card">
       <h2>Window</h2>
@@ -81,14 +78,7 @@ async function settingsPage() {
     redraw();
   });
 
-  // A rug saves as soon as it's picked (null for the braided one, the default). A failed save puts the old one back.
-  if ($('#rugs')) $('#rugs').onchange = e => busy(null, async () => {
-    const was = rugOf(), id = e.target.value;
-    try { await sb.from('pt_settings').update({ rug: id === 'braided' ? null : id }).eq('id', true).then(must); }
-    catch (err) { $(`#rugs input[value="${was}"]`).checked = true; throw err; }
-    settings.rug = id === 'braided' ? null : id;
-    flash(`${RUGS.find(r => r.id === id).name} rug down.`);
-  });
+  if ($('#changeRug')) $('#changeRug').onclick = () => changeRug(url);
 
   $('#pickPhoto').onclick = () => $('#photoIn').click();
   $('#photoIn').onchange = e => {
@@ -126,6 +116,44 @@ async function settingsPage() {
       goTo('#/');
     });
   };
+}
+
+// Change Rug (the user asked, in place of a grid of tiles): the pal standing on one rug at a time, ‹ › (or arrow keys,
+// or a swipe) to go through them, Save to keep it. Saved as null for the braided one, the default.
+async function changeRug(url) {
+  let i = RUGS.findIndex(r => r.id === rugOf());
+  const f = await ask({ title: 'Change Rug', ok: 'Save',
+    body: `<div class="rug-stage"><div class="pal">${rugHtml(RUGS[i].id)}${palPic(url)}</div></div>
+      <div class="rug-nav">
+        <button type="button" class="ghost" data-step="-1" aria-label="Previous rug">‹</button>
+        <p aria-live="polite"><strong class="rug-name"></strong><span class="rug-count"></span></p>
+        <button type="button" class="ghost" data-step="1" aria-label="Next rug">›</button>
+      </div>`,
+    onOpen: form => {
+      const show = () => {
+        form.querySelector('.rug').className = `rug rug-${RUGS[i].id}`;
+        form.querySelector('.rug-name').textContent = RUGS[i].name;
+        form.querySelector('.rug-count').textContent = `${i + 1} of ${RUGS.length}`;
+      };
+      const step = d => { i = (i + d + RUGS.length) % RUGS.length; show(); };
+      show();
+      form.querySelectorAll('[data-step]').forEach(b => b.onclick = () => step(+b.dataset.step));
+      form.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); step(e.key === 'ArrowLeft' ? -1 : 1); } });
+      // A sideways swipe on the room goes to the next or previous rug.
+      const stage = form.querySelector('.rug-stage');
+      let x0 = null;
+      stage.addEventListener('pointerdown', e => { x0 = e.clientX; });
+      stage.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) step(e.clientX < x0 ? 1 : -1); x0 = null; });
+      stage.addEventListener('pointercancel', () => { x0 = null; });
+    } });
+  if (!f) return;
+  const id = RUGS[i].id;
+  if (id === rugOf()) return;
+  await busy($('#changeRug'), async () => {
+    await sb.from('pt_settings').update({ rug: id === 'braided' ? null : id }).eq('id', true).then(must);
+    flash(`${RUGS[i].name} rug down.`);
+    redraw();
+  });
 }
 
 // Place Hat (the user asked): drag the hat onto the head (or tap where it goes), then size and tilt it with the sliders.

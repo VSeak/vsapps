@@ -377,15 +377,20 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
     #B3263E;
   box-shadow: inset 0 0 0 calc(var(--u) * 1.4) #24141A, inset 0 0 0 calc(var(--u) * 1.8) rgb(255 255 255 / .12), 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
 
-/* Settings → Rug: each rug on a scrap of floor; the picked one is ringed */
-.rug-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: .6rem .5rem; }
-.rug-pick { position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem; font-size: .88rem; font-weight: 600; text-align: center; cursor: pointer; }
-.rug-pick input { position: absolute; opacity: 0; pointer-events: none; }
-.rug-floor { display: grid; place-items: end center; width: 100%; height: 64px; border-radius: 14px; overflow: hidden; border: 2px solid var(--line);
-  background: repeating-linear-gradient(90deg, rgb(0 0 0 / .06) 0 1px, transparent 1px 18px), var(--floor); }
-.rug-floor .pal { --pal: 58px; }
-.rug-pick input:checked + .rug-floor { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-.rug-pick input:focus-visible + .rug-floor { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Change Rug (Settings): the pal on the rug in a scrap of room, wall at the back. isolation makes the stage its own
+   layer: the rug sits at z -1 under the pal, and without it the rug went behind the stage's (and card's) background
+   and the tiles showed bare floor (the user saw it). */
+.rug-stage { isolation: isolate; display: flex; justify-content: center; align-items: flex-end; height: 210px; padding-bottom: .9rem;
+  border-radius: 16px; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  background: linear-gradient(var(--wall) 0 26%, var(--base) 26% 29%, transparent 29%),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / .07) 0 1px, transparent 1px 34px), var(--floor); }
+.rug-stage .pal { --pal: 150px; }
+.rug-stage .pal-pic { pointer-events: none; -webkit-user-drag: none; }
+.rug-nav { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.rug-nav p { margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.rug-nav .rug-name { font-family: Fredoka, sans-serif; font-size: 1.15rem; }
+.rug-nav .rug-count { color: var(--muted); font-size: .85rem; }
+.rug-nav button { width: 48px; height: 48px; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 50%; flex: none; }
 .pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; }
 /* The pal in a box its own shape (--ar), standing bottom middle: the Santa hat is placed in fractions of it */
 .pal-body { position: absolute; left: 50%; bottom: 0; translate: -50% 0; width: min(100%, calc(var(--pal) * var(--ar, 1))); aspect-ratio: var(--ar, 1);
