@@ -624,9 +624,16 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 /* ---------- Chinese New Year (holiday.js; the user asked): Eve through the Lantern Festival ---------- */
 /* A kumquat tree takes the plant's corner (the picture stays); dumplings only on Eve and New Year's Day */
 .feed:not(.cny) .cny-only, .feed:not(.feast) .feast-only, .feed.cny .plant { display: none; }
-.room .kumquat { width: 92px; right: 2px; top: calc(var(--floor-y, 50%) - 106px); }
-@media (min-width: 520px) { .room .kumquat { width: 116px; right: 16px; top: calc(var(--floor-y, 50%) - 136px); } }
-@media (max-height: 760px) { .room .kumquat { width: 78px; top: calc(var(--floor-y, 50%) - 88px); } }
+/* The offering table stands forward on the floor (tabletop 20px below the floor line) with the kumquat tree on its right end */
+.room .cny-corner { width: 170px; right: -14px; top: calc(var(--floor-y, 50%) - 118px); }
+@media (min-width: 520px) { .room .cny-corner { width: 220px; right: 0; top: calc(var(--floor-y, 50%) - 153px); } }
+@media (max-height: 760px) { .room .cny-corner { width: 140px; top: calc(var(--floor-y, 50%) - 97px); } }
+/* Incense: the tips glow on and off; smoke curls up and fades like the mug's steam, slower */
+.cny-corner .smoke path { fill: none; stroke: var(--steam); stroke-width: 1; stroke-linecap: round; transform-box: fill-box; transform-origin: 50% 100%;
+  opacity: 0; animation: steam 5s ease-out infinite; }
+.cny-corner .smoke path:nth-child(2) { animation-delay: -1.7s; }
+.cny-corner .smoke path:nth-child(3) { animation-delay: -3.4s; }
+.ember-tip { animation: bulb 1.8s ease-in-out infinite; }
 .hb { transform-box: fill-box; transform-origin: 50% 0; }
 .hb.pop { animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) both; }
 /* The mantel's lanterns sway a little, out of step; their glow grows with the fire (--rim, 0–1) */
@@ -645,7 +652,8 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .fireworks i:nth-child(3) { left: 52%; top: 58%; color: #7CC4FF; animation-delay: -1.7s; animation-duration: 2.8s; }
 @keyframes burst { 0% { opacity: 1; transform: scale(.1); } 60% { opacity: 1; } 100% { opacity: 0; transform: scale(1.1); } }
 @media (prefers-reduced-motion: reduce) {
-  .hb.pop, .lantern { animation: none; }
+  .hb.pop, .lantern, .ember-tip { animation: none; }
+  .cny-corner .smoke path { animation: none; opacity: .4; }
   .fireworks i { animation: none; opacity: .9; transform: scale(.8); }   /* still bursts, frozen open */
 }
 /* Settings → Place Hat: the pal big enough to aim at, with room above for the hat */

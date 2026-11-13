@@ -169,7 +169,7 @@ const beanieSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
 function hatSeason() {
   if (xmasNow().on) return { title: 'Santa Hat', what: 'a Santa hat', thru: 'Through January 7', svg: hatSvg };
   if (fallNow().on) return { title: 'Autumn Beanie', what: 'an autumn beanie', thru: 'Through Thanksgiving', svg: beanieSvg };
-  if (cnyNow().on) return { title: 'New Year Cap', what: 'a New Year cap', thru: 'Through the Lantern Festival', svg: capSvg };
+  if (cnyNow().on) return { title: 'Dragon Hat', what: 'a dragon hat', thru: 'Through the Lantern Festival', svg: dragonHatSvg };
   return null;
 }
 // The fox drawing's own spot: between its ears, tilted a little.
@@ -298,10 +298,10 @@ function pop(el, delay) {
 
 // ---------- Chinese New Year (the user asked): New Year's Eve through the Lantern Festival (day 15) ----------
 // Red lanterns hang from the mantel, a 福 (good fortune) diamond hangs on the window, the mug holds tea, and the plant
-// is put away for a kumquat tree in a blue-and-white pot. Each day of the 16 (Eve to Lantern Festival) that meets the
+// is put away for an offering table (incense, mandarins, apples) with a kumquat tree on it. Each day of the 16 (Eve to Lantern Festival) that meets the
 // goal hangs one red envelope on it (gold with a sparkle on a stuffed day). Fireworks go off in the window after dark on
 // Eve, New Year's Day, and the Lantern Festival; on Eve and New Year's Day a plate of dumplings sits on the side table
-// and a stuffed pal "is stuffed with dumplings!". The pal wears a New Year cap (same placement as the other hats).
+// and a stuffed pal "is stuffed with dumplings!". The pal wears a dragon hat (same placement as the other hats).
 // The lunar calendar has no simple rule, so the dates are a table: add more before 2041.
 const CNY_DATES = { 2026: '02-17', 2027: '02-06', 2028: '01-26', 2029: '02-13', 2030: '02-03', 2031: '01-23', 2032: '02-11',
   2033: '01-31', 2034: '02-19', 2035: '02-08', 2036: '01-28', 2037: '02-15', 2038: '02-04', 2039: '01-24', 2040: '02-12' };
@@ -327,30 +327,51 @@ function cnyDays(days, goal, year) {
   return out;
 }
 
-// The kumquat tree: a round bush with small fruit, in a blue-and-white pot. Tree units 80 × 110, pot foot at 110.
-// Envelope spots in the order they're hung, spread over the bush.
-const HB_SPOTS = [[22, 42], [40, 31], [58, 42], [30, 58], [50, 58], [40, 46], [17, 56], [63, 56], [29, 26], [51, 26],
-  [24, 70], [56, 70], [40, 66], [11, 42], [69, 42], [40, 16]];
-const KUMQUATS = [[33, 38], [47, 39], [25, 50], [56, 50], [35, 50], [62, 64], [18, 66], [45, 74], [34, 18], [48, 17],
-  [65, 31], [15, 32], [31, 72], [44, 58]];
+// The kumquat tree: a round bush with a few small fruit, in a blue-and-white pot. Tree units 80 × 110, pot foot at 110.
+// Envelope spots in the order they're hung, spread over the bush (rows staggered so none overlap; the user agreed to
+// a bigger tree, envelopes half again as big, and fewer kumquats so the envelopes read at phone size).
+const HB_SPOTS = [[27, 46], [48, 33], [46, 60], [14, 46], [34, 20], [59, 60], [66, 46], [20, 33], [40, 46], [21, 60],
+  [60, 33], [46, 20], [53, 46], [34, 60], [32, 33], [40, 72]];
+const KUMQUATS = [[40, 37], [33, 53], [53, 53], [27, 68], [56, 68], [54, 26]];
 function envelopeSvg(i, gold) {
   const [x, y] = HB_SPOTS[i], body = gold ? '#F2B630' : '#C7233A', flap = gold ? '#D9981C' : '#A11B2F', seal = gold ? '#C7233A' : '#F2C14E';
-  return `<g class="hb" data-i="${i}"><path d="M${x} ${y - 6.5}v3.5" stroke="#E0A21B" stroke-width=".5"/>
-    <rect x="${x - 2.6}" y="${y - 3.4}" width="5.2" height="7.2" rx=".6" fill="${body}"/>
-    <path d="M${x - 2.6} ${y - 2.8}l2.6 2 2.6-2v-.2a.6.6 0 0 0-.6-.4h-4a.6.6 0 0 0-.6.4z" fill="${flap}"/>
-    <circle cx="${x}" cy="${y + .9}" r="1.1" fill="${seal}"/>
-    ${gold ? `<path class="orn-spark" d="M${x + 4} ${y - 6}l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#FFE7A0"/>` : ''}</g>`;
+  return `<g class="hb" data-i="${i}"><path d="M${x} ${y - 9}v4" stroke="#E0A21B" stroke-width=".6"/>
+    <rect x="${x - 3.9}" y="${y - 5.2}" width="7.8" height="10.8" rx=".9" fill="${body}"/>
+    <path d="M${x - 3.9} ${y - 4.3}l3.9 3 3.9-3v-.3a.9.9 0 0 0-.9-.6h-6a.9.9 0 0 0-.9.6z" fill="${flap}"/>
+    <circle cx="${x}" cy="${y + 1.3}" r="1.6" fill="${seal}"/>
+    ${gold ? `<path class="orn-spark" d="M${x + 5.5} ${y - 8}l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z" fill="#FFE7A0"/>` : ''}</g>`;
 }
-const kumquatTreeSvg = `<svg class="kumquat cny-only" viewBox="0 0 80 110">
-  <rect x="37.5" y="70" width="5" height="16" fill="#6B4128"/>
+const kumquatTree = `<rect x="37.5" y="70" width="5" height="16" fill="#6B4128"/>
   <circle cx="40" cy="46" r="29" fill="var(--plant)"/><circle cx="25" cy="38" r="15" fill="var(--plant-2)"/>
   <circle cx="55" cy="38" r="15" fill="var(--plant-2)"/><circle cx="40" cy="24" r="14" fill="var(--plant-2)"/>
   <path d="M11 50a29 29 0 0 0 58 0 29 29 0 0 1-58 0z" fill="rgb(0 0 0 / .1)"/>
-  ${KUMQUATS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.1" fill="#F08A24"/><circle cx="${x - .6}" cy="${y - .6}" r=".6" fill="#fff" opacity=".5"/>`).join('')}
+  ${KUMQUATS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.4" fill="#F08A24"/><circle cx="${x - .7}" cy="${y - .7}" r=".7" fill="#fff" opacity=".5"/>`).join('')}
   <path d="M19 84h42l-4 26H23z" fill="#F4F1EA"/><rect x="17" y="82" width="46" height="4" rx="1.5" fill="#E8E2D6"/>
   <path d="M21.5 90h37M23.5 104.5h33" stroke="#2F5DA8" stroke-width="1.6"/>
   <path d="M32 97c2.5-3 5.5-3 8 0s5.5 3 8 0" fill="none" stroke="#2F5DA8" stroke-width="1.4" stroke-linecap="round"/>
-  <g id="envelopes"></g>
+  <g id="envelopes"></g>`;
+
+// The offering table (the user asked): a low red-lacquer table running off the right edge, with an incense burner
+// (three sticks, glowing tips, smoke curling up), a pyramid of mandarins, and a dish of apples, and the kumquat tree
+// standing on its right end. Corner units: 170 across, tabletop at y 108.
+const fruitBall = (x, y, r, fill, leaf) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>
+  <circle cx="${x - r * .35}" cy="${y - r * .35}" r="${r * .22}" fill="#fff" opacity=".45"/>
+  ${leaf ? `<path d="M${x} ${y - r + .4}c1-2 3-2.6 4.6-2.1-.5 1.8-2.6 2.8-4.6 2.1z" fill="#4E9A5B"/>` : `<circle cx="${x}" cy="${y - r + .8}" r=".7" fill="#5C7A34"/>`}`;
+const incense = [[14.5, 92, 12.5, 66], [18, 92, 18, 63], [21.5, 92, 23.5, 66]];
+const cnyCornerSvg = `<svg class="cny-corner cny-only" viewBox="0 -30 170 190">
+  <g transform="translate(68 -29.5) scale(1.25)">${kumquatTree}</g>
+  <rect x="2" y="104" width="300" height="5" fill="#B3263E"/><rect x="2" y="109" width="300" height="8" fill="#8E1B30"/>
+  <path d="M2 113h300" stroke="#E0A21B" stroke-width=".9"/>
+  <path d="M8 117h7v37c0 2 2 3 4 3h-11zM140 117h7v40h-11c2 0 4-1 4-3z" fill="#7A1628"/>
+  ${incense.map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}" stroke="#9C3A26" stroke-width="1.1"/>
+    <circle class="ember-tip" cx="${x2}" cy="${y2}" r="1.2" fill="#FF8A3D"/>`).join('')}
+  <g class="smoke">${incense.map(([, , x, y]) => `<path d="M${x} ${y - 1}c-3-4 3-7 0-11s3-7 0-11"/>`).join('')}</g>
+  <path d="M8 92h20c0 7-4 12-10 12S8 99 8 92z" fill="#B8862F"/><ellipse cx="18" cy="92" rx="10" ry="2" fill="#8A6420"/>
+  <ellipse cx="18" cy="92.2" rx="8" ry="1.3" fill="#D8CFC2"/><path d="M11 101l-1 3.5M25 101l1 3.5" stroke="#8A6420" stroke-width="1.6" stroke-linecap="round"/>
+  <ellipse cx="46" cy="103.6" rx="13" ry="2.4" fill="#F4F1EA"/><ellipse cx="46" cy="103.6" rx="9" ry="1.2" fill="none" stroke="#2F5DA8" stroke-width=".5"/>
+  ${[[37, 98.6], [46, 98.6], [55, 98.6], [41.5, 91], [50.5, 91]].map(([x, y]) => fruitBall(x, y, 4.6, '#F08A24')).join('')}${fruitBall(46, 83.4, 4.6, '#F08A24', true)}
+  <ellipse cx="77" cy="103.6" rx="10" ry="2" fill="#F4F1EA"/>
+  ${fruitBall(72.5, 99, 4.3, '#C7334F')}${fruitBall(81.5, 99, 4.3, '#B8323F')}${fruitBall(77, 91.6, 4.3, '#D9433F', true)}
 </svg>`;
 
 // Two red lanterns hung from the mantel's ends, swaying a little; their glow grows with the fire. Fireplace units.
@@ -383,15 +404,23 @@ const dumplingsSvg = `<g class="feast-only">
   ${dumpling(39.6, 27.8)}${dumpling(44.4, 27.8)}${dumpling(42, 28.6)}
 </g>`;
 
-// The New Year cap: a deep red skullcap with a black band trimmed in gold, a red knot on top, and a gold coin at the
-// front. Drawn on the same 100 × 90 as the other hats, its band's middle at (50, 74).
-const capSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
-  <circle cx="50" cy="16" r="7.5" fill="#D93A55"/><circle cx="48" cy="14" r="2" fill="#fff" opacity=".45"/>
-  <path d="M12 68C12 38 29 22 50 22s38 16 38 46z" fill="#B3263E"/>
-  <path d="M28 66c-1-18 6-32 22-44M50 66V22M72 66c1-18-6-32-22-44" fill="none" stroke="#8E1B30" stroke-width="2"/>
-  <rect x="8" y="63" width="84" height="22" rx="7" fill="#2A2033"/>
-  <path d="M10 65.5h80M10 82.5h80" stroke="#E0A21B" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="50" cy="74" r="6.5" fill="#F2C14E"/><rect x="47.8" y="71.8" width="4.4" height="4.4" fill="#2A2033"/>
+// The dragon hat (the user asked, in place of a New Year cap): a red dragon's head worn as a hat, with gold antlers, a
+// gold mane along the top, big cartoon eyes, a gold snout for the band with two nostrils, little fangs hanging over the
+// forehead, and whiskers curling out the sides. Same 100 × 90 as the other hats, the snout band's middle at (50, 74).
+const dragonHatSvg = `<svg class="hat" viewBox="0 0 100 90" aria-hidden="true">
+  <path d="M35 32C30 22 26 14 21 4M28 18l-9 1M65 32c5-10 9-18 14-28M72 18l9 1" fill="none" stroke="#E0A21B" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M18 52l-6-12 10 2-3-14 11 6 1-14 9 9 10-14 10 14 9-9 1 14 11-6-3 14 10-2-6 12z" fill="#F2B630"/>
+  <path d="M12 68C12 40 29 26 50 26s38 14 38 42z" fill="#C7233A"/>
+  <path d="M26 58a5 5 0 0 1 10 0M42 58a5 5 0 0 1 10 0M58 58a5 5 0 0 1 10 0M34 48a5 5 0 0 1 10 0M50 48a5 5 0 0 1 10 0M42 38a5 5 0 0 1 10 0"
+    fill="none" stroke="#A11B2F" stroke-width="1.4"/>
+  <path d="M26 39c3-4 9-4 12 0M62 39c3-4 9-4 12 0" fill="none" stroke="#F2C14E" stroke-width="2.6" stroke-linecap="round"/>
+  <ellipse cx="32" cy="48" rx="7.5" ry="8.5" fill="#FFFDF8"/><ellipse cx="68" cy="48" rx="7.5" ry="8.5" fill="#FFFDF8"/>
+  <circle cx="33.5" cy="50" r="4.2" fill="#2A2033"/><circle cx="66.5" cy="50" r="4.2" fill="#2A2033"/>
+  <circle cx="35" cy="48.4" r="1.4" fill="#fff"/><circle cx="68" cy="48.4" r="1.4" fill="#fff"/>
+  <path d="M9 72c-7-3-11 3-7 7s8-1 4-3M91 72c7-3 11 3 7 7s-8-1-4-3" fill="none" stroke="#E0A21B" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M20 84l3 5.5 3-5.5zM74 84l3 5.5 3-5.5zM36 84l2 3.5 2-3.5zM60 84l2 3.5 2-3.5z" fill="#FFFDF8"/>
+  <rect x="8" y="64" width="84" height="20" rx="10" fill="#F2B630"/><path d="M14 80h72" stroke="#D9981C" stroke-width="2" stroke-linecap="round"/>
+  <ellipse cx="42" cy="72" rx="3" ry="2.2" fill="#A86E12"/><ellipse cx="58" cy="72" rx="3" ry="2.2" fill="#A86E12"/>
 </svg>`;
 
 // Hangs the envelopes and sets the classes; renderStatus calls it with setXmas. New ones pop in, as do ones turning gold.

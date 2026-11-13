@@ -30,7 +30,7 @@ const roomSvg = `<div class="room" aria-hidden="true"><span class="glow-wall"></
   <svg class="plant" viewBox="0 0 44 80"><ellipse cx="12" cy="26" rx="8" ry="20" transform="rotate(-25 12 26)" fill="var(--plant)"/>
     <ellipse cx="32" cy="24" rx="8" ry="22" transform="rotate(20 32 24)" fill="var(--plant)"/><ellipse cx="22" cy="20" rx="7" ry="24" fill="var(--plant-2)"/>
     <path d="M7 44h30l-4 34H11z" fill="var(--pot)"/></svg>
-  ${xmasTreeSvg}${harvestTableSvg}${kumquatTreeSvg}
+  ${xmasTreeSvg}${harvestTableSvg}${cnyCornerSvg}
 </div>`;
 
 // ---------- The window: the real sky outside (the user asked) ----------
