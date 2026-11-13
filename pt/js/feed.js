@@ -123,10 +123,12 @@ function toss(kind, fromEl) {
     { transform: 'translateY(0)', easing: 'cubic-bezier(.2, .7, .4, 1)' },
     { transform: `translateY(${dy - 70}px)`, offset: .62, easing: 'cubic-bezier(.6, 0, .9, .6)' },
     { transform: `translateY(${dy}px)` }], opts);
+  // Spins the way it's thrown: the Sweetberry (left) clockwise, the Cragberry (right) counterclockwise.
+  const turn = kind === 'climb' ? -1 : 1;
   const shrink = fly.firstChild.firstChild.animate([
     { transform: 'scale(1.7) rotate(0)', opacity: 1 },
-    { transform: 'scale(.35) rotate(220deg)', opacity: 1, offset: .85 },
-    { transform: 'scale(.1) rotate(280deg)', opacity: 0 }], { ...opts, easing: 'ease-in' });
+    { transform: `scale(.35) rotate(${220 * turn}deg)`, opacity: 1, offset: .85 },
+    { transform: `scale(.1) rotate(${280 * turn}deg)`, opacity: 0 }], { ...opts, easing: 'ease-in' });
   // A browser that stops drawing mid-throw (app sent to the background) would hold the counts back; a timer settles it anyway.
   return Promise.race([shrink.finished, new Promise(r => setTimeout(r, ms + 400))]).then(() => fly.remove(), () => fly.remove());
 }
