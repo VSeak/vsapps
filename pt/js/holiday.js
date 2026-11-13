@@ -47,13 +47,13 @@ function ornamentSvg(i, gold) {
     ${kind === 'gold' ? `<path class="orn-spark" d="M${x + 4.2} ${y - 5.5}l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="#FFE7A0"/>` : ''}</g>`;
 }
 
-// Presents in the order they arrive: tucked under the tree first, then spilling out toward the pal, a few stacked
-// on top. [left, width, height, bottom] in tree units.
+// Presents in the order they arrive: tucked under the tree first, then spilling out left toward the pal and down
+// the floor toward you (the user asked for both), a few stacked on top. [left, width, height, bottom] in tree units.
 const GIFT_SPOTS = [
   [8, 14, 12, 108], [58, 15, 14, 108], [-6, 13, 10, 110], [24, 12, 9, 114], [44, 14, 11, 114], [66, 10, 8, 114],
   [-20, 14, 13, 111], [4, 11, 8, 116], [-34, 12, 9, 113], [-12, 9, 7, 117], [34, 9, 7, 119], [56, 12, 7, 119],
-  [-48, 14, 11, 115], [-27, 11, 7, 118], [14, 13, 9, 120], [-60, 11, 9, 117], [-40, 10, 7, 120], [10, 10, 8, 96],
-  [60, 10, 8, 94], [-18, 10, 7, 98], [-70, 12, 8, 120], [-52, 9, 6, 121], [24, 8, 6, 105], [-46, 9, 7, 104]];
+  [16, 14, 10, 128], [46, 13, 11, 129], [-30, 12, 9, 124], [66, 12, 9, 130], [0, 11, 8, 133], [30, 12, 9, 138],
+  [10, 10, 8, 96], [60, 10, 8, 94], [-14, 12, 9, 132], [54, 11, 8, 142], [14, 12, 8, 146], [-46, 11, 8, 121]];
 const GIFT_COLORS = [['#C7334F', '#F2C14E'], ['#4E9A5B', '#FFF6EE'], ['#F2EDE4', '#C7334F'], ['#E0A21B', '#7A3A5A'],
   ['#7A4A8A', '#F2C14E'], ['#4A7EC2', '#FFF6EE']];
 function giftSvg(i) {
@@ -66,7 +66,7 @@ function giftSvg(i) {
 // Drawn back to front, so a present in front overlaps the one behind it.
 const GIFT_DRAW = GIFT_SPOTS.map((s, i) => i).sort((a, b) => GIFT_SPOTS[a][3] - GIFT_SPOTS[b][3]);
 
-const xmasTreeSvg = `<svg class="xmas-tree xmas-only" viewBox="-70 0 150 122">
+const xmasTreeSvg = `<svg class="xmas-tree xmas-only" viewBox="-70 0 150 150">
   <rect x="36" y="86" width="8" height="8" fill="#6B4128"/>
   <path d="M40 44 8 88h64z" fill="var(--plant)"/><path d="M40 24 16 60h48z" fill="var(--plant-2)"/><path d="M40 8 24 36h32z" fill="var(--plant)"/>
   <path d="M40 44 8 88h18zM40 24 16 60h14zM40 8 24 36h9z" fill="rgb(0 0 0 / .08)"/>
