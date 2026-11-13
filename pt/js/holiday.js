@@ -115,8 +115,8 @@ const wreathSvg = `<g class="xmas-only">
 // In the cocoa: a candy cane leaning in it, resting on the mug's right lip with its hook hanging over the outside (the
 // user asked: standing straight up looked wrong), pulled a little out of the cup. Drawn before the mug, so the mug and
 // the cocoa hide its lower end.
-const CANE = 'M21 25V10a2.6 2.6 0 0 1 5.2 0v1.4';   // drawn upright from its foot in the cup, then tipped 40° onto the lip
-const caneSvg = `<g class="xmas-only" transform="translate(1.9 -2.3) rotate(40 21 25)">   <!-- slid 3 units out along its length (the user asked) -->
+const CANE = 'M21 25V10a2.6 2.6 0 0 1 5.2 0v1.4';   // drawn upright from its foot in the cup, then tipped 30° (the user picked it)
+const caneSvg = `<g class="xmas-only" transform="translate(1.5 -2.6) rotate(30 21 25)">   <!-- slid 3 units out along its length (the user asked) -->
   <path d="${CANE}" fill="none" stroke="#FFF6EE" stroke-width="1.7" stroke-linecap="round"/>
   <path d="${CANE}" fill="none" stroke="#D93A55" stroke-width="1.7" stroke-dasharray="1.1 1.1"/>
 </g>`;
