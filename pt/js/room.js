@@ -123,8 +123,12 @@ function setSky() {
 }
 
 // The fireplace. Flames are drawn at full size and scaled per step in CSS; the side flames join at steps 6 and 7.
+// Texture (the user asked): each flame shades from base to tip (gradients in the fireplace's <defs>; it's drawn once,
+// so ids are safe), with faint darker veins in the outer flame and a white-hot core at the base of the inner one.
 const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
-  <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/></g>`;
+  <path class="fvein" d="M${x - 6} 148c-4-6-3-12 0-17M${x + 7} 146c2-7 0-13-3-19" fill="none" stroke-width=".9" stroke-linecap="round"/>
+  <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/>
+  <path class="fcore" d="M${x + 1} 150.5c-3 0-4.4-2.6-2.6-5.6 1-1.6 1.8-3 2.6-5 .9 2 1.8 3.4 2.6 5 1.8 3-.4 5.6-2.6 5.6z"/></g>`;
 // Detail (the user found the fireplace, mantel, and couch flat): stone blocks in staggered courses over mortar (--mortar,
 // lighter than the stone: darkened stone matched the night wall, the user saw it),
 // each a slightly different shade (fixed seed, so it's the same every load); an arch of wedge stones with a keystone
@@ -179,6 +183,10 @@ const mantelSvg = `<rect x="11" y="15" width="128" height="4.5" rx="1.2" fill="v
     <ellipse cx="104" cy="9.8" rx="2.4" ry="1" fill="none" stroke="#000" stroke-opacity=".2" stroke-width=".55"/>`;
 const fireplaceSvg = `<div class="fire" id="fire" role="img">
   <svg viewBox="0 0 150 170" aria-hidden="true">
+    <defs><linearGradient id="flOut" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FF8A30"/><stop offset=".55" stop-color="#E8442C"/><stop offset="1" stop-color="#B8232A"/></linearGradient>
+      <linearGradient id="flIn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFE98F"/><stop offset="1" stop-color="#F5A623"/></linearGradient>
+      <linearGradient id="flSideOut" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#F28A2E"/><stop offset="1" stop-color="#B8401A"/></linearGradient>
+      <linearGradient id="flSideIn" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFD27A"/><stop offset="1" stop-color="#EB7F20"/></linearGradient></defs>
     ${stoneSvg}
     <path d="M38 170V82a37 37 0 0 1 74 0V170Z" fill="var(--hole)"/>${holeDetailSvg}
     <rect x="9" y="164" width="132" height="6" rx="2" fill="var(--stone)"/><rect x="9" y="164" width="132" height="6" rx="2" fill="#fff" opacity=".1"/>
@@ -190,11 +198,13 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     <path d="M51 156.9h45" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
     <ellipse cx="99" cy="160.5" rx="3.6" ry="4.3" fill="#C49A6C"/><ellipse cx="99" cy="160.5" rx="2.2" ry="2.7" fill="none" stroke="#8A5A3C" stroke-width=".5"/>
     <circle cx="99" cy="160.5" r=".7" fill="#8A5A3C"/>
+    <path class="log-glow" d="M60 156.7h30M68 160.6l3-1 2.4 1.2 3.2-.9 2.2 1" fill="none" stroke="#FFB347" stroke-width="1.1" stroke-linecap="round"/>
     <g transform="rotate(-8 75 154)"><rect x="54" y="150" width="42" height="8" rx="4" fill="#7A4A2C"/>
       <path d="M58 152.3h14M76 152h16M62 155.4h20" stroke="#3A2214" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>
       <path d="M58 150.9h34" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
       <ellipse cx="57.5" cy="154" rx="3.3" ry="3.9" fill="#C9A275"/><ellipse cx="57.5" cy="154" rx="1.9" ry="2.3" fill="none" stroke="#8A5A3C" stroke-width=".5"/>
-      <circle cx="57.5" cy="154" r=".6" fill="#8A5A3C"/></g>
+      <circle cx="57.5" cy="154" r=".6" fill="#8A5A3C"/>
+      <path class="log-glow" d="M64 150.7h24M74 154.2l2.6-.8 2 1 2.8-.8" fill="none" stroke="#FFB347" stroke-width="1.1" stroke-linecap="round"/></g>
     ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
   </svg>
   <span class="embers" id="embers"></span>

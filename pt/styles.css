@@ -177,10 +177,18 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .fire.down { transition: --s .6s ease-in, --sl .6s ease-in, --sr .6s ease-in, --g 1s ease; }
 .fire svg { display: block; width: 100%; position: relative; }
 .fire .fo { fill: #E8442C; transform-box: fill-box; transform-origin: 50% 100%; transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity 0s; }
-.fire .fi { fill: #F5B428; }
+.fire .fi { fill: #F5B428; fill: url(#flIn); }
+.fire .fo { fill: url(#flOut); }
 /* Side flames lean out and are a deeper orange, so they read as flames of their own behind the main one */
-.fire .f-side .fo { fill: #D9541E; }
-.fire .f-side .fi { fill: #F08A24; }
+.fire .f-side .fo { fill: #D9541E; fill: url(#flSideOut); }
+.fire .f-side .fi { fill: #F08A24; fill: url(#flSideIn); }
+/* Texture (the user asked): veins in the outer flame, a white-hot core, and the logs lit along their tops and cracks,
+   brighter as the fire grows (--s is 0 at step 0, so they're dark with no flame) */
+.fire .fvein { stroke: #9E1F22; opacity: .35; }
+.fire .f-main .fvein { transform-box: fill-box; transform-origin: 50% 100%; transition: transform .55s cubic-bezier(.3, 1.4, .5, 1), opacity 0s; }
+.fire.lvl-0 .f-main .fvein, .fire.lvl-1 .f-main .fvein { transform: scale(.5); opacity: 0; transition: transform .55s ease-in, opacity .1s .5s; }
+.fire .fcore { fill: #FFF8DC; opacity: .85; }
+.fire .log-glow { opacity: calc(var(--s) * .5); }
 .fl { --f: 1; transform-box: fill-box; transform-origin: 50% 100%; transform: rotate(var(--r, 0deg)) scale(calc(var(--k) * var(--f)), var(--k)); transition: opacity 0s; }
 .f-main { --k: var(--s); }
 .f-side.l { --k: var(--sl); --r: -14deg; --f: -1; }   /* mirrored: its tall tip on the outside, the left (the user asked) */
