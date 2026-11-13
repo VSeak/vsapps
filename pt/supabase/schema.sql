@@ -16,11 +16,14 @@ create table public.pt_owner (
 
 -- One row: the pal's name, how many daily PT sets make a full day, and when the photo was last changed
 -- (null = no photo; the page shows its own drawing). The photo itself is in the pt-photo bucket.
+-- lat/lon: where the owner is, rounded to 0.1° (about 10 km), for the window's real sunrise and sunset. Null = not set.
 create table public.pt_settings (
   id boolean primary key default true check (id),
   name text not null default 'Pal' check (length(trim(name)) between 1 and 24),
   daily_goal int not null default 2 check (daily_goal between 1 and 10),
-  photo_at timestamptz
+  photo_at timestamptz,
+  lat numeric(4, 1) check (lat between -90 and 90),
+  lon numeric(4, 1) check (lon between -180 and 180)
 );
 
 -- One row per berry thrown: daily = daily PT (counts toward the streak and the goal), climb = PT done on a climbing day.

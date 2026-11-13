@@ -9,6 +9,7 @@
   --wall: #F7E6D6; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mantel: #8A5A3C; --hole: #3A2230;
   --couch: #8FA88A; --couch-2: #7E9879; --pillow: #F2C14E; --plant: #4E9A5B; --plant-2: #5FAE6C; --pot: #C46A4A; --rug: #E9A7A0; --rug-2: #FFF6EE;
   --frame: #8A5A3C; --pic: #A8C7D8; --pic-2: #7FA88A; --pic-sun: #F2C14E; --glow: 255 150 60; --glow-k: .55; --veil: rgb(255 246 238 / .82);
+  --blanket: #C9603F; --blanket-2: #F2C14E; --blanket-3: rgb(90 30 20 / .22); --table: #A86B45; --table-2: #8A5A3C; --mug: #F2EDE4; --steam: rgb(120 100 100 / .4);
   --radius: 20px; --shadow: 0 1px 2px rgba(58, 34, 48, .06), 0 4px 14px rgba(58, 34, 48, .06);
   color-scheme: light;
 }
@@ -22,6 +23,7 @@
   --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
+  --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
     --shadow: none;
     color-scheme: dark;
   }
@@ -35,6 +37,7 @@
   --wall: #2B1F2B; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
+  --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
   --shadow: none;
   color-scheme: dark;
 }
@@ -390,3 +393,84 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 /* Cragberry after today's: greyed out until tomorrow (or an Undo) */
 .berry-btn.climb:disabled { opacity: 1; border-color: var(--line); color: var(--muted); background: var(--sunk); box-shadow: none; }
 .berry-btn.climb:disabled .berry { filter: grayscale(1); opacity: .45; }
+
+/* ---------- More cozy (the user asked): the window, the side table and steam, the pal's breathing and warm glow, dust ---------- */
+/* The window shows the real sky (setSky in room.js): night, dawn, day, or dusk, by the sunrise and sunset where you are */
+.win-wrap { position: absolute; right: 14px; top: max(8px, calc(var(--floor-y, 50%) - 176px)); width: 72px; z-index: 1; }
+.window { position: relative; height: 84px; border: 5px solid var(--frame); border-radius: 8px 8px 3px 3px; overflow: hidden;
+  background-color: #9FD0F0; background-image: linear-gradient(rgb(255 255 255 / 0), rgb(255 255 255 / .28)); transition: background-color 3s; }
+.window::before, .window::after { content: ""; position: absolute; background: var(--frame); z-index: 3; }
+.window::before { left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; }
+.window::after { top: 50%; left: 0; right: 0; height: 3px; margin-top: -1.5px; }
+.sill { display: block; height: 6px; margin: 0 -6px; border-radius: 2px; background: var(--mantel); }
+.window.sky-night { background-color: #1E2648; }
+.window.sky-dawn { background-color: #F2BFA8; }
+.window.sky-day { background-color: #9FD0F0; }
+.window.sky-dusk { background-color: #C9705A; }
+.window > span { position: absolute; opacity: 0; transition: opacity 2s; }
+.sun { width: 14px; height: 14px; border-radius: 50%; background: #FFE08A; right: 8px; top: 8px; }
+.sky-day .sun { opacity: 1; }
+.sky-dawn .sun, .sky-dusk .sun { opacity: 1; top: 50px; background: #FFB36B; }
+.sky-dawn .sun { right: auto; left: 8px; }
+.moon { width: 14px; height: 14px; border-radius: 50%; background: #F4EFD8; left: 8px; top: 8px; overflow: hidden; }
+.moon i { position: absolute; inset: 0; border-radius: 50%; background: #1E2648; }
+.sky-night .moon { opacity: 1; }
+.stars { inset: 0; background-image: radial-gradient(circle at 70% 18%, #fff 0 1px, transparent 1.6px), radial-gradient(circle at 85% 40%, #fff 0 .8px, transparent 1.4px),
+  radial-gradient(circle at 25% 62%, #fff 0 1px, transparent 1.6px), radial-gradient(circle at 60% 75%, #fff 0 .8px, transparent 1.4px), radial-gradient(circle at 40% 35%, #fff 0 .7px, transparent 1.3px); }
+.sky-night .stars { opacity: 1; animation: stars 3.2s ease-in-out infinite alternate; }
+@keyframes stars { to { opacity: .55; } }
+.cloud { top: 38px; left: -30px; width: 26px; height: 9px; border-radius: 9px; background: rgb(255 255 255 / .85); box-shadow: 9px -4px 0 1px rgb(255 255 255 / .85); }
+.sky-day .cloud, .sky-dawn .cloud { opacity: 1; animation: cloud 55s linear infinite; }
+@keyframes cloud { to { transform: translateX(120px); } }
+.snow { inset: 0; }
+.snowy .snow { opacity: 1; }
+.snow i { position: absolute; top: -4px; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: .85; animation: snowfall 6s linear infinite; }
+.snow i:nth-child(1) { left: 8%; animation-delay: -1s; } .snow i:nth-child(2) { left: 20%; animation-delay: -4s; animation-duration: 7s; }
+.snow i:nth-child(3) { left: 32%; animation-delay: -2.5s; } .snow i:nth-child(4) { left: 44%; animation-delay: -5.5s; animation-duration: 8s; }
+.snow i:nth-child(5) { left: 56%; animation-delay: -.5s; animation-duration: 7s; } .snow i:nth-child(6) { left: 66%; animation-delay: -3.5s; }
+.snow i:nth-child(7) { left: 76%; animation-delay: -6s; animation-duration: 8s; } .snow i:nth-child(8) { left: 86%; animation-delay: -2s; }
+.snow i:nth-child(9) { left: 94%; animation-delay: -4.5s; animation-duration: 7s; }
+@keyframes snowfall { to { transform: translate(6px, 96px); } }
+
+/* The side table and mug, in front of the couch's end; steam curls up and fades */
+.side-table { width: 46px; left: 4px; top: calc(var(--floor-y, 50%) - 4px); }
+.steam path { fill: none; stroke: var(--steam); stroke-width: 1.5; stroke-linecap: round; transform-box: fill-box; transform-origin: 50% 100%; opacity: 0;
+  animation: steam 3.4s ease-out infinite; }
+.steam path:nth-child(2) { animation-delay: -1.1s; }
+.steam path:nth-child(3) { animation-delay: -2.3s; }
+@keyframes steam {
+  0% { opacity: 0; transform: translateY(3px) scaleY(.6); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px) scale(1.3, 1.1); }
+}
+@media (min-width: 520px) {
+  .win-wrap { right: 110px; width: 84px; }
+  .window { height: 96px; }
+  .side-table { width: 56px; left: 150px; }
+}
+
+/* The pal breathes: a slow, slight rise from the feet (paused while it bounces) */
+.pal-breathe { display: block; width: 100%; height: 100%; transform-origin: 50% 100%; animation: pal-breathe 4.2s ease-in-out infinite; }
+@keyframes pal-breathe { 50% { transform: scale(.997, 1.015); } }
+.pal.happy .pal-breathe { animation-play-state: paused; }
+/* Firelight catches the pal's outline: a warm halo that follows a cut-out PNG's shape, growing with the fire (--rim, 0–1) */
+.feed .pal-pic { filter: drop-shadow(0 0 calc(2px + 8px * var(--rim, 0)) rgb(var(--glow) / calc(.85 * var(--rim, 0)))); transition: filter 1.2s ease; }
+
+/* Specks of dust in the firelight (speck() in feed.js): few, tiny, faint, and slow */
+.speck { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: rgb(var(--glow)); opacity: 0;
+  animation: speck var(--t) ease-in-out forwards; }
+@keyframes speck {
+  25% { opacity: .55; }
+  75% { opacity: .4; }
+  100% { opacity: 0; transform: translate(var(--dx), -54px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pal-breathe, .sky-night .stars, .cloud, .snow i, .steam path { animation: none; }
+  .steam path { opacity: .5; }
+}
+/* Short phones: a smaller window, lower, so it clears the status pills above it */
+@media (max-height: 760px) {
+  .win-wrap { width: 56px; top: max(8px, calc(var(--floor-y, 50%) - 130px)); }
+  .window { height: 64px; }
+}

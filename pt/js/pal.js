@@ -4,7 +4,7 @@ let settings = null;               // {name, daily_goal, photo_at}
 let photo = { at: null, url: null };   // the downloaded photo, kept as a local address until photo_at changes
 
 async function loadSettings() {
-  const cols = 'name, daily_goal, photo_at';
+  const cols = '*';   // every column, so a page that's newer than the database (a column not added yet) still loads
   settings = await sb.from('pt_settings').select(cols).maybeSingle().then(must)
     ?? await sb.from('pt_settings').insert({}).select(cols).single().then(must);
   return settings;

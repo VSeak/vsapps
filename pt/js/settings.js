@@ -31,7 +31,35 @@ async function settingsPage() {
         <p class="hint">How many Sweetberries (daily PT sets) make a full day. Cragberries don't count toward it.</p>
         <div class="row end"><button class="primary">Save</button></div>
       </form>
+    </div>
+    <div class="card">
+      <h2>Window</h2>
+      <p class="hint">The window on Feed shows the real sky outside: sunrise, sunset, and the moon where you are.
+        ${settings.lat != null ? 'Your location is saved, rounded to about 10 km.' : 'Until your location is saved, it uses 7am and 7pm.'}</p>
+      <div class="row wrap">
+        <button type="button" class="fill" id="useLoc">${settings.lat != null ? 'Update Location' : 'Use My Location'}</button>
+        ${settings.lat != null ? '<button type="button" class="ghost danger" id="forgetLoc">Forget Location</button>' : ''}
+      </div>
     </div>`);
+
+  // The phone asks permission once. Saved rounded to 0.1° (about 10 km): enough for sunrise, not an address.
+  $('#useLoc').onclick = e => busy(e.target, async () => {
+    if (!navigator.geolocation) throw new Error("This browser can't share a location.");
+    const pos = await new Promise((ok, no) => navigator.geolocation.getCurrentPosition(ok, no, { enableHighAccuracy: false, timeout: 20000, maximumAge: 864e5 }))
+      .catch(err => { throw new Error(err.code === 1 ? "Location is turned off for this site. Allow it in your browser's site settings, then try again."
+        : "Couldn't find your location. Try again in a moment."); });
+    const round = n => Math.round(n * 10) / 10;
+    await sb.from('pt_settings').update({ lat: round(pos.coords.latitude), lon: round(pos.coords.longitude) }).eq('id', true).then(must);
+    sunDay = null;   // the window works out today's sunrise again
+    flash('Location saved.');
+    redraw();
+  });
+  if (settings.lat != null) $('#forgetLoc').onclick = e => busy(e.target, async () => {
+    await sb.from('pt_settings').update({ lat: null, lon: null }).eq('id', true).then(must);
+    sunDay = null;
+    flash('Location forgotten.');
+    redraw();
+  });
 
   $('#pickPhoto').onclick = () => $('#photoIn').click();
   $('#photoIn').onchange = e => {

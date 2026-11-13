@@ -22,7 +22,7 @@ async function feedPage() {
     </div>
     <div class="stage">
       ${fireplaceSvg}
-      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span>${palPic(url)}
+      <div class="pal" id="pal"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
@@ -36,6 +36,7 @@ async function feedPage() {
   shownLevel = null;   // the first draw sets the fire without a whoosh
   renderStatus();
   placeRoom();
+  setSky();
   startFx();
   app.onclick = e => {
     const b = e.target.closest('.berry-btn');
@@ -50,7 +51,8 @@ let fx = { day: null, passed: false, egg: false };
 function renderStatus() {
   const days = byDay(feeds), t = days.get(today()) || { daily: 0, climb: 0 };
   const goal = settings.daily_goal, flame = flameOf(days, goal);
-  fx = { day: today(), passed: t.daily > goal, egg: flame.full >= 7 };
+  fx = { day: today(), passed: t.daily > goal, egg: flame.full >= 7, level: flame.level };
+  $('.feed').style.setProperty('--rim', (flame.level / FLAME_TOP).toFixed(2));   // the warm glow around the pal grows with the fire
   setFire(flame.level, fx.egg);
   const monthStart = today().slice(0, 8) + '01';
   const climbMonth = feeds.filter(f => f.kind === 'climb' && dayOf(f.fed_at) >= monthStart).length;
@@ -125,7 +127,7 @@ function celebrate() {
 // One timer for both, every half second, only while the Feed page is up and the app is on screen.
 // Goal passed (the user asked): a sparkle twinkles somewhere around the pal every ~1.5 s for the rest of the day.
 // Full flame for a week (the user asked): sparks float up off the flame like a real fire.
-let fxTimer;
+let fxTimer, skyTick = 0;
 function startFx() {
   clearInterval(fxTimer);
   let tick = 0;
@@ -133,9 +135,11 @@ function startFx() {
     if (!$('#sparkles')) return clearInterval(fxTimer);
     if (document.hidden) return;
     if (fx.day !== today()) renderStatus();   // past midnight: a new day, so the sparkles stop
+    if (++skyTick % 60 === 0) setSky();   // every 30 s: dawn, day, dusk, and night come round on their own
     if (reducedMotion()) return;   // the midnight check above still runs, so Cragberry comes back at midnight
     tick++;
     if (fx.egg && Math.random() < .8) ember();
+    if (fx.level >= 3 && Math.random() < .3) speck();
     // About every 1.5 s, at an uneven beat: one sparkle, or sometimes two a moment apart (the user asked).
     if (fx.passed && Math.random() < .33) { sparkle(); if (Math.random() < .4) sparkle(150 + Math.random() * 500); }
   }, 500);
@@ -160,6 +164,21 @@ function sparkle(delay = 0) {
 function burst() {
   if (reducedMotion()) return;
   for (let i = 0; i < 10; i++) sparkle(Math.random() * 350);
+}
+
+// Specks of dust drifting up in the firelight (the user asked: not too dusty). None until the fire's step 3, then at
+// most one fewer than the step on screen at once (2 at step 3, 6 at step 7), around the fireplace only.
+function speck() {
+  const layer = $('#sparkles'), fire = $('#fire');
+  if (!layer || !fire || layer.querySelectorAll('.speck').length >= fx.level - 1) return;
+  const L = layer.getBoundingClientRect(), F = fire.getBoundingClientRect();
+  const s = document.createElement('span');
+  s.className = 'speck';
+  s.style.cssText = `left:${F.left - L.left + F.width * (-.25 + Math.random() * 1.5)}px; top:${F.top - L.top + F.height * (.25 + Math.random() * .85)}px;
+    --dx:${(Math.random() * 30 - 15).toFixed(0)}px; --t:${(6 + Math.random() * 4).toFixed(1)}s`;
+  s.onanimationend = () => s.remove();
+  setTimeout(() => s.remove(), 11000);
+  layer.append(s);
 }
 
 function ember() {
