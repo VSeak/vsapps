@@ -239,7 +239,6 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .dot.extra.on { background: var(--gold); }
 .dot.crag.on { background: var(--gold); border-color: var(--gold); }   /* the Cragberry, counting toward the goal */
 .today .count { font-weight: 700; }
-.climbs { font-size: .9rem; display: inline-flex; align-items: center; gap: .3rem; flex-wrap: wrap; justify-content: center; }
 .berry.tiny { width: 1.25rem; height: 1.25rem; flex: none; }
 
 .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: .3rem 0 .6rem; }

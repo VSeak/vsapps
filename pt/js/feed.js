@@ -27,7 +27,6 @@ async function feedPage() {
       <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rim"/></feMerge></filter></svg>
     <div class="status">
       <div class="today" id="todayRow"></div>
-      <div class="climbs" id="climbRow"></div>
     </div>
     <div class="stage">
       ${fireplaceSvg}
@@ -63,8 +62,6 @@ function renderStatus() {
   fx = { day: today(), passed: isStuffed(t, goal), egg: flame.full >= 7, level: flame.level };
   $('.feed').style.setProperty('--rim', (flame.level / FLAME_TOP).toFixed(2));   // the warm glow around the pal grows with the fire
   setFire(flame.level, fx.egg);
-  const monthStart = today().slice(0, 8) + '01';
-  const climbMonth = feeds.filter(f => f.kind === 'climb' && dayOf(f.fed_at) >= monthStart).length;
   // Today's goal counts both berries (the user asked): red dots for Sweetberries, then a gold one for the Cragberry.
   const n = berriesOn(t);
   const dots = Array.from({ length: Math.max(goal, Math.min(n, 10)) }, (_, i) =>
@@ -75,7 +72,6 @@ function renderStatus() {
   const crag = $('.berry-btn.climb');
   crag.disabled = t.climb > 0;
   $('small', crag).textContent = t.climb ? 'Done for today' : BERRY.climb[1];
-  $('#climbRow').innerHTML = `${berrySvg('climb', 'tiny')} Cragberries this month: <b>${climbMonth}</b>${t.climb ? ` <span class="muted">(${t.climb} today)</span>` : ''}`;
   const name = esc(settings.name);
   $('#mood').innerHTML = fx.passed ? `${name} is stuffed!`
     : n === goal ? `${name} is full and happy.`
