@@ -68,7 +68,8 @@ const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="flo
     <path d="M30 49v10M-40 49v10" stroke="#000" stroke-opacity=".18" stroke-width="1"/>
     <path d="M-200 88H106" stroke="#000" stroke-opacity=".14" stroke-width="5"/>
     <rect x="100" y="32" width="28" height="62" rx="12" fill="var(--couch)"/><rect x="100" y="32" width="28" height="62" rx="12" fill="url(#couchWeave)"/>
-    <rect x="103" y="34" width="22" height="4" rx="2" fill="#fff" opacity=".16"/>
+    <!-- The arm's lit top follows its rounded corners (a straight bar stuck out past them, the user saw it) -->
+    <path d="M103.2 39.4A10 10 0 0 1 112 34h4a10 10 0 0 1 8.8 5.4" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3.6" stroke-linecap="round"/>
     <rect x="103.5" y="38" width="21" height="52" rx="9" fill="none" stroke="#000" stroke-opacity=".12" stroke-width=".9"/>
     <path d="M104 87.5h20" stroke="#000" stroke-opacity=".12" stroke-width="4" stroke-linecap="round"/></svg>
   <svg class="side-table" viewBox="0 0 50 74">
@@ -145,10 +146,12 @@ function setSky() {
 // The fireplace. Flames are drawn at full size and scaled per step in CSS; the side flames join at steps 6 and 7.
 // Texture (the user asked): each flame shades from base to tip (gradients in the fireplace's <defs>; it's drawn once,
 // so ids are safe), with faint darker veins in the outer flame and a white-hot core at the base of the inner one.
-const flamePair = (x, cls) => `<g class="${cls}"><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
+// dy drops a flame lower: the side ones sit 6 down and are drawn before the logs, so their bases tuck in behind them
+// (the user saw them hover above the logs). The shift is on an inner <g>: CSS transform on .fl would override it.
+const flamePair = (x, cls, dy = 0) => `<g class="${cls}"><g${dy ? ` transform="translate(0 ${dy})"` : ''}><path class="fo" d="M${x} 152c-14 0-19-12-12-26 3 7 7 8 8 3 1-9 5-14 10-21 4 12 14 19 10 33-3 8-8 11-16 11z"/>
   <path class="fvein" d="M${x - 6} 148c-4-6-3-12 0-17M${x + 7} 146c2-7 0-13-3-19" fill="none" stroke-width=".9" stroke-linecap="round"/>
   <path class="fi" d="M${x + 1} 151c-7 0-10-6-6-13 2 3 4 3 4 1 1-4 3-7 5-10 3 7 7 10 4 16-1 4-3 6-7 6z"/>
-  <path class="fcore" d="M${x + 1} 150.5c-3 0-4.4-2.6-2.6-5.6 1-1.6 1.8-3 2.6-5 .9 2 1.8 3.4 2.6 5 1.8 3-.4 5.6-2.6 5.6z"/></g>`;
+  <path class="fcore" d="M${x + 1} 150.5c-3 0-4.4-2.6-2.6-5.6 1-1.6 1.8-3 2.6-5 .9 2 1.8 3.4 2.6 5 1.8 3-.4 5.6-2.6 5.6z"/></g></g>`;
 // Detail (the user found the fireplace, mantel, and couch flat): stone blocks in staggered courses over mortar (--mortar,
 // lighter than the stone: darkened stone matched the night wall, the user saw it),
 // each a slightly different shade (fixed seed, so it's the same every load); an arch of wedge stones with a keystone
@@ -231,6 +234,7 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
     ${mantelSvg}${garlandSvg}${lanternsSvg}${hwLightsSvg}${spiderSvg}
     <!-- The logs (texture, the user asked): bark lines, a lit top, a shaded bottom, and cut ends with growth rings -->
     <ellipse cx="75" cy="165" rx="30" ry="2" fill="#000" opacity=".45"/>
+    ${flamePair(52, 'fl f-side l', 6)}${flamePair(98, 'fl f-side r', 6)}
     <rect x="47" y="156" width="56" height="9" rx="4.5" fill="#6B4128"/>
     <path d="M52 158.4h18M76 157.8h20M56 161.2h12M73 162h22M51 163.2h9" stroke="#3A2214" stroke-opacity=".55" stroke-width=".7" stroke-linecap="round"/>
     <path d="M51 156.9h45" stroke="#fff" stroke-opacity=".16" stroke-linecap="round"/>
@@ -243,7 +247,7 @@ const fireplaceSvg = `<div class="fire" id="fire" role="img">
       <ellipse cx="57.5" cy="154" rx="3.3" ry="3.9" fill="#C9A275"/><ellipse cx="57.5" cy="154" rx="1.9" ry="2.3" fill="none" stroke="#8A5A3C" stroke-width=".5"/>
       <circle cx="57.5" cy="154" r=".6" fill="#8A5A3C"/>
       <path class="log-glow" d="M64 150.7h24M74 154.2l2.6-.8 2 1 2.8-.8" fill="none" stroke="#FFB347" stroke-width="1.1" stroke-linecap="round"/></g>
-    ${flamePair(52, 'fl f-side l')}${flamePair(98, 'fl f-side r')}${flamePair(75, 'fl f-main')}
+    ${flamePair(75, 'fl f-main')}
   </svg>
   <span class="embers" id="embers"></span>
 </div>`;
