@@ -44,6 +44,14 @@ async function settingsPage() {
         ${settings.hat ? `<button type="button" class="ghost ${url ? 'danger' : ''}" id="rmHat">${url ? 'Take Off Hat' : 'Reset Hat'}</button>` : ''}
       </div>
     </div>` : ''}
+    ${'rug' in settings ? `<div class="card">
+      <h2>Rug</h2>
+      <p class="hint">The rug ${esc(settings.name)} stands on in front of the fire.</p>
+      <div class="rug-picks" id="rugs" role="radiogroup" aria-label="Rug">
+        ${RUGS.map(r => `<label class="rug-pick"><input type="radio" name="rug" value="${r.id}" ${r.id === rugOf() ? 'checked' : ''}>
+          <span class="rug-floor"><span class="pal">${rugHtml(r.id)}</span></span><span>${r.name}</span></label>`).join('')}
+      </div>
+    </div>` : ''}
     <div class="card">
       <h2>Window</h2>
       <p class="hint">The window on Feed shows the real sky outside: sunrise, sunset, and the moon where you are.
@@ -71,6 +79,15 @@ async function settingsPage() {
     sunDay = null;
     flash('Location forgotten.');
     redraw();
+  });
+
+  // A rug saves as soon as it's picked (null for the braided one, the default). A failed save puts the old one back.
+  if ($('#rugs')) $('#rugs').onchange = e => busy(null, async () => {
+    const was = rugOf(), id = e.target.value;
+    try { await sb.from('pt_settings').update({ rug: id === 'braided' ? null : id }).eq('id', true).then(must); }
+    catch (err) { $(`#rugs input[value="${was}"]`).checked = true; throw err; }
+    settings.rug = id === 'braided' ? null : id;
+    flash(`${RUGS.find(r => r.id === id).name} rug down.`);
   });
 
   $('#pickPhoto').onclick = () => $('#photoIn').click();

@@ -23,7 +23,7 @@
   --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
-  --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
+  --rug-night: brightness(.55) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
     --shadow: none;
     color-scheme: dark;
   }
@@ -37,7 +37,7 @@
   --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
-  --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
+  --rug-night: brightness(.55) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
   --shadow: none;
   color-scheme: dark;
 }
@@ -274,6 +274,118 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
     repeating-radial-gradient(closest-side, transparent 0 5%, rgb(0 0 0 / .09) 5% 6%, rgb(255 255 255 / .1) 6% 7.2%, transparent 7.2% 10%), var(--rug);
   box-shadow: inset 0 0 0 3px rgb(0 0 0 / .12), inset 0 0 0 5px rgb(255 255 255 / .08), 0 3px 6px rgb(0 0 0 / .14); }
 .rug::after { content: ""; position: absolute; inset: 12% 7%; border: 3px dashed var(--rug-2); border-radius: 50%; }
+
+/* The other rugs (the user asked for a choice; Settings → Rug, RUGS in room.js). Each is drawn from above, then laid on the
+   floor in 3D: laid flat from its front edge, seen from an eye 1.25 pals above it (the translateY pair moves the
+   perspective's eye up) and 1.8 pals back, so its far edge narrows and its pattern shrinks toward the back like the
+   floorboards. That makes a 0.6-pal-deep rug about as tall on screen as the braided one (73px vs 72px at 375px wide);
+   a higher eye made the far edge climb toward the horizon and the rug stand up. --u is 1% of the pal, so
+   a pattern is the same size on Feed and in the Settings preview. Their colors are fixed, so at night a filter dims them
+   (--rug-night) the way the braided rug's tokens do. Texture (the user's rule): pile, weave, or stitches on every one. */
+.rug:not(.rug-braided) { --u: calc(var(--pal) / 100); height: 60%; bottom: 3%; border-radius: 0; background: none; box-shadow: none;
+  transform-origin: 50% 100%; transform: translateX(-50%) translateY(calc(var(--pal) * -1.25)) perspective(calc(var(--pal) * 1.8))
+    translateY(calc(var(--pal) * 1.25)) rotateX(90deg);
+  filter: var(--rug-night); }
+.rug:not(.rug-braided)::after { border: 0; border-radius: 0; inset: 0; }
+/* Rugs with fringe: the body is ::before, inset from the ends; the element's own background is the fringe threads */
+.rug.rug-persian, .rug.rug-stripe, .rug.rug-berber { --fringe: #EFE4CF; width: 136%;
+  background: repeating-linear-gradient(to bottom, var(--fringe) 0 calc(var(--u) * .7), transparent 0 calc(var(--u) * 1.8)) center / 100% 92% no-repeat; }
+.rug.rug-persian::before, .rug.rug-stripe::before, .rug.rug-berber::before, .rug.rug-granny::before, .rug.rug-plaid::before, .rug.rug-jute::before, .rug.rug-sheepskin::before {
+  content: ""; position: absolute; inset: 0 5%; box-shadow: 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+.rug.rug-granny::before, .rug.rug-plaid::before, .rug.rug-jute::before, .rug.rug-sheepskin::before { inset: 0; }
+
+/* Persian: a deep red field strewn with tiny gold flowers, a medallion in the middle, navy corner pieces, a navy border
+   between gold lines, and the pile running one way */
+.rug.rug-persian::before { border-radius: calc(var(--u) * 1);
+  background:
+    repeating-linear-gradient(90deg, rgb(0 0 0 / .07) 0 calc(var(--u) * .3), transparent 0 calc(var(--u) * .9)),
+    radial-gradient(ellipse 17% 30% at 50% 50%, #E0A21B 0 22%, #1F2A55 24% 46%, #F1E2C2 48% 54%, #1F2A55 56% 72%, #E0A21B 74% 78%, transparent 80%),
+    radial-gradient(ellipse 12% 22% at 0 0, #1F2A55 0 80%, #E0A21B 82% 88%, transparent 90%),
+    radial-gradient(ellipse 12% 22% at 100% 0, #1F2A55 0 80%, #E0A21B 82% 88%, transparent 90%),
+    radial-gradient(ellipse 12% 22% at 0 100%, #1F2A55 0 80%, #E0A21B 82% 88%, transparent 90%),
+    radial-gradient(ellipse 12% 22% at 100% 100%, #1F2A55 0 80%, #E0A21B 82% 88%, transparent 90%),
+    radial-gradient(circle, #E0A21B 0 calc(var(--u) * .5), transparent calc(var(--u) * .7)) 0 0 / calc(var(--u) * 6) calc(var(--u) * 6),
+    radial-gradient(circle, #F1E2C2 0 calc(var(--u) * .35), transparent calc(var(--u) * .5)) calc(var(--u) * 3) calc(var(--u) * 3) / calc(var(--u) * 6) calc(var(--u) * 6),
+    #8E1F2B;
+  box-shadow: inset 0 0 0 calc(var(--u) * .8) #1F2A55, inset 0 0 0 calc(var(--u) * 1.3) #E0A21B, inset 0 0 0 calc(var(--u) * 4.5) #1F2A55,
+    inset 0 0 0 calc(var(--u) * 5) #E0A21B, 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+/* The border's little motif: gold dashes running round inside the navy band */
+.rug.rug-persian::after { inset: calc(var(--u) * 2.5) calc(5% + var(--u) * 2.5); border: calc(var(--u) * .6) dashed rgb(224 162 27 / .75); border-radius: calc(var(--u) * .5); }
+
+/* Granny Squares: crocheted squares in four color rounds, joined with plum, the yarn twist showing on the diagonal */
+.rug.rug-granny::before { --t: calc(var(--u) * 14); border-radius: calc(var(--u) * 1.5);
+  background:
+    repeating-linear-gradient(45deg, rgb(0 0 0 / .07) 0 calc(var(--u) * .3), transparent 0 calc(var(--u) * .9)),
+    linear-gradient(90deg, #5A3C4B 0 calc(var(--u) * .9), transparent 0) 0 0 / var(--t) var(--t),
+    linear-gradient(#5A3C4B 0 calc(var(--u) * .9), transparent 0) 0 0 / var(--t) var(--t),
+    radial-gradient(circle calc(var(--t) * .4) at 50% 50%, #F2C14E 0 30%, #C7334F 32% 62%, #4E9A5B 64% 92%, transparent 94%) 0 0 / calc(var(--t) * 2) calc(var(--t) * 2),
+    radial-gradient(circle calc(var(--t) * .4) at 50% 50%, #C7334F 0 30%, #F2C14E 32% 62%, #3E8E8A 64% 92%, transparent 94%) var(--t) var(--t) / calc(var(--t) * 2) calc(var(--t) * 2),
+    radial-gradient(circle calc(var(--t) * .4) at 50% 50%, #3E8E8A 0 30%, #F6E7D2 32% 62%, #C7334F 64% 92%, transparent 94%) var(--t) 0 / calc(var(--t) * 2) calc(var(--t) * 2),
+    radial-gradient(circle calc(var(--t) * .4) at 50% 50%, #F2C14E 0 30%, #8A5A9A 32% 62%, #F6E7D2 64% 92%, transparent 94%) 0 var(--t) / calc(var(--t) * 2) calc(var(--t) * 2),
+    #FFF3E3;
+  box-shadow: inset 0 0 0 calc(var(--u) * 1.6) #5A3C4B, inset 0 0 0 calc(var(--u) * 2.4) #F2C14E, 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+.rug.rug-granny { width: 126%; }
+
+/* Rag Stripe: a woven rag rug in uneven bands of berry, cream, teal, gold, and plum, the weft showing across them,
+   mottled like torn fabric, with fringe at both ends */
+.rug.rug-stripe::before {
+  background:
+    repeating-linear-gradient(to bottom, rgb(0 0 0 / .1) 0 calc(var(--u) * .35), transparent 0 calc(var(--u) * 1.1)),
+    repeating-linear-gradient(90deg, rgb(255 255 255 / .1) 0 calc(var(--u) * .5), transparent 0 calc(var(--u) * 1.5), rgb(0 0 0 / .06) 0 calc(var(--u) * 2.2)),
+    linear-gradient(90deg, #5A3C4B 0 5%, #F6E7D2 0 9%, #C7334F 0 19%, #F2C14E 0 23%, #3E8E8A 0 33%, #F6E7D2 0 37%, #C7334F 0 43%,
+      #5A3C4B 0 57%, #C7334F 0 63%, #F6E7D2 0 67%, #3E8E8A 0 77%, #F2C14E 0 81%, #C7334F 0 91%, #F6E7D2 0 95%, #5A3C4B 0);
+  box-shadow: inset 0 calc(var(--u) * .8) 0 rgb(0 0 0 / .12), inset 0 calc(var(--u) * -.8) 0 rgb(0 0 0 / .12), 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+
+/* Round Jute: one long coil of natural rope round and round, its twist shown by short slants, with a berry red round
+   near the edge and a darker bound rim */
+.rug.rug-jute { width: 82%; height: auto; aspect-ratio: 1; border-radius: 50%; }
+.rug.rug-jute::before { border-radius: 50%;
+  background:
+    repeating-conic-gradient(rgb(0 0 0 / .08) 0 2deg, transparent 2deg 5deg),
+    radial-gradient(circle closest-side, transparent 0 74%, #C7334F 74% 80%, transparent 80%),
+    repeating-radial-gradient(circle closest-side, #CFAE74 0 calc(var(--u) * 1.4), #B48A50 calc(var(--u) * 1.4) calc(var(--u) * 1.9), #DDBF89 calc(var(--u) * 1.9) calc(var(--u) * 2.8));
+  box-shadow: inset 0 0 0 calc(var(--u) * 1.6) #8A6638, inset 0 0 calc(var(--u) * 3) rgb(0 0 0 / .2), 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+.rug.rug-jute::after { inset: 6%; border-radius: 50%; border: calc(var(--u) * .5) dotted rgb(90 60 30 / .45); }
+
+/* Sheepskin: a soft cream pelt with a wavy edge, the fleece in little curls and shadowed dips, fluffing past its outline */
+.rug.rug-sheepskin { width: 120%; }
+.rug.rug-sheepskin::before { border-radius: 46% 54% 42% 58% / 58% 40% 60% 42%;
+  background:
+    radial-gradient(circle at 35% 35%, rgb(255 255 255 / .6) 0 calc(var(--u) * .6), transparent calc(var(--u) * 1)) 0 0 / calc(var(--u) * 3) calc(var(--u) * 2.6),
+    radial-gradient(circle at 60% 60%, rgb(120 90 60 / .16) 0 calc(var(--u) * .7), transparent calc(var(--u) * 1.2)) calc(var(--u) * 1.4) calc(var(--u) * 1) / calc(var(--u) * 3.4) calc(var(--u) * 2.8),
+    radial-gradient(ellipse at 50% 45%, #FBF6EC 0 40%, #EFE5D3 75%, #E2D4BD 100%);
+  box-shadow: 0 0 0 calc(var(--u) * .8) #F3EBDD, 0 0 calc(var(--u) * 2) calc(var(--u) * 1) rgb(243 235 221 / .8), 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .2); }
+.rug.rug-sheepskin::after { inset: 8% 10%; border-radius: 48% 52% 44% 56% / 56% 44% 56% 44%; box-shadow: inset 0 0 calc(var(--u) * 4) rgb(150 120 80 / .18); }
+
+/* Berber Diamond: a thick cream wool with a charcoal diamond lattice, the loops of the pile in tiny specks, and fringe */
+.rug.rug-berber { --fringe: #F3EBDD; }
+.rug.rug-berber::before {
+  background:
+    radial-gradient(circle, rgb(0 0 0 / .08) 0 calc(var(--u) * .3), transparent calc(var(--u) * .5)) 0 0 / calc(var(--u) * 1.4) calc(var(--u) * 1.4),
+    repeating-linear-gradient(60deg, transparent 0 calc(var(--u) * 7), #3A2E2A calc(var(--u) * 7) calc(var(--u) * 8), transparent calc(var(--u) * 8) calc(var(--u) * 14)),
+    repeating-linear-gradient(-60deg, transparent 0 calc(var(--u) * 7), #3A2E2A calc(var(--u) * 7) calc(var(--u) * 8), transparent calc(var(--u) * 8) calc(var(--u) * 14)),
+    radial-gradient(ellipse at 50% 50%, #F4ECDF, #E6DAC6);
+  box-shadow: inset 0 0 0 calc(var(--u) * 2.5) #EFE5D3, inset 0 0 0 calc(var(--u) * 3.3) #3A2E2A, 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+
+/* Buffalo Plaid: red and black checks, darkest where the black bands cross, a twill slant, and a black bound edge */
+.rug.rug-plaid { width: 128%; }
+.rug.rug-plaid::before { --t: calc(var(--u) * 12); border-radius: calc(var(--u) * 1.5);
+  background:
+    repeating-linear-gradient(45deg, rgb(0 0 0 / .1) 0 calc(var(--u) * .3), transparent 0 calc(var(--u) * .9)),
+    linear-gradient(90deg, rgb(25 10 14 / .62) 50%, transparent 0) 0 0 / var(--t) var(--t),
+    linear-gradient(rgb(25 10 14 / .62) 50%, transparent 0) 0 0 / var(--t) var(--t),
+    #B3263E;
+  box-shadow: inset 0 0 0 calc(var(--u) * 1.4) #24141A, inset 0 0 0 calc(var(--u) * 1.8) rgb(255 255 255 / .12), 0 calc(var(--u) * 2) calc(var(--u) * 3) rgb(0 0 0 / .22); }
+
+/* Settings → Rug: each rug on a scrap of floor; the picked one is ringed */
+.rug-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: .6rem .5rem; }
+.rug-pick { position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem; font-size: .88rem; font-weight: 600; text-align: center; cursor: pointer; }
+.rug-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.rug-floor { display: grid; place-items: end center; width: 100%; height: 64px; border-radius: 14px; overflow: hidden; border: 2px solid var(--line);
+  background: repeating-linear-gradient(90deg, rgb(0 0 0 / .06) 0 1px, transparent 1px 18px), var(--floor); }
+.rug-floor .pal { --pal: 58px; }
+.rug-pick input:checked + .rug-floor { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.rug-pick input:focus-visible + .rug-floor { outline: 3px solid var(--accent); outline-offset: 2px; }
 .pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; }
 /* The pal in a box its own shape (--ar), standing bottom middle: the Santa hat is placed in fractions of it */
 .pal-body { position: absolute; left: 50%; bottom: 0; translate: -50% 0; width: min(100%, calc(var(--pal) * var(--ar, 1))); aspect-ratio: var(--ar, 1);

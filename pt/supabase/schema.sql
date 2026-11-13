@@ -24,6 +24,8 @@ create table public.pt_settings (
   photo_at timestamptz,
   lat numeric(4, 1) check (lat between -90 and 90),
   lon numeric(4, 1) check (lon between -180 and 180),
+  -- Which rug the pal stands on (Settings → Rug); null = the braided oval. The page knows the names.
+  rug text check (rug ~ '^[a-z]{1,20}$'),
   -- The Christmas Santa hat on the owner's photo, as fractions of it: {x, y} = the middle of its fur band, w = width,
   -- r = tilt in degrees. Null = not placed (no hat on a photo; the fox drawing has its own spot).
   hat jsonb check (hat is null or (jsonb_typeof(hat) = 'object' and length(hat::text) <= 200)),

@@ -4,6 +4,16 @@
 // on the back wall is the flame meter (the user's idea): its fire, glow, and sparks follow flameOf's 7 steps
 // (styles.css, .fire.lvl-N). Every color is a token, so dark mode turns it into the room at night.
 
+// The rugs the pal can stand on (the user asked for a choice: Settings → Rug, saved as pt_settings.rug; null = the braided
+// oval it always had). Each is drawn in styles.css as .rug-<id>; the ids are what's saved, so don't rename one.
+const RUGS = [
+  { id: 'braided', name: 'Braided Oval' }, { id: 'persian', name: 'Persian' }, { id: 'granny', name: 'Granny Squares' },
+  { id: 'stripe', name: 'Rag Stripe' }, { id: 'jute', name: 'Round Jute' }, { id: 'sheepskin', name: 'Sheepskin' },
+  { id: 'berber', name: 'Berber Diamond' }, { id: 'plaid', name: 'Buffalo Plaid' },
+];
+const rugOf = () => RUGS.some(r => r.id === settings.rug) ? settings.rug : 'braided';
+const rugHtml = id => `<span class="rug rug-${id}" aria-hidden="true"></span>`;
+
 // The floor starts where the fireplace stands, wherever the layout puts it: placeRoom measures it into --floor-y.
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
 const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="floor"></svg><span class="glow-wall"></span><span class="glow-floor"></span>

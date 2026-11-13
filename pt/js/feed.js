@@ -30,7 +30,7 @@ async function feedPage() {
     </div>
     <div class="stage">
       ${fireplaceSvg}
-      <div class="pal" id="pal" role="button" tabindex="0" aria-label="Boop ${esc(settings.name)}"><span class="rug" aria-hidden="true"></span><span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
+      <div class="pal" id="pal" role="button" tabindex="0" aria-label="Boop ${esc(settings.name)}">${rugHtml(rugOf())}<span class="pal-breathe">${palPic(url, hatSeason() ? palHat(url) : null)}</span>
         <div class="marks" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(i => `<span class="mark m${i}"></span>`).join('')}</div>
       </div>
       <h1 class="pal-name">${esc(settings.name)}</h1>
