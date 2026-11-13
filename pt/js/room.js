@@ -319,6 +319,6 @@ function setFire(level, egg) {
   feedEl.classList.toggle('egg', egg);
   feedEl.classList.remove('whoosh');
   if (up && !reducedMotion()) { void feedEl.offsetWidth; feedEl.classList.add('whoosh'); }
-  $('#rimFlood')?.setAttribute('flood-opacity', (.95 * level / FLAME_TOP).toFixed(2));
+  $('#rimFlood')?.setAttribute('flood-opacity', (.75 * level / FLAME_TOP).toFixed(2));
   shownLevel = level;
 }

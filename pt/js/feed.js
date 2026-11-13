@@ -20,8 +20,8 @@ async function feedPage() {
     <!-- Rim light (the user asked for the pal's edge lit, not the whole pal): a thin band just inside the outline,
          thicker on top where the fire behind catches it. setFire sets its strength (#rimFlood). -->
     <svg class="fx-defs" width="0" height="0" aria-hidden="true"><filter id="rimLight" x="-5%" y="-5%" width="110%" height="110%">
-      <feMorphology in="SourceAlpha" operator="erode" radius="3" result="core"/><feOffset in="core" dy="3" result="low"/>
-      <feComposite in="SourceAlpha" in2="low" operator="out" result="edge"/><feGaussianBlur in="edge" stdDeviation="1.4" result="soft"/>
+      <feMorphology in="SourceAlpha" operator="erode" radius="1.5" result="core"/><feOffset in="core" dy="1.5" result="low"/>
+      <feComposite in="SourceAlpha" in2="low" operator="out" result="edge"/><feGaussianBlur in="edge" stdDeviation="0.8" result="soft"/>
       <feFlood id="rimFlood" flood-color="rgb(255,165,80)" flood-opacity="0"/><feComposite in2="soft" operator="in" result="lit"/>
       <feComposite in="lit" in2="SourceAlpha" operator="in" result="rim"/>
       <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rim"/></feMerge></filter></svg>

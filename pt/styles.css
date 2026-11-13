@@ -734,7 +734,7 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .pal.happy .pal-breathe { animation-play-state: paused; }
 /* Firelight catches the pal's edge (the user saw the old halo light up the whole pal): the #rimLight filter in feed.js
    brightens only a thin band inside the outline, thicker on top. A faint warm halo outside it grows with the fire (--rim, 0–1). */
-.feed .pal-pic { filter: url(#rimLight) drop-shadow(0 0 calc(1px + 4px * var(--rim, 0)) rgb(var(--glow) / calc(.35 * var(--rim, 0)))); }
+.feed .pal-pic { filter: url(#rimLight) drop-shadow(0 0 calc(1px + 2px * var(--rim, 0)) rgb(var(--glow) / calc(.2 * var(--rim, 0)))); }
 
 /* Specks of dust in the firelight (speck() in feed.js): few, tiny, faint, and slow */
 .speck { position: absolute; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: rgb(var(--glow)); opacity: 0;   /* in #dust, in front */
