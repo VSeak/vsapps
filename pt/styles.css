@@ -541,27 +541,29 @@ html:has(#dlg[open]), html:has(#dlg[open]) body { overflow: hidden; }
 .snow i:nth-child(9) { left: 94%; animation-delay: -4.5s; animation-duration: 7s; }
 @keyframes snowfall { to { transform: translate(6px, 96px); } }
 /* November 1 through Thanksgiving (the user asked): brown leaves blow across, tumbling. Two animations: leafblow carries
-   it across and spins it flat (transform); leafflip turns it over end on a slanted axis (the separate `rotate` property,
-   which the browser applies outside `transform`, so the flip never swings the path), going edge-on and darker on its
-   back (the user found them flat). Each leaf flips at its own speed, every other one the other way. Durations and
-   delays are set as lists (blow, flip): a single value would apply to both animations. */
+   it across (the `translate` property) and spins it flat (`rotate`); leafflip turns it over end on a slanted axis
+   (`transform`), going edge-on and darker on its back (the user found them flat). The browser applies transform first,
+   then rotate, then translate, so the flip is around the leaf's own axis and turns with it. The first try had them the
+   other way round (flip on a fixed screen axis outside the spin): it flipped nicely at first, then went wild as the
+   spin turned the leaf away from that axis (the user saw it). Each leaf flips at its own speed, every other one the
+   other way. Durations and delays are set as custom properties: a single value would apply to both animations. */
 .leaves { inset: 0; }
 .leafy .leaves { opacity: 1; }
 .leaves i { position: absolute; left: -8px; width: 5px; height: 3.5px; border-radius: 0 80% 0 80%; background: #8A5A2B;
-  animation: leafblow var(--dur, 6s) linear var(--del, 0s) infinite, leafflip calc(.7s + var(--n) * .17s) linear var(--del, 0s) infinite; }
+  animation: leafblow var(--dur, 6s) linear var(--del, 0s) infinite, leafflip calc(.9s + var(--n) * .2s) linear var(--del, 0s) infinite; }
 .leaves i:nth-child(2n) { background: #A0672E; animation-direction: normal, reverse; } .leaves i:nth-child(3n) { background: #6E4422; } .leaves i:nth-child(5) { background: #9C4F25; }
 .leaves i:nth-child(1) { --n: 1; top: 12%; --del: -1s; } .leaves i:nth-child(2) { --n: 4; top: 34%; --del: -3.4s; --dur: 7s; }
 .leaves i:nth-child(3) { --n: 2; top: 55%; --del: -5.2s; --dur: 5.5s; } .leaves i:nth-child(4) { --n: 5; top: 22%; --del: -2.2s; --dur: 8s; }
 .leaves i:nth-child(5) { --n: 3; top: 66%; --del: -.3s; --dur: 6.5s; } .leaves i:nth-child(6) { --n: 6; top: 44%; --del: -4.4s; --dur: 7.5s; }
 @keyframes leafflip {
-  0% { rotate: 1 .5 0 0deg; filter: brightness(1); } 25% { rotate: 1 .5 0 90deg; filter: brightness(.85); }
-  50% { rotate: 1 .5 0 180deg; filter: brightness(.68); } 75% { rotate: 1 .5 0 270deg; filter: brightness(.85); }
-  100% { rotate: 1 .5 0 360deg; filter: brightness(1); }
+  0% { transform: rotate3d(1, .5, 0, 0deg); filter: brightness(1); } 25% { transform: rotate3d(1, .5, 0, 90deg); filter: brightness(.85); }
+  50% { transform: rotate3d(1, .5, 0, 180deg); filter: brightness(.68); } 75% { transform: rotate3d(1, .5, 0, 270deg); filter: brightness(.85); }
+  100% { transform: rotate3d(1, .5, 0, 360deg); filter: brightness(1); }
 }
 @keyframes leafblow {
-  0% { transform: translate(0, 0) rotate(0); } 25% { transform: translate(28px, 9px) rotate(140deg); }
-  50% { transform: translate(55px, 3px) rotate(250deg); } 75% { transform: translate(82px, 14px) rotate(390deg); }
-  100% { transform: translate(112px, 8px) rotate(500deg); }
+  0% { translate: 0 0; rotate: 0deg; } 25% { translate: 28px 9px; rotate: 140deg; }
+  50% { translate: 55px 3px; rotate: 250deg; } 75% { translate: 82px 14px; rotate: 390deg; }
+  100% { translate: 112px 8px; rotate: 500deg; }
 }
 
 /* The side table and mug, in front of the couch's end; steam curls up and fades */
