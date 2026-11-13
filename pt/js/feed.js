@@ -28,8 +28,9 @@ async function feedPage() {
       <h1 class="pal-name">${esc(settings.name)}</h1>
       <p class="mood" id="mood" aria-live="polite"></p>
     </div>
-    <div class="berries">${['daily', 'climb'].map(k => `<button type="button" class="berry-btn ${k}" data-kind="${k}">
-      ${berrySvg(k)}<span class="b-name">${BERRY[k][0]}</span><small>${BERRY[k][1]}</small></button>`).join('')}
+    <div class="berries">${berryBtn('daily')}
+      <div class="undo" id="undo" hidden><button type="button" class="undo-btn">Undo</button></div>${berryBtn('climb')}
+      <span class="sr-only" id="undoMsg" role="status"></span>
     </div>
   </section>`);
   renderStatus();
@@ -130,7 +131,8 @@ function startFx() {
     if (fx.day !== today()) renderStatus();   // past midnight: a new day, so the sparkles stop
     tick++;
     if (fx.egg && Math.random() < .8) ember();
-    if (fx.passed && tick % 3 === 0) sparkle();
+    // About every 1.5 s, at an uneven beat: one sparkle, or sometimes two a moment apart (the user asked).
+    if (fx.passed && Math.random() < .33) { sparkle(); if (Math.random() < .4) sparkle(150 + Math.random() * 500); }
   }, 500);
 }
 
@@ -167,10 +169,16 @@ function ember() {
   box.append(e);
 }
 
+const berryBtn = k => `<button type="button" class="berry-btn ${k}" data-kind="${k}">
+  ${berrySvg(k)}<span class="b-name">${BERRY[k][0]}</span><small>${BERRY[k][1]}</small></button>`;
+
+// Undo sits between the two berries (the user asked: under the header it covered the flame). Screen readers hear
+// "<berry> fed." from a separate status line, since the button is hidden most of the time.
 let undoTimer;
 function showUndo(kind, row, saving) {
   const bar = $('#undo');
-  $('span', bar).textContent = `${BERRY[kind][0]} fed.`;
+  if (!bar) return;
+  $('#undoMsg').textContent = `${BERRY[kind][0]} fed.`;
   bar.hidden = false;
   clearTimeout(undoTimer);
   undoTimer = setTimeout(() => { bar.hidden = true; }, 5000);
@@ -181,8 +189,9 @@ function showUndo(kind, row, saving) {
       await saving;
       await sb.from('pt_feeds').delete().eq('id', row.id).then(must);
       feeds = feeds.filter(f => f !== row);
-      if ($('#flameChip')) renderStatus();
-      flash('Berry taken back.');
+      if (!$('#flameChip')) return;
+      renderStatus();
+      $('#undoMsg').textContent = 'Berry taken back.';   // not flash(): it would sit over the berries
     });
   };
 }
