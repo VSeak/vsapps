@@ -298,20 +298,24 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 /* A crouch, a hop, three fast turns around its own up-down axis (like spinning on the spot; the photo goes edge-on and
    shows its mirrored back as it turns), slowing as it lands, then a woozy wobble while the stars go round.
    Every frame lists the same functions in the same order: a mismatch makes the browser blend whole matrices, and
-   rotateY(1080deg) is the same matrix as none, so the spin would vanish. Ends at 1080deg, which looks the same as none. */
+   rotateY(1080deg) is the same matrix as none, so the spin would vanish. Ends at 1080deg, which looks the same as none.
+   A flat photo turning edge-on can be read as turning either way (the "spinning dancer" illusion; the user saw it go
+   the opposite way to the stars, though both turn front-to-the-right). Two cues pin it down: a close perspective
+   (400px, so the near edge is clearly bigger) and leaning it back 14deg while it spins, so you look down on it like
+   the stars' ellipse. */
 .pal.dizzy .pal-body { animation: dizzy 3.2s linear; }
 @keyframes dizzy {
-  0% { transform: perspective(900px) translateY(0) rotateY(0) rotate(0) scale(1, 1); animation-timing-function: ease-out; }
-  7% { transform: perspective(900px) translateY(0) rotateY(0) rotate(0) scale(1.08, .9); animation-timing-function: ease-out; }
-  13% { transform: perspective(900px) translateY(-12%) rotateY(150deg) rotate(0) scale(.96, 1.05); animation-timing-function: linear; }
-  29% { transform: perspective(900px) translateY(-12%) rotateY(900deg) rotate(0) scale(.96, 1.05); animation-timing-function: ease-out; }
-  38% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(0) scale(1.06, .94); animation-timing-function: ease-in-out; }
-  46% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(9deg) scale(1, 1); animation-timing-function: ease-in-out; }
-  56% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(-8deg) scale(1, 1); animation-timing-function: ease-in-out; }
-  66% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(6deg) scale(1, 1); animation-timing-function: ease-in-out; }
-  76% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(-4deg) scale(1, 1); animation-timing-function: ease-in-out; }
-  86% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(2deg) scale(1, 1); animation-timing-function: ease-in-out; }
-  100% { transform: perspective(900px) translateY(0) rotateY(1080deg) rotate(0) scale(1, 1); }
+  0% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(0) rotate(0) scale(1, 1); animation-timing-function: ease-out; }
+  7% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(0) rotate(0) scale(1.08, .9); animation-timing-function: ease-out; }
+  13% { transform: perspective(400px) translateY(-12%) rotateX(14deg) rotateY(150deg) rotate(0) scale(.96, 1.05); animation-timing-function: linear; }
+  29% { transform: perspective(400px) translateY(-12%) rotateX(14deg) rotateY(900deg) rotate(0) scale(.96, 1.05); animation-timing-function: ease-out; }
+  38% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(0) scale(1.06, .94); animation-timing-function: ease-in-out; }
+  46% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(9deg) scale(1, 1); animation-timing-function: ease-in-out; }
+  56% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(-8deg) scale(1, 1); animation-timing-function: ease-in-out; }
+  66% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(6deg) scale(1, 1); animation-timing-function: ease-in-out; }
+  76% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(-4deg) scale(1, 1); animation-timing-function: ease-in-out; }
+  86% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(2deg) scale(1, 1); animation-timing-function: ease-in-out; }
+  100% { transform: perspective(400px) translateY(0) rotateX(0) rotateY(1080deg) rotate(0) scale(1, 1); }
 }
 .pal.booped .pal-breathe, .pal.petting .pal-breathe, .pal.dizzy .pal-breathe { animation-play-state: paused; }
 
