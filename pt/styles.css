@@ -183,8 +183,8 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .fire.lvl-5 { --s: 1.25; }
 .fire.lvl-6 { --s: 1.4; --sl: .6; }
 .fire.lvl-7 { --s: 1.6; --sl: .75; --sr: .7; }
-/* Flames sway from step 2 up */
-.fire:not(.lvl-0, .lvl-1) .fl { animation: sway 1.6s ease-in-out infinite; }
+/* Flames sway from step 1 up (the lone yellow flame too; the user saw it standing still) */
+.fire:not(.lvl-0) .fl { animation: sway 1.6s ease-in-out infinite; }
 .fire .f-side.l { animation-delay: -.5s; }
 .fire .f-side.r { animation-delay: -1.1s; }
 @keyframes sway {
