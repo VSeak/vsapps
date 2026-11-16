@@ -19,6 +19,7 @@ If you ran `schema.sql` before these were added, run each once (SQL Editor → N
 - `pt/supabase/migrations/2026-11-13-rug.sql`: saves which rug the pal stands on (Settings → Rug).
 - `pt/supabase/migrations/2026-11-13-window-location.sql`: saves a rounded location for the window's real sunrise and sunset.
 - `pt/supabase/migrations/2026-11-13-hat-and-new-year.sql`: saves where the Santa hat sits on your photo, and that the New Year screen was shown.
+- `pt/supabase/migrations/2026-11-16-wallpaper.sql`: saves which wallpaper is on the room's wall (Settings → Wallpaper).
 
 ## 3. Try it
 

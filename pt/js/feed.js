@@ -14,7 +14,7 @@ async function feedPage() {
   const [rows, url] = await Promise.all([loadFeeds(), photoUrl()]);
   if (tok !== navToken) return;
   feeds = rows;
-  view(`<section class="feed">${roomSvg}<div class="wall-name" id="wallName"></div>
+  view(`<section class="feed">${roomSvg.replace('class="room"', `class="room wall-${wallOf()}"`)}<div class="wall-name" id="wallName"></div>
     <div class="sparkles" id="sparkles" aria-hidden="true"></div>
     <div class="dust" id="dust" aria-hidden="true"></div>
     <!-- Rim light (the user asked for the pal's edge lit, not the whole pal): a thin band just inside the outline,

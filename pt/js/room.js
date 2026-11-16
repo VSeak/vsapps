@@ -14,6 +14,15 @@ const RUGS = [
 const rugOf = () => RUGS.some(r => r.id === settings.rug) ? settings.rug : 'braided';
 const rugHtml = id => `<span class="rug rug-${id}" aria-hidden="true"></span>`;
 
+// The wallpapers (the user asked, set up like the rugs: Settings → Wallpaper, saved as pt_settings.wall; null = the
+// peach pinstripe it always had). Each is drawn in styles.css as .room.wall-<id>; the ids are saved, so don't rename one.
+const WALLS = [
+  { id: 'pinstripe', name: 'Peach Pinstripe' }, { id: 'sprig', name: 'Berry Sprig' }, { id: 'sage', name: 'Sage Stripe' },
+  { id: 'dots', name: 'Blush Dots' }, { id: 'trellis', name: 'Garden Trellis' }, { id: 'brick', name: 'Exposed Brick' },
+  { id: 'pine', name: 'Knotty Pine' }, { id: 'beadboard', name: 'Beadboard' },
+];
+const wallOf = () => WALLS.some(w => w.id === settings.wall) ? settings.wall : 'pinstripe';
+
 // The floor starts where the fireplace stands, wherever the layout puts it: placeRoom measures it into --floor-y.
 // The couch is drawn far past its left edge, so it runs off the screen instead of ending in a rounded corner (the user asked).
 const roomSvg = `<div class="room" aria-hidden="true"><svg class="floor" id="floor"></svg><span class="glow-wall"></span><span class="glow-floor"></span>

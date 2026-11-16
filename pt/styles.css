@@ -6,7 +6,7 @@
   --gold: #E0A21B; --gold-soft: #FCEFCB; --gold-text: #845A00; --leaf: #4E9A5B; --ember: #C9B3A8;
   --warn-soft: #FBEFD5; --warn-line: #EFC577; --danger: #B3263E;
   --panel: #3A2230; --panel-ink: #FFF6EE;
-  --wall: #F7E6D6; --wall-2: #EDD6C1; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mortar: #E3C9AE; --mantel: #8A5A3C; --hole: #3A2230; --letters: #FBF3E8; --letters-2: #D8C2AA;
+  --wall: #F7E6D6; --wall-2: #EDD6C1; --base: #E8CDB5; --floor: #DDB892; --plank: #CDA67E; --stone: #C98F6E; --mortar: #E3C9AE; --mantel: #8A5A3C; --hole: #3A2230; --letters: #FBF3E8; --letters-2: #D8C2AA; --wall-night: none;
   --couch: #8FA88A; --couch-2: #7E9879; --pillow: #F2C14E; --plant: #4E9A5B; --plant-2: #5FAE6C; --pot: #C46A4A; --rug: #E9A7A0; --rug-2: #FFF6EE;
   --frame: #8A5A3C; --pic: #A8C7D8; --pic-2: #7FA88A; --pic-sun: #F2C14E; --glow: 255 150 60; --glow-k: .55; --veil: rgb(255 246 238 / .82);
   --blanket: #C9603F; --blanket-2: #F2C14E; --blanket-3: rgb(90 30 20 / .22); --table: #A86B45; --table-2: #8A5A3C; --mug: #F2EDE4; --steam: rgb(120 100 100 / .4);
@@ -23,7 +23,7 @@
   --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10; --letters: #B8A693; --letters-2: #7E6C5C;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
-  --rug-night: brightness(.55) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
+  --rug-night: brightness(.55) saturate(.85); --wall-night: brightness(.24) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
     --shadow: none;
     color-scheme: dark;
   }
@@ -37,7 +37,7 @@
   --wall: #2B1F2B; --wall-2: #352735; --base: #241A22; --floor: #3B2B2B; --plank: #2E2121; --stone: #5A3A34; --mortar: #7E6660; --mantel: #3E2A22; --hole: #120B10; --letters: #B8A693; --letters-2: #7E6C5C;
   --couch: #4A5C48; --couch-2: #3F4F3D; --pillow: #8A6A2A; --plant: #3A6A42; --plant-2: #447A4C; --pot: #6A3A2C; --rug: #6A3A40; --rug-2: #8A5A60;
   --frame: #3E2A22; --pic: #2A3A4A; --pic-2: #2F4A3A; --pic-sun: #C9C2A0; --glow: 255 140 60; --glow-k: 1; --veil: rgb(26 18 25 / .72);
-  --rug-night: brightness(.55) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
+  --rug-night: brightness(.55) saturate(.85); --wall-night: brightness(.24) saturate(.85); --blanket: #7A3A2C; --blanket-2: #A07A2A; --blanket-3: rgb(0 0 0 / .25); --table: #5A3A2A; --table-2: #45301F; --mug: #CFC6B8; --steam: rgb(255 255 255 / .35);
   --shadow: none;
   color-scheme: dark;
 }
@@ -397,6 +397,59 @@ main:has(.feed) { max-width: none; padding: 0; flex: 1; display: flex; flex-dire
 .rug-nav .rug-name { font-family: Fredoka, sans-serif; font-size: 1.15rem; }
 .rug-nav .rug-count { color: var(--muted); font-size: .85rem; }
 .rug-nav button { width: 48px; height: 48px; padding: 0; font-size: 1.6rem; line-height: 1; border-radius: 50%; flex: none; }
+/* The other wallpapers (Settings → Wallpaper; WALLS in room.js). Each covers the wall itself (the pinstripe above is
+   see-through over --wall), so its colors are fixed and at night a filter dims it (--wall-night) like the rugs.
+   Texture (the user's rule): paper grain, weave, mortar, or wood grain on every one, and the same shade toward the
+   ceiling. Pattern sizes are in px, so the Settings preview matches Home. */
+.room[class*="wall-"]:not(.wall-pinstripe)::before { filter: var(--wall-night); }
+/* Berry Sprig: cream paper with little sprigs (two leaves and two berries), every other one mirrored, on fine grain */
+.room.wall-sprig::before { background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cg id='a'%3E%3Cpath d='M12 20Q13.5 14 12 9' fill='none' stroke='%236F9468' stroke-width='.9'/%3E%3Cpath d='M12.4 15Q16 13 17 10Q13.5 10.5 12.4 15Z' fill='%2394B48C'/%3E%3Cpath d='M12.4 15.5L16.2 11' stroke='%236F9468' stroke-width='.3'/%3E%3Cpath d='M12.2 17.5Q8.5 16 7.5 12.8Q11 13 12.2 17.5Z' fill='%237FA27A'/%3E%3Ccircle cx='14.6' cy='10.4' r='1.6' fill='%23A82A43'/%3E%3Ccircle cx='12' cy='8' r='2.2' fill='%23C7334F'/%3E%3Ccircle cx='11.3' cy='7.2' r='.7' fill='%23fff' opacity='.6'/%3E%3C/g%3E%3Cuse href='%23a' transform='translate(60 24) scale(-1 1)'/%3E%3C/svg%3E") 0 4px / 48px 48px,
+  repeating-linear-gradient(0deg, rgb(120 80 60 / .035) 0 1px, transparent 1px 4px),
+  repeating-linear-gradient(90deg, rgb(255 255 255 / .25) 0 1px, transparent 1px 5px), #FBF1E4; }
+/* Sage Stripe: wide sage and pale stripes with a cream pinline on each edge and a fine line down the pale ones, on a woven slub */
+.room.wall-sage::before { background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  repeating-linear-gradient(0deg, rgb(0 0 0 / .025) 0 1px, transparent 1px 3px),
+  repeating-linear-gradient(90deg, rgb(0 0 0 / .03) 0 1px, transparent 1px 4px),
+  repeating-linear-gradient(90deg, #C8D5B9 0 21px, rgb(255 255 255 / .6) 21px 22px, transparent 22px 32px,
+    rgb(130 155 115 / .45) 32px 33px, transparent 33px 43px, rgb(255 255 255 / .6) 43px 44px), #E7EDDD; }
+/* Blush Dots: rose dots on blush in a staggered grid, each with a glint and a soft shadow, on paper grain */
+.room.wall-dots::before { background:
+    linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+    radial-gradient(circle at 10px 10px, rgb(255 255 255 / .55) 0 .9px, transparent 1.5px) 0 0 / 30px 30px,
+    radial-gradient(circle at 11px 11px, #DE9C9F 0 3.2px, transparent 3.8px) 0 0 / 30px 30px,
+    radial-gradient(circle at 11.5px 12px, rgb(90 30 40 / .12) 0 3.8px, transparent 4.6px) 0 0 / 30px 30px,
+    radial-gradient(circle at 10px 10px, rgb(255 255 255 / .55) 0 .9px, transparent 1.5px) 15px 15px / 30px 30px,
+    radial-gradient(circle at 11px 11px, #DE9C9F 0 3.2px, transparent 3.8px) 15px 15px / 30px 30px,
+    radial-gradient(circle at 11.5px 12px, rgb(90 30 40 / .12) 0 3.8px, transparent 4.6px) 15px 15px / 30px 30px,
+    repeating-linear-gradient(0deg, rgb(120 60 60 / .03) 0 1px, transparent 1px 4px), #F8E4E0; }
+/* Garden Trellis: a sage lattice with a lit edge on each slat, a rose at every crossing, and leaves along the slats */
+.room.wall-trellis::before { background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cg fill='none' stroke-linecap='square'%3E%3Cpath d='M0 0L40 40M40 0L0 40' stroke='%2390A882' stroke-width='1.8'/%3E%3Cpath d='M0-.8L40 39.2M40-.8L0 39.2' stroke='%23C9D8BC' stroke-width='.5'/%3E%3C/g%3E%3Cg fill='%237FA27A'%3E%3Cpath d='M10 10q4-4 6 0q-4 3-6 0z'/%3E%3Cpath d='M30 10q-4-4-6 0q4 3 6 0z'/%3E%3Cpath d='M10 30q4 4 6 0q-4-3-6 0z'/%3E%3Cpath d='M30 30q-4 4-6 0q4-3 6 0z'/%3E%3C/g%3E%3Cg id='r'%3E%3Ccircle cx='20' cy='20' r='3.4' fill='%23D98A8E'/%3E%3Ccircle cx='20' cy='20' r='2.2' fill='none' stroke='%23B96A70' stroke-width='.6'/%3E%3Ccircle cx='20' cy='20' r='1' fill='%23E0A21B'/%3E%3Ccircle cx='19' cy='18.8' r='.8' fill='%23fff' opacity='.45'/%3E%3C/g%3E%3Cuse href='%23r' x='-20' y='-20'/%3E%3Cuse href='%23r' x='20' y='-20'/%3E%3Cuse href='%23r' x='-20' y='20'/%3E%3Cuse href='%23r' x='20' y='20'/%3E%3C/svg%3E") 0 0 / 40px 40px,
+  repeating-linear-gradient(0deg, rgb(120 90 60 / .03) 0 1px, transparent 1px 4px), #F3EEDD; }
+/* Exposed Brick: courses of bricks, each its own shade, staggered over sunk mortar, lit on top and shaded below, with specks */
+.room.wall-brick::before { background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40'%3E%3Cdefs%3E%3ClinearGradient id='g' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff' stop-opacity='.16'/%3E%3Cstop offset='.25' stop-color='%23fff' stop-opacity='0'/%3E%3Cstop offset='.75' stop-color='%23000' stop-opacity='0'/%3E%3Cstop offset='1' stop-color='%23000' stop-opacity='.2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='40' fill='%23CDBBA6'/%3E%3Cg%3E%3Crect x='1' y='1' width='28' height='17.5' rx='1' fill='%23B5634A'/%3E%3Crect x='31' y='1' width='28' height='17.5' rx='1' fill='%23A5553E'/%3E%3Crect x='61' y='1' width='28' height='17.5' rx='1' fill='%23BE6F55'/%3E%3Crect x='91' y='1' width='28' height='17.5' rx='1' fill='%239E4F39'/%3E%3Crect x='-14' y='21' width='28' height='17.5' rx='1' fill='%23AE5D45'/%3E%3Crect x='106' y='21' width='28' height='17.5' rx='1' fill='%23AE5D45'/%3E%3Crect x='16' y='21' width='28' height='17.5' rx='1' fill='%23C2765A'/%3E%3Crect x='46' y='21' width='28' height='17.5' rx='1' fill='%23A04F3A'/%3E%3Crect x='76' y='21' width='28' height='17.5' rx='1' fill='%23B66A50'/%3E%3C/g%3E%3Cg fill='url(%23g)'%3E%3Crect x='1' y='1' width='118' height='17.5'/%3E%3Crect y='21' width='120' height='17.5'/%3E%3C/g%3E%3Cg fill='%23CDBBA6'%3E%3Crect x='29' width='2' height='20'/%3E%3Crect x='59' width='2' height='20'/%3E%3Crect x='89' width='2' height='20'/%3E%3Crect x='14' y='20' width='2' height='20'/%3E%3Crect x='44' y='20' width='2' height='20'/%3E%3Crect x='74' y='20' width='2' height='20'/%3E%3Crect x='104' y='20' width='2' height='20'/%3E%3C/g%3E%3Cg fill='%23000' opacity='.18'%3E%3Ccircle cx='8' cy='6' r='.6'/%3E%3Ccircle cx='22' cy='13' r='.5'/%3E%3Ccircle cx='40' cy='9' r='.7'/%3E%3Ccircle cx='70' cy='14' r='.5'/%3E%3Ccircle cx='100' cy='5' r='.6'/%3E%3Ccircle cx='112' cy='12' r='.5'/%3E%3Ccircle cx='5' cy='30' r='.6'/%3E%3Ccircle cx='28' cy='34' r='.5'/%3E%3Ccircle cx='55' cy='26' r='.7'/%3E%3Ccircle cx='88' cy='32' r='.5'/%3E%3C/g%3E%3Cg fill='%23fff' opacity='.2'%3E%3Ccircle cx='48' cy='5' r='.6'/%3E%3Ccircle cx='80' cy='9' r='.5'/%3E%3Ccircle cx='20' cy='27' r='.5'/%3E%3Ccircle cx='96' cy='35' r='.6'/%3E%3C/g%3E%3Cpath d='M0 19.5H120M0 39.5H120' stroke='%23000' stroke-opacity='.12'/%3E%3C/svg%3E") 0 0 / 120px 40px, #CDBBA6; }
+/* Knotty Pine: tongue-and-groove planks, each its own shade, with a dark groove and lit lip, wavy grain, and knots */
+.room.wall-pine::before { background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='200'%3E%3Crect width='24' height='200' fill='%23DDAE74'/%3E%3Crect x='24' width='24' height='200' fill='%23D2A066'/%3E%3Crect x='48' width='24' height='200' fill='%23E1B57E'/%3E%3Crect x='72' width='24' height='200' fill='%23CF9B60'/%3E%3Cg fill='none' stroke='%239A6838' stroke-opacity='.35' stroke-width='.6'%3E%3Cpath d='M6 0C8 50 4 100 7 150S5 200 6 200M14 0C15 40 12 90 15 140S13 190 14 200M19 0C20 60 18 110 20 200'/%3E%3Cpath d='M29 0C31 40 28 70 30 100S27 160 30 200M37 0C38 80 35 120 38 200M43 0C44 50 42 130 44 200'/%3E%3Cpath d='M53 0C55 40 52 55 56 70S54 90 53 120S55 170 53 200M61 0C62 45 58 60 61 76S63 95 61 130S60 180 61 200M67 0C68 70 66 140 68 200'/%3E%3Cpath d='M77 0C78 40 76 120 78 200M84 0C86 120 82 140 86 160S85 190 84 200M91 0C92 60 90 120 91 200'/%3E%3C/g%3E%3Cellipse cx='58' cy='72' rx='2.6' ry='4.4' fill='%238A5A3C' opacity='.8'/%3E%3Cellipse cx='58' cy='72' rx='4.2' ry='6.6' fill='none' stroke='%238A5A3C' stroke-opacity='.35' stroke-width='.7'/%3E%3Cellipse cx='85' cy='152' rx='1.8' ry='3' fill='%238A5A3C' opacity='.75'/%3E%3Cellipse cx='12' cy='176' rx='1.5' ry='2.4' fill='%238A5A3C' opacity='.6'/%3E%3Cg fill='%235A3A22' fill-opacity='.55'%3E%3Crect x='23' width='1.4' height='200'/%3E%3Crect x='47' width='1.4' height='200'/%3E%3Crect x='71' width='1.4' height='200'/%3E%3Crect x='95' width='1.4' height='200'/%3E%3C/g%3E%3Cg fill='%23fff' fill-opacity='.3'%3E%3Crect x='0' width='.7' height='200'/%3E%3Crect x='24.4' width='.7' height='200'/%3E%3Crect x='48.4' width='.7' height='200'/%3E%3Crect x='72.4' width='.7' height='200'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 96px 200px, #D9A96E; }
+/* Beadboard: painted boards with a bead and groove every 9px up to a chair rail, dusty blue linen paper above it */
+.room.wall-beadboard::before { --rail: 60%; background: linear-gradient(rgb(0 0 0 / .07), transparent 40%),
+  linear-gradient(transparent 0 calc(var(--rail) - 7px), rgb(255 255 255 / .9) calc(var(--rail) - 7px) calc(var(--rail) - 6px), #EBE4D7 0 calc(var(--rail) - 2px),
+    rgb(0 0 0 / .2) 0 var(--rail), rgb(0 0 0 / .08) 0 calc(var(--rail) + 4px), transparent 0),
+  repeating-linear-gradient(90deg, rgb(0 0 0 / .14) 0 1px, rgb(255 255 255 / .7) 1px 2px, transparent 2px 4.5px, rgb(0 0 0 / .05) 4.5px 5.5px, transparent 5.5px 9px) 0 100% / 100% calc(100% - var(--rail)) no-repeat,
+  repeating-linear-gradient(0deg, rgb(0 0 0 / .025) 0 1px, transparent 1px 3px),
+  repeating-linear-gradient(90deg, rgb(255 255 255 / .2) 0 1px, transparent 1px 3px),
+  linear-gradient(#D5E0E5 0 var(--rail), #F2EEE6 var(--rail)); }
+/* Change Wallpaper (Settings): the pal on its rug in front of a scrap of wall. The pal's wrapper is its own layer (z 1),
+   so its rug (z -1) stays in front of the room. */
+.wall-stage { position: relative; isolation: isolate; display: flex; justify-content: center; align-items: flex-end; height: 230px; padding-bottom: .9rem;
+  border-radius: 16px; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  background: repeating-linear-gradient(90deg, rgb(0 0 0 / .07) 0 1px, transparent 1px 34px), var(--floor); }
+.wall-stage .room { --floor-y: 62%; }
+.wall-stage-pal { position: relative; z-index: 1; }
+.wall-stage .pal { --pal: 120px; }
+.wall-stage .pal-pic { pointer-events: none; -webkit-user-drag: none; }
 .pal-pic { width: 100%; height: 100%; object-fit: contain; object-position: 50% 100%; display: block; }
 /* The pal in a box its own shape (--ar), standing bottom middle: the Santa hat is placed in fractions of it */
 .pal-body { position: absolute; left: 50%; bottom: 0; translate: -50% 0; width: min(100%, calc(var(--pal) * var(--ar, 1))); aspect-ratio: var(--ar, 1);

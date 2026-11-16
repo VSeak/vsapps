@@ -49,6 +49,11 @@ async function settingsPage() {
       <p class="hint">${esc(settings.name)} stands on the ${RUGS.find(r => r.id === rugOf()).name} rug in front of the fire.</p>
       <div class="row wrap"><button type="button" class="fill" id="changeRug">Change Rug</button></div>
     </div>` : ''}
+    ${'wall' in settings ? `<div class="card">
+      <h2>Wallpaper</h2>
+      <p class="hint">The room's wall has ${WALLS.find(w => w.id === wallOf()).name} wallpaper.</p>
+      <div class="row wrap"><button type="button" class="fill" id="changeWall">Change Wallpaper</button></div>
+    </div>` : ''}
     <div class="card">
       <h2>Window</h2>
       <p class="hint">The window on Home shows the real sky outside: sunrise, sunset, and the moon where you are.
@@ -79,6 +84,7 @@ async function settingsPage() {
   });
 
   if ($('#changeRug')) $('#changeRug').onclick = () => changeRug(url);
+  if ($('#changeWall')) $('#changeWall').onclick = () => changeWall(url);
 
   $('#pickPhoto').onclick = () => $('#photoIn').click();
   $('#photoIn').onchange = e => {
@@ -118,40 +124,63 @@ async function settingsPage() {
   };
 }
 
-// Change Rug (the user asked, in place of a grid of tiles): the pal standing on one rug at a time, ‹ › (or arrow keys,
-// or a swipe) to go through them, Save to keep it. Saved as null for the braided one, the default.
-async function changeRug(url) {
-  let i = RUGS.findIndex(r => r.id === rugOf());
-  const f = await ask({ title: 'Change Rug', ok: 'Save',
-    body: `<div class="rug-stage"><div class="pal">${rugHtml(RUGS[i].id)}${palPic(url)}</div></div>
+// Change Rug and Change Wallpaper (the user asked, in place of a grid of tiles): the pal in a scrap of room showing one
+// choice at a time, ‹ › (or arrow keys, or a swipe) to go through them, Save to keep it. Resolves to the chosen index,
+// or null if closed. show(form, item) puts the item on the stage.
+async function pickLook({ title, noun, list, start, stage, show }) {
+  let i = start;
+  const f = await ask({ title, ok: 'Save',
+    body: `${stage}
       <div class="rug-nav">
-        <button type="button" class="ghost" data-step="-1" aria-label="Previous rug">‹</button>
+        <button type="button" class="ghost" data-step="-1" aria-label="Previous ${noun}">‹</button>
         <p aria-live="polite"><strong class="rug-name"></strong><span class="rug-count"></span></p>
-        <button type="button" class="ghost" data-step="1" aria-label="Next rug">›</button>
+        <button type="button" class="ghost" data-step="1" aria-label="Next ${noun}">›</button>
       </div>`,
     onOpen: form => {
-      const show = () => {
-        form.querySelector('.rug').className = `rug rug-${RUGS[i].id}`;
-        form.querySelector('.rug-name').textContent = RUGS[i].name;
-        form.querySelector('.rug-count').textContent = `${i + 1} of ${RUGS.length}`;
+      const draw = () => {
+        show(form, list[i]);
+        form.querySelector('.rug-name').textContent = list[i].name;
+        form.querySelector('.rug-count').textContent = `${i + 1} of ${list.length}`;
       };
-      const step = d => { i = (i + d + RUGS.length) % RUGS.length; show(); };
-      show();
+      const step = d => { i = (i + d + list.length) % list.length; draw(); };
+      draw();
       form.querySelectorAll('[data-step]').forEach(b => b.onclick = () => step(+b.dataset.step));
       form.addEventListener('keydown', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); step(e.key === 'ArrowLeft' ? -1 : 1); } });
-      // A sideways swipe on the room goes to the next or previous rug.
-      const stage = form.querySelector('.rug-stage');
+      // A sideways swipe on the room goes to the next or previous one.
+      const st = form.querySelector('.look-stage');
       let x0 = null;
-      stage.addEventListener('pointerdown', e => { x0 = e.clientX; });
-      stage.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) step(e.clientX < x0 ? 1 : -1); x0 = null; });
-      stage.addEventListener('pointercancel', () => { x0 = null; });
+      st.addEventListener('pointerdown', e => { x0 = e.clientX; });
+      st.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) step(e.clientX < x0 ? 1 : -1); x0 = null; });
+      st.addEventListener('pointercancel', () => { x0 = null; });
     } });
-  if (!f) return;
+  return f ? i : null;
+}
+
+// Saved as null for the braided one, the default.
+async function changeRug(url) {
+  const i = await pickLook({ title: 'Change Rug', noun: 'rug', list: RUGS, start: RUGS.findIndex(r => r.id === rugOf()),
+    stage: `<div class="rug-stage look-stage"><div class="pal">${rugHtml(rugOf())}${palPic(url)}</div></div>`,
+    show: (form, r) => { form.querySelector('.rug').className = `rug rug-${r.id}`; } });
+  if (i == null || RUGS[i].id === rugOf()) return;
   const id = RUGS[i].id;
-  if (id === rugOf()) return;
   await busy($('#changeRug'), async () => {
     await sb.from('pt_settings').update({ rug: id === 'braided' ? null : id }).eq('id', true).then(must);
     flash(`${RUGS[i].name} rug down.`);
+    redraw();
+  });
+}
+
+// The pal on its own rug in front of a wall of the paper. Saved as null for the pinstripe, the default.
+async function changeWall(url) {
+  const i = await pickLook({ title: 'Change Wallpaper', noun: 'wallpaper', list: WALLS, start: WALLS.findIndex(w => w.id === wallOf()),
+    stage: `<div class="wall-stage look-stage"><div class="room wall-${wallOf()}"></div>
+      <div class="wall-stage-pal"><div class="pal">${rugHtml(rugOf())}${palPic(url)}</div></div></div>`,
+    show: (form, w) => { form.querySelector('.room').className = `room wall-${w.id}`; } });
+  if (i == null || WALLS[i].id === wallOf()) return;
+  const id = WALLS[i].id;
+  await busy($('#changeWall'), async () => {
+    await sb.from('pt_settings').update({ wall: id === 'pinstripe' ? null : id }).eq('id', true).then(must);
+    flash(`${WALLS[i].name} is up.`);
     redraw();
   });
 }
