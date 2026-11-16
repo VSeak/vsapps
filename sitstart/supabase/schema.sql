@@ -1348,6 +1348,7 @@ create table public.saved_timers (
   hang int not null check (hang between 1 and 3600),
   gap int check (gap between 1 and 3600),    -- the rest between a set's reps; empty at 1 rep a set
   rest int check (rest between 1 and 3600),  -- the rest between sets; empty at 1 set
+  note text constraint saved_timers_note_check check (length(note) <= 200),  -- the setup: edge, grip, added weight
   position int not null default 0,           -- the order the person dragged them into; a new one goes last (the trigger)
   created_at timestamptz not null default now()
 );

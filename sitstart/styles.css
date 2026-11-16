@@ -1089,6 +1089,8 @@ dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background:
 .tm-time input { width: 3.4rem; height: 48px; margin: 0; padding: 6px 2px; text-align: center; font: 800 1.35rem "Bricolage Grotesque", sans-serif; border-radius: 12px; }
 .tm-time span { font-size: .85rem; color: var(--muted); }
 .tm-group { margin-top: 20px; }
+.tm-note { display: block; margin-top: 18px; }
+.tm-note input { margin-top: 4px; }
 .tm-sum { margin: 14px 0 0; font-size: .9rem; color: var(--muted); }
 .tm-sum b { display: block; color: var(--ink); }
 .tm-sum:empty { display: none; }
@@ -1123,9 +1125,11 @@ dialog.timer:not([data-phase="setup"]) .tm-btns button:first-child { background:
 .tm-item:has(.grip) .tm-load { padding-left: 2px; }
 .tm-load b { display: block; overflow-wrap: anywhere; }
 .tm-load span { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); }
+.tm-load .tm-note-line { margin-top: 2px; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tm-run { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
   padding: 0 16px calc(20px + env(safe-area-inset-bottom)); text-align: center; }
 .tm-name { margin: 0; font-weight: 700; opacity: .85; overflow-wrap: anywhere; }
+.tm-run-note { margin: -12px 0 0; max-width: 30rem; font-size: .95rem; opacity: .8; overflow-wrap: anywhere; }
 .tm-ring { position: relative; width: min(80vw, 54dvh, 440px); aspect-ratio: 1; }
 .tm-ring svg { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
 .tm-ring circle { fill: none; stroke: currentColor; stroke-width: 12; }

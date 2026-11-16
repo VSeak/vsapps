@@ -11,6 +11,7 @@ const TM_C = 2 * Math.PI * 90;   // the ring's length (r = 90 in its viewBox)
 const TM_GAP = 3;       // a repeater's rest between hangs when the exercise doesn't say: 7 on, 3 off is the usual
 const TM_TITLE = 'Hang Timer';   // its heading when no exercise opened it (the staff Home tile)
 const TM_NAME_MAX = 40;  // a saved timer's name (saved_timers.name)
+const TM_NOTE_MAX = 200; // its note: the setup the numbers don't hold (saved_timers.note, the user asked)
 // How many timers a person can keep (the user asked). The saved_timers_limit trigger holds the same numbers.
 const tmSavesMax = () => me?.isCoach || me?.isAdmin ? 10 : 5;
 const TM_LABEL = { ready: 'Get Ready', hang: 'Hang', gap: 'Rest', rest: 'Rest', done: 'Nice Work!' };
@@ -144,6 +145,8 @@ function tmSetup() {
     <span class="eyebrow tm-group">Each Set</span>
     ${tmStepHTML('reps', 'Reps Per Set', tm.reps || 1, 'reps')}
     ${tmTimeHTML('hang', 'Hang Time', tm.hang)}${tmTimeHTML('gap', 'Rest Between Reps', tm.gap)}
+    <label class="tm-note">Notes<input data-tm="note" maxlength="${TM_NOTE_MAX}" value="${esc(tm.note || '')}"
+      placeholder="E.g. 20mm edge, half crimp, +10 lb" autocomplete="off"></label>
     <p class="tm-sum"></p>
     <div class="tm-changes" hidden></div>
     <p class="tm-err" role="alert"></p>
@@ -153,7 +156,7 @@ function tmSetup() {
 }
 const tmLoaded = () => tmSaved?.find(s => s.id === tm.savedId) ?? null;
 const tmHeading = () => tmLoaded()?.name || tm.name || TM_TITLE;
-// A loaded saved timer whose numbers were changed here and not saved yet.
+// A loaded saved timer whose numbers or note were changed here and not saved yet.
 const tmChanged = () => !!tmLoaded() && !tmSame(tm, tmLoaded());
 // A loaded saved timer gets Rename and Delete under its name (the user asked: no separate Edit screen).
 function tmHeadHTML() {
@@ -180,6 +183,7 @@ function tmRead() {
   tm.hang = Math.min(TM_MAX, n('hangM') * 60 + n('hangS')) || null;
   tm.gap = Math.min(TM_MAX, n('gapM') * 60 + n('gapS')) || null;
   tm.rest = Math.min(TM_MAX, n('restM') * 60 + n('restS')) || null;
+  tm.note = tmDlg.querySelector('[data-tm="note"]').value.trim();
 }
 // What stops it starting, or '' when it is ready.
 const tmProblem = (doing = 'start') => !tm.sets || !tm.hang ? `Fill in the sets and the hang time to ${doing}.`
@@ -212,8 +216,10 @@ function tmRows() {
 // ---------- Saved timers (saved_timers): the list under Start, a person's own, on every device ----------
 // The numbers a timer really uses: a rest that can't happen isn't kept.
 const tmNums = t => ({ sets: t.sets, reps: t.reps, hang: t.hang, gap: t.reps > 1 ? t.gap : null, rest: t.sets > 1 ? t.rest : null });
-const tmSame = (a, b) => !!b && JSON.stringify(tmNums(a)) === JSON.stringify(tmNums(b));
-const TM_COLS = 'id,name,sets,reps,hang,gap,rest';
+// What a saved timer keeps: those numbers and its note (empty is null).
+const tmVals = t => ({ ...tmNums(t), note: t.note?.trim() || null });
+const tmSame = (a, b) => !!b && JSON.stringify(tmVals(a)) === JSON.stringify(tmVals(b));
+const TM_COLS = 'id,name,sets,reps,hang,gap,rest,note';
 // Loading can fail at a gym with no signal. The timer itself needs no server, so it just says so and keeps working.
 // They come in the order the person dragged them into (position; a new one is last).
 async function tmLoadSaved() {
@@ -240,7 +246,7 @@ function tmDrawSaved() {
     : `<ul class="tm-list">${tmSaved.map((s, k) => {
       const w = tmWords(s), on = s.id === tm.savedId;
       return `<li class="tm-item${on ? ' on' : ''}" data-tm-item="${s.id}">${n > 1 ? `<span class="grip" title="Drag to Reorder">${GRIP}</span>` : ''}<button type="button" class="tm-load" data-tm-load="${s.id}" aria-pressed="${on}">
-          <b>${esc(s.name)}</b><span>${w.top} · ${w.total}</span></button>
+          <b>${esc(s.name)}</b><span>${w.top} · ${w.total}</span>${s.note ? `<span class="tm-note-line">${esc(s.note)}</span>` : ''}</button>
         ${n > 1 ? `<span class="tm-arrows">${arrow(s, -1, k > 0)}${arrow(s, 1, k < n - 1)}</span>` : ''}</li>`;
     }).join('')}</ul>`}
     ${tmSaved && !room ? `<p class="hint">You've saved ${max}, the most you can. Delete one to save another.</p>` : ''}`;
@@ -259,7 +265,7 @@ function tmFail(e) {
 }
 // Picking one fills in the first screen, with Start right there; nothing starts until it is tapped.
 function tmPick(id) {
-  Object.assign(tm, tmNums(tmSaved.find(s => s.id === id)), { savedId: id });
+  Object.assign(tm, tmVals(tmSaved.find(s => s.id === id)), { savedId: id });
   tmSetup();
   tmDlg.scrollTo({ top: 0 });
   tmDlg.querySelector('.tm-go .fill').focus({ preventScroll: true });
@@ -271,12 +277,12 @@ async function tmSaveNew(btn) {
   const w = tmWords(tm);
   const f = await ask({ title: 'Save Timer', ok: 'Save', fill: true,
     body: `<label>Name<input name="name" required maxlength="${TM_NAME_MAX}" value="${esc(tm.name || '')}" placeholder="E.g. Max Hangs" autocomplete="off"></label>
-      <p class="hint">${w.top}<br>${w.between}${w.total}</p>`,
+      <p class="hint">${w.top}<br>${w.between}${w.total}${tm.note ? `<br>${esc(tm.note)}` : ''}</p>`,
     check: d => { const bad = tmNameProblem(d.get('name')); return bad ? ['name', bad] : null; } });
   if (!f || !tm) return;
   btn.disabled = true;
   try {
-    const row = await sb.from('saved_timers').insert({ name: f.get('name').trim(), ...tmNums(tm) }).select(TM_COLS).single().then(must);
+    const row = await sb.from('saved_timers').insert({ name: f.get('name').trim(), ...tmVals(tm) }).select(TM_COLS).single().then(must);
     tmSaved.push(row);
     tm.savedId = row.id;
     tmDlg.querySelector('.tm-head').innerHTML = tmHeadHTML();
@@ -292,7 +298,7 @@ async function tmUpdate(btn) {
   if (!s) return;
   btn.disabled = true;
   try {
-    const row = await sb.from('saved_timers').update(tmNums(tm)).eq('id', s.id).select(TM_COLS).single().then(must);
+    const row = await sb.from('saved_timers').update(tmVals(tm)).eq('id', s.id).select(TM_COLS).single().then(must);
     tmSaved[tmSaved.findIndex(x => x.id === row.id)] = row;
     tmDrawSaved();
   } catch (e) { tmFail(e); btn.disabled = false; }
@@ -359,6 +365,7 @@ function tmStart() {
   try { tmAudio ??= new (window.AudioContext || window.webkitAudioContext)(); tmAudio.resume(); } catch {}
   tmAwake(true);
   tmDlg.innerHTML = `${tmTopHTML(true)}<div class="tm-run"><p class="tm-name" id="tmTitle">${esc(tmHeading())}</p>
+    ${tm.note ? `<p class="tm-run-note">${esc(tm.note)}</p>` : ''}
     <div class="tm-ring"><svg viewBox="0 0 200 200" aria-hidden="true"><circle class="tm-track" cx="100" cy="100" r="90"/>
       <circle class="tm-fill" cx="100" cy="100" r="90" stroke-dasharray="${TM_C}" stroke-dashoffset="${TM_C}"/></svg>
       <div class="tm-mid"><span class="tm-phase" role="status"></span><span class="tm-left"></span><span class="tm-set"></span></div></div>
